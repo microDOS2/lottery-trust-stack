@@ -16,7 +16,7 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
     const pts: Array<{ dial: number; income: number; end: number }> = [];
     for (let d = 0; d <= 100; d += 5) {
       const r = computeStack({ ...inputs, mode: 'balanced', dial: d }, asm);
-      pts.push({ dial: d, income: r.annualFree, end: r.stackEnd });
+      pts.push({ dial: d, income: r.capacity, end: r.stackEnd });
     }
     return pts;
   }, [inputs, asm]);
@@ -49,8 +49,8 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
         />
         <div className="mt-2 grid grid-cols-3 gap-4 text-center">
           <div>
-            <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Tax-free income / yr</div>
-            <div className="font-num mt-1 text-xl font-semibold stat-warm">{fmt(current.annualFree)}</div>
+            <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Tax-free capacity / yr</div>
+            <div className="font-num mt-1 text-xl font-semibold stat-warm">{fmt(current.capacity)}</div>
           </div>
           <div>
             <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Allocation A / B / C</div>
@@ -72,14 +72,14 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
           Far left of the curve (dial 100): <span className="font-num">{fmtCompact(maxIncome?.income ?? 0)}/yr</span> income but only <span className="font-num">{fmtCompact(maxIncome?.end ?? 0)}</span> at 25 years.
           Far right (dial 0): <span className="font-num">{fmtCompact(maxGrowth?.end ?? 0)}</span> at 25 years but just <span className="font-num">{fmtCompact(maxGrowth?.income ?? 0)}/yr</span> now.
         </p>
-        <FrontierChart points={points} current={{ dial: inputs.dial, income: current.annualFree, end: current.stackEnd }} />
+        <FrontierChart points={points} current={{ dial: inputs.dial, income: current.capacity, end: current.stackEnd }} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="hairline-card p-5">
           <h4 className="font-display font-semibold">Why income engines pay less later</h4>
           <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">
-            Muni interest is paid out, not reinvested — a {pct(asm.muniYield)} yield is income, not growth. PPLI compounds at {pct(asm.ppliGrowth)} but you draw {pct(asm.ppliDraw)} of it. Only the equity sleeve compounds close to its full {pct(asm.eqGrowth)}.
+            Muni coupons arrive automatically — that's income, not growth. PPLI and equity draws are your choice: take only what you spend and the rest keeps compounding at {pct(asm.ppliGrowth)} and {pct(asm.eqGrowth)}. The dial sets your capacity ceiling, not a forced payout.
           </p>
         </div>
         <div className="hairline-card p-5">
@@ -91,7 +91,7 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
         <div className="hairline-card p-5">
           <h4 className="font-display font-semibold">A rule of thumb</h4>
           <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">
-            If your spending target is under ~{pct(current.blendedDraw * 0.8)} of the core per year, the stack compounds while you spend freely. Above that, you are slowly eating the machine that feeds you.
+            If your spending target is under ~{pct(current.blendedDraw * 0.8)} of the core per year, the stack compounds while you spend freely. Push past capacity and the model dips into principal — watch for the depletion warning on the Calculator tab.
           </p>
         </div>
       </div>
