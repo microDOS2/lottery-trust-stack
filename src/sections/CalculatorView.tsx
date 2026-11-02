@@ -14,7 +14,7 @@ import { AlertTriangle, Link2, Check, RotateCcw } from 'lucide-react';
 export interface ScenarioSlot {
   name: string;
   inputs: Inputs;
-  result: { net: number; core: number; annualFree: number; stackEnd: number; advantage: number; alloc: string };
+  result: { net: number; core: number; capacity: number; stackEnd: number; advantage: number; alloc: string };
 }
 
 interface Props {
@@ -32,6 +32,7 @@ interface Props {
 export default function CalculatorView(p: Props) {
   const { inputs: inp, result: r, asm } = p;
   const [copied, setCopied] = useState(false);
+  const [realDollars, setRealDollars] = useState(false);
   const set = <K extends keyof Inputs>(k: K, v: Inputs[K]) => p.setInputs((prev) => ({ ...prev, [k]: v }));
   const st = STATES.find((s) => s.code === inp.state)!;
   const tg = STATES.find((s) => s.code === inp.target)!;
@@ -44,6 +45,9 @@ export default function CalculatorView(p: Props) {
   };
 
   const w = r.weights;
+  const deflate = (v: number, year: number) => (realDollars ? v / Math.pow(1 + asm.inflation, year) : v);
+  const projStack = r.projection.map((row) => ({ ...row, end: deflate(row.end, row.year) }));
+  const projBase = r.baseline.map((row) => ({ ...row, end: deflate(row.end, row.year) }));
 
   return (
     <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px]">
@@ -139,6 +143,7 @@ export default function CalculatorView(p: Props) {
             {([
               ['muniYield', 'Muni yield'], ['ppliDraw', 'PPLI draw'], ['ppliGrowth', 'PPLI growth'],
               ['eqDraw', 'Equity draw'], ['eqGrowth', 'Equity growth'], ['divYield', 'Equity dividends'],
+              ['inflation', 'Inflation'],
             ] as const).map(([k, label]) => (
               <label key={k} className="text-[11px] text-muted-foreground">
                 {label}
@@ -176,14 +181,14 @@ export default function CalculatorView(p: Props) {
           <Stat label="Engine A · Munis" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of core · ${fmtCompact(r.muni * asm.muniYield)}/yr tax-free`} />
           <Stat label="Engine B · PPLI" value={fmtCompact(r.ppli)} sub={`${pct(w.b)} · ${fmtCompact(r.ppli * asm.ppliDraw)}/yr tax-free`} />
           <Stat label="Engine C · Equities" value={fmtCompact(r.equity)} sub={`${pct(w.c)} · ${fmtCompact(r.equity * asm.eqDraw)}/yr tax-free`} />
-          <Stat label="Annual tax-free income" value={fmtCompact(r.annualFree)} sub={`blended ${pct(r.blendedDraw)} draw`} tone="warm" />
+          <Stat label="Tax-free cash capacity" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
         </div>
 
         {!r.sustainable && (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="text-sm">
-              <strong>Your spending target outruns the engines.</strong> You want {fmt(inp.spend)}/yr but the stack generates {fmt(r.annualFree)}/yr tax-free. Either lower the target, move the dial toward income, or grow the core — at this draw mix you'd need a core of roughly <span className="font-num font-semibold">{fmt(r.requiredCore)}</span>.
+              <strong>Your spending target outruns the engines.</strong> You want {fmt(inp.spend)}/yr but the stack can sustainably pay {fmt(r.capacity)}/yr tax-free. Either lower the target, move the dial toward income, or grow the core — at this draw mix you'd need a core of roughly <span className="font-num font-semibold">{fmt(r.requiredCore)}</span>.
             </div>
           </div>
         )}
@@ -195,16 +200,33 @@ export default function CalculatorView(p: Props) {
             <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} />
           </div>
           <div className="hairline-card p-5">
-            <h3 className="font-display text-lg font-semibold">The compounding race</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Same engines, same returns, same net cash out — but unshielded. The gap is pure tax drag.
-              Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
-            </p>
-            <ProjectionChart stack={r.projection} baseline={r.baseline} />
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="font-display text-lg font-semibold">The compounding race</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Same engines, same returns, same cash to you — but unshielded. The gap is pure tax drag.
+                  Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
+                </p>
+              </div>
+              <button onClick={() => setRealDollars(!realDollars)}
+                className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
+                {realDollars ? "Today's $" : 'Nominal $'}
+              </button>
+            </div>
+            <ProjectionChart stack={projStack} baseline={projBase} />
           </div>
         </div>
 
         {inp.residency === 'pr' && <PRPanel inputs={inp} setInputs={p.setInputs} result={r} />}
+
+        {r.depletedYear && (
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div className="text-sm">
+              <strong>The stack runs dry around year {r.depletedYear}.</strong> At this spending level the engines can't keep up, so the projection dips into principal and eventually empties. Lower the target, raise the dial toward income, or grow the core first.
+            </div>
+          </div>
+        )}
 
         <ProjectionTable r={r} />
 
@@ -258,7 +280,8 @@ function ProjectionTable({ r }: { r: StackResult }) {
     <details className="hairline-card p-5">
       <summary className="cursor-pointer font-display text-lg font-semibold">25-year projection, year by year</summary>
       <p className="mt-1 text-xs text-muted-foreground">
-        Each engine's cash draw comes out of its total return; whatever isn't drawn keeps compounding. Growth column = the year's full pre-tax return on the stack.
+        Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw only your spending target
+        (growing with inflation); automatic muni coupons beyond that sweep back into equities. Overspending dips into principal, which is how a stack can run dry.
       </p>
       <div className="mt-3 max-h-96 overflow-auto rounded-md border border-border">
         <table className="w-full text-sm">
@@ -266,7 +289,8 @@ function ProjectionTable({ r }: { r: StackResult }) {
             <tr className="text-left text-xs text-muted-foreground">
               <th className="px-3 py-2 font-medium">Year</th>
               <th className="px-3 py-2 text-right font-medium">Beginning</th>
-              <th className="px-3 py-2 text-right font-medium">Tax-free cash</th>
+              <th className="px-3 py-2 text-right font-medium">Cash to you</th>
+              <th className="px-3 py-2 text-right font-medium">Reinvested</th>
               <th className="px-3 py-2 text-right font-medium">Growth</th>
               <th className="px-3 py-2 text-right font-medium">Ending</th>
             </tr>
@@ -277,6 +301,7 @@ function ProjectionTable({ r }: { r: StackResult }) {
                 <td className="px-3 py-1.5">{row.year}</td>
                 <td className="px-3 py-1.5 text-right">{fmt(row.begin)}</td>
                 <td className="px-3 py-1.5 text-right stat-warm">{fmt(row.cash)}</td>
+                <td className="px-3 py-1.5 text-right">{row.reinvested > 1 ? fmt(row.reinvested) : '—'}</td>
                 <td className="px-3 py-1.5 text-right stat-good">{fmt(row.growth)}</td>
                 <td className="px-3 py-1.5 text-right font-semibold">{fmt(row.end)}</td>
               </tr>
@@ -323,7 +348,7 @@ function ScenarioCompare(p: Props) {
                 ['Net after-tax pool', (s: ScenarioSlot) => fmtCompact(s.result.net)],
                 ['Investable core', (s: ScenarioSlot) => fmtCompact(s.result.core)],
                 ['Allocation A/B/C', (s: ScenarioSlot) => s.result.alloc],
-                ['Tax-free income /yr', (s: ScenarioSlot) => fmtCompact(s.result.annualFree)],
+                ['Tax-free capacity /yr', (s: ScenarioSlot) => fmtCompact(s.result.capacity)],
                 ['Net worth @ 25 yrs', (s: ScenarioSlot) => fmtCompact(s.result.stackEnd)],
                 ['Edge over taxable', (s: ScenarioSlot) => fmtCompact(s.result.advantage)],
               ] as const).map(([label, fn]) => (
@@ -352,7 +377,7 @@ function ExplainRail({ inp, r }: { inp: Inputs; r: StackResult }) {
         <ul className="mt-3 space-y-3 text-[13px] leading-relaxed text-muted-foreground">
           <li><strong className="text-foreground">Taxes came out first.</strong> The lottery withholds 24% federal, but the real bill is ~37% — the difference is due April 15, which is why Trust #1 parks it in T-Bills.</li>
           <li><strong className="text-foreground">Year 1 is a seasoning year.</strong> You live on the reserve while the PPLI and loss-harvesting engines warm up. Patience here is worth real money.</li>
-          <li><strong className="text-foreground">From month 13, the tap opens.</strong> {fmtCompact(r.annualFree)} a year flows to your checking at ~0% federal tax — while {fmtCompact(r.projection[0]?.growth ?? 0)} keeps compounding.</li>
+          <li><strong className="text-foreground">From month 13, the tap opens — but you choose the flow.</strong> Up to {fmtCompact(r.capacity)}/yr is available tax-free. You plan to draw {fmtCompact(r.plannedDrawY2)}, and the surplus sweeps back into the growth engine.</li>
         </ul>
       </div>
       <div className="hairline-card p-5">
