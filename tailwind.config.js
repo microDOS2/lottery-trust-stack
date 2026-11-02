@@ -4,7 +4,14 @@ module.exports = {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        display: ["Fraunces", "Georgia", "serif"],
+        sans: ["'Instrument Sans'", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["'IBM Plex Mono'", "ui-monospace", "monospace"],
+      },
       colors: {
+        success: "hsl(var(--success))",
+        gold: "hsl(var(--gold))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
