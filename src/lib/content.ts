@@ -272,7 +272,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   {
     phase: 'Month 13+',
     title: 'Turn on the tax-free tap',
-    body: 'Automate the draws: muni interest from the ladder, basis withdrawals then loans from the PPLI, harvested-basis and box-spread draws from equities. The Income ↔ Growth tab shows how much you can take while the stack still compounds. Recheck the dial once a year, not once a week.',
+    body: 'Automate the draws: muni interest from the ladder, basis withdrawals then loans from the PPLI, harvested-basis and box-spread draws from equities. The Income ↔ Growth tab shows how much you can take while the stack still compounds. Take only what you plan to spend — the surplus sweeps back into the growth engine. Recheck the dial once a year, not once a week.',
   },
   {
     phase: 'Every year after',
