@@ -37,12 +37,13 @@ export interface Inputs {
 
 export interface Assumptions {
   muniYield: number;   // tax-free coupon yield on the AAA/AA muni ladder
-  ppliGrowth: number;  // net growth inside the PPLI separate account
-  ppliDraw: number;    // tax-free draw rate (withdrawals to basis + policy loans)
+  ppliGrowth: number;  // net growth inside the PPLI separate account (after insurance charges)
+  ppliDraw: number;    // sustainable tax-free draw capacity (withdrawals to basis + policy loans)
   eqGrowth: number;    // nominal growth of direct-indexed equities
-  eqDraw: number;      // tax-efficient draw (basis + harvested losses + box spreads)
+  eqDraw: number;      // tax-efficient draw capacity (basis + harvested losses + box spreads)
   divYield: number;    // equity dividend yield (taxed annually in the taxable baseline)
   ltcgRate: number;    // federal LTCG 20% + NIIT 3.8%
+  inflation: number;   // spending target grows at this rate; also powers the "today's dollars" view
 }
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
@@ -53,6 +54,7 @@ export const DEFAULT_ASSUMPTIONS: Assumptions = {
   eqDraw: 0.045,
   divYield: 0.015,
   ltcgRate: 0.238,
+  inflation: 0.025,
 };
 
 export const DEFAULT_INPUTS: Inputs = {
@@ -131,8 +133,9 @@ export function grossFromNet(net: number, stateRate: number, filing: Filing): nu
 export interface ProjectionRow {
   year: number;
   begin: number;
-  cash: number;
-  growth: number;
+  cash: number;       // to you, after engine distributions
+  reinvested: number; // surplus swept back into the growth engine
+  growth: number;     // engine appreciation for the year
   end: number;
 }
 
@@ -151,12 +154,16 @@ export interface StackResult {
   muni: number;
   ppli: number;
   equity: number;
-  annualFree: number;       // year-1 tax-free cash from engines
-  blendedDraw: number;
+  capacity: number;         // max tax-free cash the engines can pay per year (NOT a forced draw)
+  plannedDrawY2: number;    // first planned draw — year 2, after the seasoning year
+  reinvestY2: number;       // capacity beyond the planned draw in year 2
+  blendedDraw: number;      // capacity / core
   futureStateRate: number;
   sustainable: boolean;
   requiredCore: number;
   qpOk: boolean;
+  depletedYear: number | null;
+  baselineDepletedYear: number | null;
   projection: ProjectionRow[];      // 25 years, stack
   baseline: ProjectionRow[];        // 25 years, plain taxable account
   stackEnd: number;
@@ -198,46 +205,108 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   const equity = core * w.c;
 
   // Muni interest is federal-tax-free; in 'stay' mode we assume in-state bonds → state-free too.
-  const annualFree = muni * asm.muniYield + ppli * asm.ppliDraw + equity * asm.eqDraw;
-  const blendedDraw = core > 0 ? annualFree / core : 0;
-  // Each engine's total pre-tax return; draws are funded out of that return, the rest compounds.
-  const blendedGross = w.a * asm.muniYield + w.b * asm.ppliGrowth + w.c * asm.eqGrowth;
+  // `capacity` is what the engines COULD pay tax-free each year — it is a ceiling, not a forced draw.
+  const capacity = muni * asm.muniYield + ppli * asm.ppliDraw + equity * asm.eqDraw;
+  const blendedDraw = core > 0 ? capacity / core : 0;
 
-  const sustainable = inp.spend <= annualFree + 1e-9;
+  const sustainable = inp.spend <= capacity + 1e-9;
   const requiredCore = blendedDraw > 0 ? inp.spend / blendedDraw : Infinity;
 
+  // ---- Stack projection ----
+  // Year 1 is the seasoning year: no draws, coupons reinvested. From year 2 you draw only your
+  // (inflation-adjusted) spending target. Muni coupons arrive automatically; draws beyond coupons
+  // come from PPLI and equities in proportion to their draw capacity; a spending shortfall dips
+  // into principal (equities first). Surplus coupons sweep into the equity engine.
   const projection: ProjectionRow[] = [];
-  let bal = core;
+  let muniB = muni, ppliB = ppli, eqB = equity;
+  let cumCash = 0;
+  let depletedYear: number | null = null;
+  let plannedDrawY2 = 0;
+  let reinvestY2 = 0;
+
   for (let y = 1; y <= 25; y++) {
-    const begin = bal;
-    const cash = begin * blendedDraw;       // tax-free draw, funded from total return
-    const growth = begin * blendedGross;    // full engine return for the year
-    bal = begin + growth - cash;            // what isn't drawn keeps compounding
-    projection.push({ year: y, begin, cash, growth, end: bal });
+    const begin = muniB + ppliB + eqB;
+    if (begin <= 0) {
+      projection.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, end: 0 });
+      if (depletedYear === null) depletedYear = y;
+      continue;
+    }
+    const coupons = muniB * asm.muniYield;
+    const ppliCap = ppliB * asm.ppliDraw;
+    const eqCap = eqB * asm.eqDraw;
+    const discCap = ppliCap + eqCap;
+    const desired = y === 1 ? 0 : inp.spend * Math.pow(1 + asm.inflation, y - 2);
+
+    let ppliDrawAmt = 0;
+    let eqDrawAmt = 0;
+    const need = Math.max(0, desired - coupons);
+    if (need <= discCap) {
+      ppliDrawAmt = discCap > 0 ? (need * ppliCap) / discCap : 0;
+      eqDrawAmt = need - ppliDrawAmt;
+    } else {
+      // overspend: max the sustainable draws, then dip principal (equities first, PPLI last)
+      ppliDrawAmt = ppliCap;
+      eqDrawAmt = eqCap;
+      let extra = need - discCap;
+      const eqRoom = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt);
+      const takeEq = Math.min(extra, eqRoom);
+      eqDrawAmt += takeEq; extra -= takeEq;
+      const ppliRoom = Math.max(0, ppliB * (1 + asm.ppliGrowth) - ppliDrawAmt);
+      const takePpli = Math.min(extra, ppliRoom);
+      ppliDrawAmt += takePpli; extra -= takePpli;
+      if (extra > 1 && depletedYear === null) depletedYear = y; // can't fully fund the target
+    }
+
+    const outTotal = coupons + ppliDrawAmt + eqDrawAmt;
+    const cash = Math.min(desired, outTotal);
+    const reinvested = outTotal - cash; // coupon surplus (or year-1 coupons) sweeps to Engine C
+
+    const newMuni = muniB; // coupons distributed, par ladder rolls at par
+    const newPpli = Math.max(0, ppliB * (1 + asm.ppliGrowth) - ppliDrawAmt);
+    const newEq = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt + reinvested);
+    const growth = ppliB * asm.ppliGrowth + eqB * asm.eqGrowth;
+    const end = newMuni + newPpli + newEq;
+    if (end <= 0 && depletedYear === null) depletedYear = y;
+
+    projection.push({ year: y, begin, cash, reinvested, growth, end });
+    cumCash += cash;
+    if (y === 2) { plannedDrawY2 = cash; reinvestY2 = reinvested; }
+    muniB = newMuni; ppliB = newPpli; eqB = newEq;
   }
 
-  // Taxable baseline: SAME engines, SAME pre-tax returns, same net cash taken each year —
-  // but with no tax shielding. Interest is taxed at ordinary rates, dividends at LTCG+NIIT+state
-  // every year, and each withdrawal is grossed up by the tax on its gain portion (the gain share
-  // rises as the account compounds). This isolates what the structure itself is worth.
+  // ---- Taxable baseline ----
+  // Same engines, same pre-tax returns, same cash to you each year — but unshielded.
+  // Interest is taxed at ordinary rates and dividends at LTCG+NIIT+state annually;
+  // any shortfall is covered by selling appreciated assets, grossed up for the tax on gains.
   const ordRate = 0.37 + fsr;             // US-source interest stays federal even for PR residents
-  const baseline: ProjectionRow[] = [];
-  let bbal = core;
-  const divDrag = asm.ltcgRate + fsr;       // US-source dividends stay federal (23.8%) even in PR
+  const divDrag = asm.ltcgRate + fsr;     // US-source dividends stay federal (23.8%) even in PR
   const gainDrag = prMode ? prRate : asm.ltcgRate + fsr; // PR removes federal tax on post-move gains
-  let cumCash = 0;
+  const baseline: ProjectionRow[] = [];
+  let bal = core;
+  let baselineDepletedYear: number | null = null;
+
   for (let y = 1; y <= 25; y++) {
-    const begin = bbal;
-    const netCashWanted = projection[y - 1].cash;
-    cumCash += netCashWanted;
-    const intTax = begin * w.a * asm.muniYield * ordRate;   // taxable-bond interest, ordinary rates
-    const divTax = begin * w.c * asm.divYield * divDrag;    // equity dividends, annually
-    const gainShare = begin > 0 ? Math.min(0.95, Math.max(0, 1 - core / begin)) : 0;
-    const grossW = netCashWanted / Math.max(0.05, 1 - gainShare * gainDrag);
-    const growth = begin * blendedGross;
-    bbal = begin + growth - intTax - divTax - grossW;
-    if (bbal < 0) bbal = 0;
-    baseline.push({ year: y, begin, cash: grossW, growth, end: bbal });
+    const begin = bal;
+    if (begin <= 0) {
+      baseline.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, end: 0 });
+      if (baselineDepletedYear === null) baselineDepletedYear = y;
+      continue;
+    }
+    const desired = y === 1 ? 0 : inp.spend * Math.pow(1 + asm.inflation, y - 2);
+    const interestNet = begin * w.a * asm.muniYield * (1 - ordRate);
+    const divNet = begin * w.c * asm.divYield * (1 - divDrag);
+    const autoNet = interestNet + divNet;
+    const surplus = Math.max(0, autoNet - desired);
+    const need = Math.max(0, desired - autoNet);
+    const gainShare = Math.min(0.95, Math.max(0, 1 - core / begin));
+    let grossW = need > 0 ? need / Math.max(0.05, 1 - gainShare * gainDrag) : 0;
+    grossW = Math.min(grossW, begin); // can't sell more than you have
+    const cash = Math.min(desired, autoNet + grossW * (1 - gainShare * gainDrag));
+    const appreciation = begin * (w.b * asm.ppliGrowth + w.c * asm.eqGrowth); // muni part is the interest cash
+    const end = Math.max(0, begin + appreciation + surplus - grossW);
+    if (end <= 0 && baselineDepletedYear === null) baselineDepletedYear = y;
+    baseline.push({ year: y, begin, cash, reinvested: surplus, growth: appreciation, end });
+    bal = end;
   }
 
   const stackEnd = projection[24]?.end ?? 0;
@@ -250,8 +319,10 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   return {
     prMode, prRate, preMoveGainsTax,
     gross, fedTax: fed, stateTax: stx, withheld, net, yr1Reserve, core,
-    weights: w, muni, ppli, equity, annualFree, blendedDraw,
+    weights: w, muni, ppli, equity,
+    capacity, plannedDrawY2, reinvestY2, blendedDraw,
     futureStateRate: fsr, sustainable, requiredCore, qpOk,
+    depletedYear, baselineDepletedYear,
     projection, baseline, stackEnd, baselineEnd, advantage: stackEnd - baselineEnd, cumCash,
   };
 }
