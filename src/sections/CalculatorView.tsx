@@ -7,6 +7,8 @@ import {
 import { Stat, Field, SectionTitle } from '../components/widgets';
 import { AllocationDonut, ProjectionChart, FlowDiagram } from '../components/viz';
 import { Slider } from '@/components/ui/slider';
+import PRPanel from './PRPanel';
+import RealEstatePanel from './RealEstatePanel';
 import { AlertTriangle, Link2, Check, RotateCcw } from 'lucide-react';
 
 export interface ScenarioSlot {
@@ -83,7 +85,7 @@ export default function CalculatorView(p: Props) {
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend} min={0} step={10000} onChange={(e) => set('spend', +e.target.value || 0)} />
         </Field>
 
-        <Field label="Entity #4 property / vehicle reserve" help="Cash carved out for the anonymous LLC to buy a home or vehicles. $0 if none.">
+        <Field label="Entity #4 property / vehicle reserve" help={inp.residency === 'pr' ? "LLC can hold investment property — but not your PR primary residence (2026 rules require direct/trust ownership)." : "Cash carved out for the anonymous LLC to buy a home or vehicles. $0 if none."}>
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.entity4} min={0} step={50000} onChange={(e) => set('entity4', +e.target.value || 0)} />
         </Field>
 
@@ -120,6 +122,7 @@ export default function CalculatorView(p: Props) {
             <option value="stay">Stay put in {st.name}</option>
             <option value="second">Second home + domicile in {tg.name} (&lt;183 days)</option>
             <option value="move">Full move to {tg.name}</option>
+            <option value="pr">Move to Puerto Rico (Act 60 decree)</option>
           </select>
         </Field>
 
@@ -201,7 +204,11 @@ export default function CalculatorView(p: Props) {
           </div>
         </div>
 
+        {inp.residency === 'pr' && <PRPanel inputs={inp} setInputs={p.setInputs} result={r} />}
+
         <ProjectionTable r={r} />
+
+        <RealEstatePanel suggestedPrice={inp.entity4} marginalRate={0.37 + r.futureStateRate} />
 
         <div className="hairline-card p-5">
           <h3 className="font-display text-lg font-semibold">The money flow</h3>
@@ -351,9 +358,9 @@ function ExplainRail({ inp, r }: { inp: Inputs; r: StackResult }) {
       <div className="hairline-card p-5">
         <h4 className="font-display text-base font-semibold">Your residency math</h4>
         <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-          {inp.residency === 'stay'
-            ? <>Staying in {st.name} means future unshielded income faces {pct(st.rate)} state tax. The stack's engines are designed so that number touches as little of your money as possible.</>
-            : <>Domiciled in {tg.name} ({tg.noTax ? '0% income tax' : `${pct(tg.rate)} top rate`}), your future investment income faces <span className="font-num stat-good font-semibold">{pct(r.futureStateRate)}</span> state tax. Keep a day-count log — {st.name} will check.</>}
+          {inp.residency === 'stay' && <>Staying in {st.name} means future unshielded income faces {pct(st.rate)} state tax. The stack's engines are designed so that number touches as little of your money as possible.</>}
+          {inp.residency === 'pr' && <>As a bona fide Puerto Rico resident with an Act 60 decree, federal tax on post-move investment <em>gains</em> drops to <span className="font-num stat-good font-semibold">{pct(r.prRate, 0)}</span> under IRC §933 — the strongest legal rate available to a US person who keeps their citizenship. Details and the filing deadline are in the PR module above.</>}
+          {(inp.residency === 'second' || inp.residency === 'move') && <>Domiciled in {tg.name} ({tg.noTax ? '0% income tax' : `${pct(tg.rate)} top rate`}), your future investment income faces <span className="font-num stat-good font-semibold">{pct(r.futureStateRate)}</span> state tax. Keep a day-count log — {st.name} will check.</>}
         </p>
       </div>
       <div className="rounded-lg border border-gold/40 bg-[hsl(var(--gold-tint))] p-4 text-[12.5px] leading-relaxed text-[hsl(var(--espresso-soft))]">
