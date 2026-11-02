@@ -138,7 +138,7 @@ export default function Home() {
             CPAs, and fiduciaries before acting on anything here.
           </p>
           <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
-            Rates last verified: November 2026 · For personal use
+            Rates last verified: November 2026 · For personal use · v1.0
           </p>
         </div>
       </footer>
