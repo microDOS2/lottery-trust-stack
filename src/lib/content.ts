@@ -151,6 +151,57 @@ export const STRATEGIES: Strategy[] = [
     stat: '0%',
     statLabel: 'capital gains tax inside a CRT',
   },
+  {
+    id: 'pr-act60',
+    tag: 'New module · Global',
+    name: 'Puerto Rico Act 60',
+    oneLiner:
+      'The only way to keep US citizenship and legally cut federal tax on investment gains to near zero: become a genuine resident of Puerto Rico, which the tax code treats as outside the US for income earned after the move.',
+    taxMagic:
+      'IRC §933 excludes Puerto-Rico-source income from US federal tax for bona fide PR residents — and capital gains on personal property are sourced by residence. The Act 60 decree then sets the local rate: 0% for applications filed by December 31, 2026 (locked through 2035), or a flat 4% for filings from 2027 onward (through 2055). Gains you already had before moving stay taxable — federal up to 23.8% if sold within 10 years, 5% to PR after.',
+    qualifies:
+      'You must actually move: 183+ days a year, your primary home in PR (bought within 2 years — and under the 2026 rules owned directly or by a trust, not an LLC), a six-year residency lookback, $15,000/year to PR charities, and a formal decree application with fees.',
+    watchOut:
+      'This is a lifestyle move with a tax benefit, not a mailbox. PR and the IRS both police it, and Congress rewrites the deal periodically — 2026 was the second tightening. US-source dividends and interest remain federally taxable, so portfolios get restructured toward growth. And the prize itself, if claimed before the move, is already taxed.',
+    plugsIn:
+      'A residency option in the calculator. The whole trust stack still applies — Trust #2 and #3 work the same — but the taxable-baseline comparison drops to the PR rate, and Entity #4 cannot hold the PR home.',
+    stat: '0% / 4%',
+    statLabel: 'decree rate: filed 2026 vs 2027+',
+  },
+  {
+    id: 'real-estate',
+    tag: 'New module',
+    name: 'Investment Real Estate in the LLC',
+    oneLiner:
+      'Entity #4 can do more than hold your house anonymously — put income property in it and three quiet tax engines compound wealth: depreciation, 1031 exchanges, and the step-up at death.',
+    taxMagic:
+      'Depreciation creates a paper loss that shelters the rent; a cost-segregation study front-loads ~20–30% of the building into 100% bonus depreciation in year one. When you sell, a 1031 exchange rolls the entire gain into the next property, deferred indefinitely. Hold until death and the §1014 step-up erases the deferred gain for your heirs.',
+    qualifies:
+      'Anyone. 1031 requires like-kind real estate, a qualified intermediary, and strict 45-day identification / 180-day closing windows. Depreciation shields only passive income unless you qualify as a real-estate professional.',
+    watchOut:
+      'Depreciation recapture (25%) and deferred gains come due if you ever sell without exchanging. Real estate is illiquid, management-intensive, and local — a bad market can idle capital for years. Land never depreciates; only the building does.',
+    plugsIn:
+      'Lives in Entity #4. The LLC owns the properties (privacy + liability), rents cover carrying costs, and equity compounds tax-deferred alongside the securities engines in Trusts #2 and #3.',
+    stat: '0%',
+    statLabel: 'tax on gains via 1031 chain',
+  },
+  {
+    id: 'expatriation',
+    tag: 'Reality check · Global',
+    name: 'Expatriation: Why It Rarely Wins',
+    oneLiner:
+      'Renouncing US citizenship is the only true escape from US worldwide taxation — and for anyone wealthy enough to consider it, the exit toll is designed to make leaving cost about the same as staying.',
+    taxMagic:
+      'There is no magic — that is the point. With a net worth of $2M+ you are a "covered expatriate": the IRS deems your worldwide assets sold the day before you leave, taxing gains above a $910,000 exclusion (2026) at up to 23.8%. A deferred-compensation and trust regime follows, and under §2801, future gifts or bequests to US persons can face a 40% tax — for the rest of your life.',
+    qualifies:
+      'Anyone can renounce (the fee is $450). The question is whether you want a new home country, a second passport first, and permanent distance from US family and markets — not whether the math works.',
+    watchOut:
+      'It is irrevocable in practice, can complicate US visas and banking forever, and does not unwind prior-year liabilities. Every offshore "tax freedom" pitch aimed at a US citizen that skips the exit tax is incomplete or dishonest.',
+    plugsIn:
+      'Nowhere in the stack — that is the answer. Puerto Rico captures most of the benefit at a fraction of the cost. Model PR first; treat expatriation as a life decision, never a tax play.',
+    stat: '23.8%',
+    statLabel: 'deemed-sale toll on the way out',
+  },
 ];
 
 export interface GlossaryTerm { term: string; def: string }
@@ -174,6 +225,11 @@ export const GLOSSARY: GlossaryTerm[] = [
   { term: 'DAF', def: 'Donor-Advised Fund. A charitable account you fund now (deduction now) and grant from over time. Ideal for bunching deductions into your high-income prize year.' },
   { term: 'IDGT / GRAT / SLAT', def: 'Estate-planning trust flavors: Intentionally Defective Grantor Trust (freeze estate value, you pay the income tax), Grantor Retained Annuity Trust (pass appreciation above a hurdle rate gift-tax-free), Spousal Lifetime Access Trust (remove assets from the estate while your spouse keeps access).' },
   { term: 'Domicile vs. residency', def: 'Domicile is your true legal home (intent + ties: license, voter registration, primary home). Statutory residency is a day-count test (often ~183 days plus a permanent abode). High-tax states audit both aggressively — track your days.' },
+  { term: 'Act 60 / IRC §933', def: 'Puerto Rico\'s tax-incentive decree combined with the federal code section that excludes Puerto-Rico-source income from US tax for bona fide PR residents. The legal basis for the 0%/4% rates on post-move investment gains.' },
+  { term: '1031 exchange', def: 'IRC §1031: sell investment real estate and roll the entire proceeds into a like-kind property within strict deadlines (45-day identification, 180-day close) and the capital gain is deferred, not taxed. Can be chained forever.' },
+  { term: 'Cost segregation', def: 'An engineering study that reclassifies parts of a building (fixtures, flooring, landscaping) into 5/7/15-year property so they depreciate in year one via 100% bonus depreciation, instead of over 27.5 years.' },
+  { term: 'Covered expatriate', def: 'A US citizen or long-term resident who renounces with $2M+ net worth (or high average tax liability). Triggers the exit tax: a deemed sale of worldwide assets above a $910,000 exclusion (2026).' },
+  { term: 'IRC §2801', def: 'The parting gift of expatriation: a 40% tax on gifts or bequests a covered expatriate later makes to US citizens or residents — paid by the recipient, for the rest of the expatriate\'s life.' },
 ];
 
 export interface GuideStep {
