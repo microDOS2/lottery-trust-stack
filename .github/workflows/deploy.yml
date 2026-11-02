@@ -16,7 +16,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npm ci
+      - name: Install dependencies (retry on npm flake)
+        run: |
+          for i in 1 2 3; do
+            npm ci --no-audit --no-fund && break
+            echo "npm ci attempt $i failed; retrying..." && sleep 15
+          done
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
