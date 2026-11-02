@@ -15,7 +15,7 @@ export const fmtCompact = (n: number): string => {
 export const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
 
 export type Mode = 'balanced' | 'income' | 'growth' | 'manual';
-export type Residency = 'stay' | 'second' | 'move';
+export type Residency = 'stay' | 'second' | 'move' | 'pr';
 export type Basis = 'gross' | 'net';
 
 export interface Inputs {
@@ -28,6 +28,9 @@ export interface Inputs {
   mode: Mode;
   residency: Residency;
   filing: Filing;
+  prFiling: 'pre2027' | 'post2026';   // Act 38-2026: file by Dec 31 2026 → 0% to 2035; later → 4% to 2055
+  preMoveGains: number;               // unrealized gains held before the PR move
+  preMoveWindow: 'within10' | 'after10'; // when pre-move gains are realized
   dial: number; // 0 = max compounding, 100 = max tax-free income
   manual: { a: number; b: number; c: number }; // fractions summing to 1
 }
@@ -62,6 +65,9 @@ export const DEFAULT_INPUTS: Inputs = {
   mode: 'balanced',
   residency: 'stay',
   filing: 'single',
+  prFiling: 'pre2027',
+  preMoveGains: 0,
+  preMoveWindow: 'within10',
   dial: 50,
   manual: { a: 0.25, b: 0.25, c: 0.5 },
 };
@@ -102,6 +108,7 @@ export function resolveWeights(inp: Inputs, core: number): Weights {
 export function futureStateRate(inp: Inputs): number {
   const st = stateByCode(inp.state);
   const tg = stateByCode(inp.target);
+  if (inp.residency === 'pr') return 0; // PR replaces the state picture; federal handled via prRate
   if (inp.residency === 'stay') return st.rate;
   if (inp.residency === 'second' && !tg.noTax) return st.rate; // second-home mode against a taxed target keeps exposure
   return tg.rate;
@@ -130,6 +137,9 @@ export interface ProjectionRow {
 }
 
 export interface StackResult {
+  prMode: boolean;
+  prRate: number;
+  preMoveGainsTax: number;
   gross: number;
   fedTax: number;
   stateTax: number;
@@ -159,6 +169,8 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   const st = stateByCode(inp.state);
   const std = STD_DEDUCTION_2026[inp.filing];
   const fsr = futureStateRate(inp);
+  const prMode = inp.residency === 'pr';
+  const prRate = prMode ? (inp.prFiling === 'pre2027' ? 0 : 0.04) : 0;
   const prizeStateRate = st.lotteryExempt ? 0 : st.rate;
 
   let gross: number, fed: number, stx: number, withheld: number, net: number;
@@ -208,19 +220,20 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   // but with no tax shielding. Interest is taxed at ordinary rates, dividends at LTCG+NIIT+state
   // every year, and each withdrawal is grossed up by the tax on its gain portion (the gain share
   // rises as the account compounds). This isolates what the structure itself is worth.
-  const ordRate = 0.37 + fsr;
+  const ordRate = 0.37 + fsr;             // US-source interest stays federal even for PR residents
   const baseline: ProjectionRow[] = [];
   let bbal = core;
-  const drag = asm.ltcgRate + fsr;
+  const divDrag = asm.ltcgRate + fsr;       // US-source dividends stay federal (23.8%) even in PR
+  const gainDrag = prMode ? prRate : asm.ltcgRate + fsr; // PR removes federal tax on post-move gains
   let cumCash = 0;
   for (let y = 1; y <= 25; y++) {
     const begin = bbal;
     const netCashWanted = projection[y - 1].cash;
     cumCash += netCashWanted;
     const intTax = begin * w.a * asm.muniYield * ordRate;   // taxable-bond interest, ordinary rates
-    const divTax = begin * w.c * asm.divYield * drag;       // equity dividends, annually
+    const divTax = begin * w.c * asm.divYield * divDrag;    // equity dividends, annually
     const gainShare = begin > 0 ? Math.min(0.95, Math.max(0, 1 - core / begin)) : 0;
-    const grossW = netCashWanted / Math.max(0.05, 1 - gainShare * drag);
+    const grossW = netCashWanted / Math.max(0.05, 1 - gainShare * gainDrag);
     const growth = begin * blendedGross;
     bbal = begin + growth - intTax - divTax - grossW;
     if (bbal < 0) bbal = 0;
@@ -230,7 +243,12 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   const stackEnd = projection[24]?.end ?? 0;
   const baselineEnd = baseline[24]?.end ?? 0;
 
+  const preMoveGainsTax = prMode
+    ? inp.preMoveGains * (inp.preMoveWindow === 'within10' ? asm.ltcgRate : 0.05)
+    : 0;
+
   return {
+    prMode, prRate, preMoveGainsTax,
     gross, fedTax: fed, stateTax: stx, withheld, net, yr1Reserve, core,
     weights: w, muni, ppli, equity, annualFree, blendedDraw,
     futureStateRate: fsr, sustainable, requiredCore, qpOk,
