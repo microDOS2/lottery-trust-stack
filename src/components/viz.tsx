@@ -107,7 +107,7 @@ export function FrontierChart({ points, current }: { points: FrontierPoint[]; cu
           tick={{ fontSize: 11, fill: 'hsl(33 9% 38%)' }}
           tickLine={false}
           axisLine={false}
-          label={{ value: 'Annual tax-free income →', position: 'insideBottom', offset: -2, fontSize: 11, fill: 'hsl(33 9% 38%)' }}
+          label={{ value: 'Tax-free cash capacity →', position: 'insideBottom', offset: -2, fontSize: 11, fill: 'hsl(33 9% 38%)' }}
         />
         <YAxis
           tickFormatter={(v: number) => fmtCompact(v)}
