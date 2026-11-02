@@ -67,7 +67,7 @@ export default function Home() {
       name: `Scenario ${'ABC'[i]}`,
       inputs,
       result: {
-        net: r.net, core: r.core, annualFree: r.annualFree, stackEnd: r.stackEnd, advantage: r.advantage,
+        net: r.net, core: r.core, capacity: r.capacity, stackEnd: r.stackEnd, advantage: r.advantage,
         alloc: `${Math.round(r.weights.a * 100)}/${Math.round(r.weights.b * 100)}/${Math.round(r.weights.c * 100)}`,
       },
     };
