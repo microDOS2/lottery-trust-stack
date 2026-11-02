@@ -5,7 +5,8 @@ import { defineConfig } from "vite"
 // Optional: sandbox/preview tooling plugin — absent in CI or a fresh clone, and that's fine.
 let inspectAttrPlugin: any = null;
 try {
-  const mod: any = await import('kimi-plugin-inspect-react');
+  const pluginName = ['kimi-plugin-inspect', 'react'].join('-'); // resolved only where it exists
+  const mod: any = await import(/* @vite-ignore */ pluginName);
   inspectAttrPlugin = mod.inspectAttr();
 } catch {
   inspectAttrPlugin = null;
