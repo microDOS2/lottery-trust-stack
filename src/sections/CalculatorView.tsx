@@ -190,6 +190,14 @@ export default function CalculatorView(p: Props) {
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend} min={0} step={10000} onChange={(e) => set('spend', +e.target.value || 0)} />
         </Field>
 
+        <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
+          <span className="text-[13px]">Grow draw with inflation</span>
+          <button onClick={() => set('flatDraw', !inp.flatDraw)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer ${inp.flatDraw ? 'bg-card border border-input text-muted-foreground hover:border-primary/50' : 'bg-primary text-primary-foreground'}`}>
+            {inp.flatDraw ? 'Off — flat draw' : 'On'}
+          </button>
+        </div>
+
         <Field label="Entity #4 property / vehicle reserve" help={inp.residency === 'pr' ? "LLC can hold investment property — but not your PR primary residence (2026 rules require direct/trust ownership)." : "Cash carved out for the anonymous LLC to buy a home or vehicles. $0 if none."}>
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.entity4} min={0} step={50000} onChange={(e) => set('entity4', +e.target.value || 0)} />
         </Field>
