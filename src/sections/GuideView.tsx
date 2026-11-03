@@ -21,11 +21,11 @@ export function GuideView() {
             {i < GUIDE_STEPS.length - 1 && (
               <span className="absolute left-[15px] top-10 h-full w-px bg-border" aria-hidden />
             )}
-            <span className="font-num z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[13px] font-semibold text-accent-foreground">
+            <span className="font-num z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[14px] font-semibold text-accent-foreground">
               {i + 1}
             </span>
             <div className="pt-0.5">
-              <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{s.phase}</div>
+              <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">{s.phase}</div>
               <h3 className="font-display mt-0.5 text-xl font-semibold">{s.title}</h3>
               <p className="mt-1.5 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">{s.body}</p>
             </div>
@@ -48,7 +48,7 @@ export function GlossaryView() {
         {GLOSSARY.map((g) => (
           <div key={g.term} className="hairline-card p-4">
             <dt className="font-display text-[15px] font-semibold">{g.term}</dt>
-            <dd className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{g.def}</dd>
+            <dd className="mt-1 text-[14px] leading-relaxed text-muted-foreground">{g.def}</dd>
           </div>
         ))}
       </dl>
