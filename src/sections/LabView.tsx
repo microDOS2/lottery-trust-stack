@@ -65,15 +65,15 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
 
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-accent p-4 text-center">
-            <div className="text-[12px] font-medium text-accent-foreground/80">You can spend, tax-free</div>
+            <div className="text-[13.5px] font-medium text-accent-foreground/80">You can spend, tax-free</div>
             <div className="font-num mt-1 text-2xl font-semibold text-accent-foreground">{fmt(current.capacity)}<span className="text-sm font-normal">/yr</span></div>
           </div>
           <div className="rounded-lg bg-[hsl(var(--success-tint))] p-4 text-center">
-            <div className="text-[12px] font-medium text-success/80">You'd have in 25 years</div>
+            <div className="text-[13.5px] font-medium text-success/80">You'd have in 25 years</div>
             <div className="font-num mt-1 text-2xl font-semibold stat-good">{fmt(current.stackEnd)}</div>
           </div>
           <div className="rounded-lg bg-secondary p-4 text-center">
-            <div className="text-[12px] font-medium text-muted-foreground">Your money is split</div>
+            <div className="text-[13.5px] font-medium text-muted-foreground">Your money is split</div>
             <div className="font-num mt-1 text-lg font-semibold">
               {Math.round(current.weights.a * 100)}% munis · {Math.round(current.weights.b * 100)}% insurance · {Math.round(current.weights.c * 100)}% stocks
             </div>
@@ -94,14 +94,14 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
             <CartesianGrid stroke="hsl(38 28% 90%)" vertical={false} />
             <XAxis
               dataKey="dial"
-              tick={{ fontSize: 11, fill: 'hsl(33 9% 38%)' }}
+              tick={{ fontSize: 12.5, fill: 'hsl(33 9% 38%)' }}
               tickLine={false} axisLine={false} tickMargin={8}
               tickFormatter={(v: number) => (v === 0 ? 'All growth' : v === 50 ? 'Balanced' : v === 100 ? 'All income' : '')}
             />
-            <YAxis yAxisId="l" tickFormatter={(v: number) => fmtCompact(v)} tick={{ fontSize: 11, fill: 'hsl(9 76% 45%)' }} tickLine={false} axisLine={false} width={56} />
-            <YAxis yAxisId="r" orientation="right" tickFormatter={(v: number) => fmtCompact(v)} tick={{ fontSize: 11, fill: 'hsl(99 32% 32%)' }} tickLine={false} axisLine={false} width={56} />
+            <YAxis yAxisId="l" tickFormatter={(v: number) => fmtCompact(v)} tick={{ fontSize: 12.5, fill: 'hsl(9 76% 45%)' }} tickLine={false} axisLine={false} width={56} />
+            <YAxis yAxisId="r" orientation="right" tickFormatter={(v: number) => fmtCompact(v)} tick={{ fontSize: 12.5, fill: 'hsl(99 32% 32%)' }} tickLine={false} axisLine={false} width={56} />
             <Tooltip
-              contentStyle={{ backgroundColor: 'hsl(40 60% 99%)', border: '1px solid hsl(38 28% 86%)', borderRadius: 10, fontSize: 13 }}
+              contentStyle={{ backgroundColor: 'hsl(40 60% 99%)', border: '1px solid hsl(38 28% 86%)', borderRadius: 10, fontSize: 14 }}
               formatter={(v: number, name: string) => [name === 'income' ? `${fmt(v)}/yr` : fmt(v), name === 'income' ? 'Yearly tax-free spending' : 'Net worth at 25 yrs']}
               labelFormatter={(l) => (Number(l) === 0 ? 'Slider: all growth' : Number(l) === 50 ? 'Slider: balanced' : Number(l) === 100 ? 'Slider: all income' : `Slider: ${l}`)}
             />
@@ -116,21 +116,21 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="hairline-card p-5">
           <h4 className="font-display font-semibold">Why the two goals fight</h4>
-          <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">
+          <p className="mt-2 text-[14px] text-muted-foreground leading-relaxed">
             Muni bonds pay their interest out as cash — that's income, not growth. Insurance and stocks can either pay you or keep
             compounding, not both. The slider just picks your mix; nothing here is a forced payout.
           </p>
         </div>
         <div className="hairline-card p-5">
           <h4 className="font-display font-semibold">The middle is usually right</h4>
-          <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">
+          <p className="mt-2 text-[14px] text-muted-foreground leading-relaxed">
             Most winners land between 40 and 60: enough tax-free income to never think about money, enough growth weight to roughly
             double the stack every decade. Revisit once a year — not every headline.
           </p>
         </div>
         <div className="hairline-card p-5">
           <h4 className="font-display font-semibold">A rule of thumb</h4>
-          <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">
+          <p className="mt-2 text-[14px] text-muted-foreground leading-relaxed">
             If your yearly spending stays under about {fmtCompact(current.core * current.blendedDraw * 0.8)}, the stack compounds
             while you spend freely. Push past it and the model dips into principal — the Calculator tab will warn you.
           </p>
