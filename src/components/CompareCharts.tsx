@@ -16,7 +16,7 @@ const tipStyle = {
   backgroundColor: 'hsl(40 60% 99%)',
   border: '1px solid hsl(38 28% 86%)',
   borderRadius: 10,
-  fontSize: 13,
+  fontSize: 14,
   color: 'hsl(25 55% 10%)',
 };
 
@@ -35,10 +35,10 @@ export function ScenarioLines({ scenarios }: { scenarios: ScenarioWithResult[] }
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
         <CartesianGrid stroke="hsl(38 28% 90%)" vertical={false} />
-        <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'hsl(33 9% 38%)' }} tickLine={false} axisLine={false} tickMargin={8} />
-        <YAxis tickFormatter={(v: number) => fmtCompact(v)} tick={{ fontSize: 11, fill: 'hsl(33 9% 38%)' }} tickLine={false} axisLine={false} width={64} />
+        <XAxis dataKey="year" tick={{ fontSize: 12.5, fill: 'hsl(33 9% 38%)' }} tickLine={false} axisLine={false} tickMargin={8} />
+        <YAxis tickFormatter={(v: number) => fmtCompact(v)} tick={{ fontSize: 12.5, fill: 'hsl(33 9% 38%)' }} tickLine={false} axisLine={false} width={64} />
         <Tooltip contentStyle={tipStyle} formatter={(v: number, name: string) => [fmt(v), `Scenario ${name}`]} labelFormatter={(l) => `Year ${l}`} />
-        <Legend iconType="plainline" formatter={(v: string) => <span style={{ color: 'hsl(25 55% 10%)', fontSize: 12 }}>Scenario {v}</span>} />
+        <Legend iconType="plainline" formatter={(v: string) => <span style={{ color: 'hsl(25 55% 10%)', fontSize: 13 }}>Scenario {v}</span>} />
         {scenarios.map((s, i) => (
           <Line key={s.letter} type="monotone" dataKey={s.letter} stroke={SCENARIO_COLORS[i % 5]} strokeWidth={s.best ? 3 : 1.8} dot={false} strokeOpacity={s.best ? 1 : 0.75} />
         ))}
@@ -59,9 +59,9 @@ export function ScenarioBars({ scenarios }: { scenarios: ScenarioWithResult[] })
       <BarChart data={data} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
         <CartesianGrid stroke="hsl(38 28% 90%)" vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 12, fill: 'hsl(25 55% 10%)' }} tickLine={false} axisLine={false} tickMargin={8} />
-        <YAxis tickFormatter={(v: number) => fmtCompact(v)} tick={{ fontSize: 11, fill: 'hsl(33 9% 38%)' }} tickLine={false} axisLine={false} width={64} />
+        <YAxis tickFormatter={(v: number) => fmtCompact(v)} tick={{ fontSize: 12.5, fill: 'hsl(33 9% 38%)' }} tickLine={false} axisLine={false} width={64} />
         <Tooltip contentStyle={tipStyle} formatter={(v: number, name: string) => [fmt(v), name]} />
-        <Legend formatter={(v: string) => <span style={{ color: 'hsl(25 55% 10%)', fontSize: 12 }}>{v}</span>} />
+        <Legend formatter={(v: string) => <span style={{ color: 'hsl(25 55% 10%)', fontSize: 13 }}>{v}</span>} />
         <Bar dataKey="Tax-free capacity /yr" fill="#E5604A" radius={[4, 4, 0, 0]} />
         <Bar dataKey="Net worth @25y" fill="#4C7A3F" radius={[4, 4, 0, 0]} />
         <Bar dataKey="Edge over taxable" fill="#D9A441" radius={[4, 4, 0, 0]} />
