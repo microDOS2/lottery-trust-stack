@@ -16,6 +16,7 @@ interface Props {
   setInputs: (fn: (p: Inputs) => Inputs) => void;
   asm: Assumptions;
   scenarios: SavedScenario[];
+  onApplyScenario: () => void;
 }
 
 const DIM_LABELS: Array<[keyof GoalProfile, string]> = [
@@ -27,7 +28,7 @@ const DIM_LABELS: Array<[keyof GoalProfile, string]> = [
   ['simplicity', 'Simplicity'],
 ];
 
-export default function GoalsView({ inputs, setInputs, asm, scenarios }: Props) {
+export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplyScenario }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [done, setDone] = useState(false);
 
@@ -56,6 +57,14 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios }: Props) 
   const apply = () => {
     setInputs((p) => ({ ...p, dial: rec.dial, mode: 'balanced', residency: rec.residency }));
   };
+
+  const applyScenario = (s: SavedScenario) => {
+    setInputs(() => ({ ...s.inputs }));
+    onApplyScenario();
+  };
+
+  const runnerUp = scored[1];
+  const bestScored = scored.find((x) => x.letter === best?.letter);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -204,14 +213,48 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios }: Props) 
             </div>
           )}
 
-          {/* ---------- 3D terrain ---------- */}
-          <div className="hairline-card p-6">
-            <h3 className="font-display text-xl font-semibold">The terrain of your choices</h3>
-            <p className="mt-1 mb-3 text-sm text-muted-foreground">
-              Every dial position across 25 years, as landscape. Your scenarios are the markers — the crowned one carries the beacon.
+          {/* ---------- The verdict ---------- */}
+          {bestScored && (
+            <div className="hairline-card border-success/40 p-6 md:p-8" style={{ boxShadow: '0 4px 20px rgba(76,122,63,0.10)' }}>
+              <div className="font-mono text-[11px] uppercase tracking-wider stat-good">The verdict</div>
+              <h3 className="font-display mt-1 text-2xl md:text-3xl font-semibold">
+                <Crown className="mr-2 inline h-6 w-6 text-success" />
+                Scenario {bestScored.letter} fits you best
+              </h3>
+              <p className="mt-3 max-w-[68ch] text-[15px] leading-relaxed text-muted-foreground">
+                {bestScored.score.parts.length > 0 && (
+                  <>It scores highest on what you said matters most — {bestScored.score.parts
+                    .slice()
+                    .sort((a, b) => b.weight - a.weight)
+                    .slice(0, 2)
+                    .map((pp) => pp.label.toLowerCase())
+                    .join(' and ')}. </>
+                )}
+                It pays up to <span className="font-num font-semibold text-foreground">{fmtCompact(bestScored.result.capacity)}/yr</span> tax-free and grows to{' '}
+                <span className="font-num font-semibold text-foreground">{fmtCompact(bestScored.result.stackEnd)}</span> in 25 years.
+                {runnerUp && runnerUp.letter !== bestScored.letter && (
+                  <> Runner-up: Scenario {runnerUp.letter} (score {runnerUp.score.total}), which ends at {fmtCompact(runnerUp.result.stackEnd)}.</>
+                )}
+              </p>
+              <button
+                onClick={() => applyScenario(bestScored)}
+                className="mt-5 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer"
+              >
+                Use Scenario {bestScored.letter} on the calculator
+              </button>
+            </div>
+          )}
+
+          {/* ---------- 3D terrain (optional) ---------- */}
+          <details className="hairline-card p-6">
+            <summary className="cursor-pointer font-display text-lg font-semibold">Curious? See it as a 3D landscape</summary>
+            <p className="mt-2 mb-3 max-w-[70ch] text-sm text-muted-foreground">
+              Plain English: this is a mountain range of every possible dial setting over 25 years. Left end is "all growth," right end is
+              "all income." Higher ground = more money at the end. The lettered flags are your saved scenarios; the green beacon marks your best fit.
+              Nothing to learn here beyond that — the verdict above is the takeaway.
             </p>
             <Terrain3D inputs={inputs} asm={asm} markers={markers} />
-          </div>
+          </details>
         </>
       )}
     </div>
