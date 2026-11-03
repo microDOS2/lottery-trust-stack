@@ -148,6 +148,7 @@ export default function Home() {
             scenarios={scenarios
               .map((s, i) => (s ? { letter: 'ABCDE'[i], inputs: s.inputs } : null))
               .filter((s): s is { letter: string; inputs: Inputs } => !!s)}
+            onApplyScenario={() => setView('calc')}
           />
         )}
         {view === 'library' && <StrategyView />}
