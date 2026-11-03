@@ -36,6 +36,7 @@ export interface Inputs {
   dial: number; // 0 = max compounding, 100 = max tax-free income
   manual: { a: number; b: number; c: number }; // fractions summing to 1
   drawOverrides: Record<number, number>; // year (1-25) -> custom tax-free draw; overrides the spend target
+  flatDraw: boolean; // true = same dollar amount every year (no inflation growth)
 }
 
 export interface Assumptions {
@@ -78,6 +79,7 @@ export const DEFAULT_INPUTS: Inputs = {
   dial: 50,
   manual: { a: 0.25, b: 0.25, c: 0.5 },
   drawOverrides: {},
+  flatDraw: false,
 };
 
 export const PPLI_QP_MIN = 5_000_000;      // Qualified Purchaser threshold (investable assets)
@@ -243,7 +245,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const ppliCap = ppliB * asm.ppliDraw;
     const eqCap = eqB * asm.eqDraw;
     const discCap = ppliCap + eqCap;
-    const desired = y === 1 ? 0 : (inp.drawOverrides[y] ?? inp.spend * Math.pow(1 + asm.inflation, y - 2));
+    const desired = y === 1 ? 0 : (inp.drawOverrides[y] ?? (inp.flatDraw ? inp.spend : inp.spend * Math.pow(1 + asm.inflation, y - 2)));
 
     let ppliDrawAmt = 0;
     let eqDrawAmt = 0;
@@ -308,7 +310,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
       if (baselineDepletedYear === null) baselineDepletedYear = y;
       continue;
     }
-    const desired = y === 1 ? 0 : (inp.drawOverrides[y] ?? inp.spend * Math.pow(1 + asm.inflation, y - 2));
+    const desired = y === 1 ? 0 : (inp.drawOverrides[y] ?? (inp.flatDraw ? inp.spend : inp.spend * Math.pow(1 + asm.inflation, y - 2)));
     const interestNet = begin * w.a * asm.muniYield * (1 - ordRate);
     const divNet = begin * w.c * asm.divYield * (1 - divDrag);
     const autoNet = interestNet + divNet;
