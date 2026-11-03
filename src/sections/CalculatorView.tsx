@@ -486,7 +486,7 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
                   <tr key={label} className="border-t border-border/60">
                     <td className="py-2 pr-3 font-sans text-muted-foreground">{label}</td>
                     {p.scenarios.map((s, i) => (
-                      <td key={i} className="py-2 pr-3 text-right">{s ? fn(s) : '—'}</td>
+                      <td key={i} className="py-2 pr-3 text-right">{s?.result ? fn(s) : '—'}</td>
                     ))}
                   </tr>
                 ))}
