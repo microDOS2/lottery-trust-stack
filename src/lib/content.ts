@@ -293,6 +293,11 @@ export const GUIDE_STEPS: GuideStep[] = [
     body: 'Automate the draws: muni interest from the ladder, basis withdrawals then loans from the PPLI, harvested-basis and box-spread draws from equities. The Income ↔ Growth tab shows how much you can take while the stack still compounds. Take only what you plan to spend — the surplus sweeps back into the growth engine. Recheck the dial once a year, not once a week.',
   },
   {
+    phase: 'Every December',
+    title: 'The year-end sweep — deal with unspent drawn cash',
+    body: 'If you drew more than you spent, that cash is now sitting personally: taxed on its interest, counted in your estate, reachable by creditors. Before December 31, give it a job. Best first stop is back into the stack: pay down PPLI loan balances (restores next year\'s tax-free capacity), reinvest into Engine C\'s loss-harvesting portfolio, or buy more muni ladder so next year\'s coupons are tax-free. If you\'d rather keep it outside for a planned venture, park it in Treasuries or a tax-exempt money market — not a 0% checking account — and aim bigger surpluses at destinations with their own shelter: QSBS startup stock, an Opportunity Zone fund, or property through Entity #4. The one bad option is letting it idle.',
+  },
+  {
     phase: 'Every year after',
     title: 'Review, rebalance, and mind the estate',
     body: 'Annual review: yields, policy performance, LTV on any credit lines, day counts, and law changes. As the stack compounds past the $15M-per-person estate exclusion, talk to your attorney about the dynasty layer — the best time to move growth assets out of your estate is while they are still (relatively) small.',
