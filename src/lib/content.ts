@@ -14,6 +14,22 @@ export interface Strategy {
   statLabel?: string;
 }
 
+/** Core engines that map onto the calculator's A / B / C weights. Everything else is a listed module. */
+export const ENGINE_PRESETS: Record<string, { a: number; b: number; c: number }> = {
+  'engine-a': { a: 0.5, b: 0.2, c: 0.3 },
+  'engine-b': { a: 0.2, b: 0.45, c: 0.35 },
+  'engine-c': { a: 0.2, b: 0.2, c: 0.6 },
+};
+
+/** Dense statutory claims. Shown on the card; they do not change the calculator math. */
+export const COUNSEL_NOTES: Record<string, string> = {
+  oz: 'Statutory summary as of November 2026 (OZ changes in the 2025 tax act). Confirm the investment year, rural step-up, and 10-year exclusion with counsel before relying on these figures.',
+  qsbs: 'Statutory summary as of November 2026 (IRC §1202 as amended in 2025). The $15M per-issuer cap, holding-period schedule, and state conformity — California does not conform — are fact-specific. Confirm with counsel.',
+  legacy: 'The 2026 federal estate, gift, and GST exclusion is $15M per person ($30M per couple with portability), made permanent by the 2025 tax act and indexed from 2027. Confirm the figure and the trust form with an estate attorney. Last verified: November 2026.',
+  'pr-act60': 'Act 60 / Act 38-2026 rates and the Dec 31, 2026 filing cutoff are a summary as of November 2026. Confirm bona fide residency, the decree, and pre-move gain rules with Puerto Rico and U.S. counsel before relying on 0% or 4%.',
+  expatriation: 'Exit-tax and covered-expatriate rules change and are easy to get wrong. This card is a warning, not a plan. Confirm with counsel before treating expatriation as an option.',
+};
+
 export const STRATEGIES: Strategy[] = [
   {
     id: 'engine-a',

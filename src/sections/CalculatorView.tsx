@@ -7,6 +7,7 @@ import {
 import { Stat, Field, SectionTitle } from '../components/widgets';
 import { AllocationDonut, ProjectionChart, FlowDiagram } from '../components/viz';
 import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/CompareCharts';
+import { STRATEGIES } from '../lib/content';
 import DrawSchedule from './DrawSchedule';
 import { Slider } from '@/components/ui/slider';
 import { AlertTriangle, Link2, Check, RotateCcw, Settings2, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
@@ -27,6 +28,9 @@ interface Props {
   saveScenario: (i: number) => void;
   clearScenarios: () => void;
   resetAll: () => void;
+  modules: string[];
+  removeModule: (id: string) => void;
+  onOpenLibrary: () => void;
 }
 
 const LETTERS = 'ABCDE';
@@ -166,6 +170,11 @@ export default function CalculatorView(p: Props) {
             {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
           </select>
         </Field>
+        {st.code === 'CA' && (
+          <p className="-mt-2 text-[12.5px] leading-snug text-muted-foreground">
+            State tax on the prize is $0 only for a California Lottery prize — the ticket was bought in California (Gov. Code § 8880.68). An out-of-state ticket is taxed. Income earned after you invest the prize is still taxed.
+          </p>
+        )}
 
         <Field label="State you might move to" help="Pick a 0% income-tax state (WY, NV, TX, FL…) if you plan to relocate.">
           <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.target} onChange={(e) => set('target', e.target.value)}>
@@ -256,6 +265,9 @@ export default function CalculatorView(p: Props) {
 
         <details className="rounded-md border border-input">
           <summary className="cursor-pointer px-3 py-2 text-[14px] font-medium text-muted-foreground hover:text-foreground">Assumptions (editable)</summary>
+          <p className="px-3 pb-2 text-[12px] leading-snug text-muted-foreground">
+            These are model assumptions, not forecasts or promises. Change any rate. Last verified: November 2026.
+          </p>
           <div className="grid grid-cols-2 gap-2 px-3 pb-3 pt-1">
             {([
               ['muniYield', 'Muni yield'], ['ppliDraw', 'PPLI draw'], ['ppliGrowth', 'PPLI growth'],
@@ -272,6 +284,34 @@ export default function CalculatorView(p: Props) {
             ))}
           </div>
         </details>
+
+        <div className="rounded-md border border-input p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[13px] font-medium">Selected modules</div>
+            <button type="button" onClick={p.onOpenLibrary} className="text-[12.5px] text-primary hover:underline cursor-pointer">
+              Strategy library
+            </button>
+          </div>
+          {p.modules.length === 0 ? (
+            <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">
+              None yet. Open the library to set a primary engine or add a module. Modules are a list only — they do not change the three-engine math.
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1.5">
+              {p.modules.map((id) => {
+                const s = STRATEGIES.find((x) => x.id === id);
+                return (
+                  <li key={id} className="flex items-center justify-between gap-2 text-[13px]">
+                    <span>{s?.name ?? id}</span>
+                    <button type="button" onClick={() => p.removeModule(id)} className="text-[12.5px] text-muted-foreground hover:text-destructive cursor-pointer">
+                      Remove
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
 
         <button onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 cursor-pointer">
           {copied ? <><Check className="h-4 w-4" /> Link copied</> : <><Link2 className="h-4 w-4" /> Copy shareable link</>}
@@ -403,14 +443,34 @@ function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['
   );
 }
 
+function exportProjectionCsv(r: StackResult) {
+  const header = ['year', 'stack_begin', 'cash_to_you', 'reinvested', 'fees', 'growth', 'stack_end', 'baseline_end'];
+  const lines = r.projection.map((row, i) => {
+    const base = r.baseline[i];
+    return [row.year, Math.round(row.begin), Math.round(row.cash), Math.round(row.reinvested), Math.round(row.fees), Math.round(row.growth), Math.round(row.end), Math.round(base?.end ?? 0)].join(',');
+  });
+  const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'lottery-trust-stack-projection.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function ProjectionTable({ r }: { r: StackResult }) {
   return (
     <details className="hairline-card p-5">
       <summary className="cursor-pointer font-display text-lg font-semibold">25-year projection, year by year</summary>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
-        (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
-      </p>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
+          (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
+        </p>
+        <button type="button" onClick={() => exportProjectionCsv(r)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
+          Download CSV
+        </button>
+      </div>
       <div className="mt-3 max-h-96 overflow-auto rounded-md border border-border">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-secondary">
@@ -450,7 +510,7 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-semibold">Scenario comparison</h3>
-          <p className="text-sm text-muted-foreground">Snapshot the current setup into a slot, tweak the dial or mode, save again — outcomes recompute automatically. Then take the Goals &amp; Fit quiz to see which one actually fits you.</p>
+          <p className="text-sm text-muted-foreground">Save up to five snapshots to compare. Each button stores the current numbers in that slot. Overwrite replaces that slot. Then take the Goals & Fit quiz to see which one fits.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {[0, 1, 2, 3, 4].map((i) => (

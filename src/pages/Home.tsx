@@ -6,9 +6,27 @@ import LabView from '../sections/LabView';
 import StrategyView from '../sections/StrategyView';
 import AnnuityView from '../sections/AnnuityView';
 import { GuideView, GlossaryView } from '../sections/GuideView';
+import { ENGINE_PRESETS } from '../lib/content';
 import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass } from 'lucide-react';
 
 type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals';
+
+/** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
+const SCHEMA_VERSION = 2;
+
+function schemaAllowsSaved(): boolean {
+  try {
+    const raw = localStorage.getItem('lotteryStack.schema');
+    if (raw === null) return true;
+    return Number(raw) === SCHEMA_VERSION;
+  } catch {
+    return false;
+  }
+}
+
+function stampSchema() {
+  try { localStorage.setItem('lotteryStack.schema', String(SCHEMA_VERSION)); } catch { /* ignore */ }
+}
 
 const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
   { id: 'calc', label: 'Calculator', icon: Landmark },
@@ -28,6 +46,7 @@ function loadInputs(): Inputs {
       return { ...DEFAULT_INPUTS, ...parsed, manual: { ...DEFAULT_INPUTS.manual, ...(parsed.manual ?? {}) } };
     }
   } catch { /* ignore bad hash */ }
+  if (!schemaAllowsSaved()) return DEFAULT_INPUTS;
   try {
     const saved = localStorage.getItem('lotteryStack.inputs');
     if (saved) {
@@ -39,6 +58,7 @@ function loadInputs(): Inputs {
 }
 
 function loadAssumptions(): Assumptions {
+  if (!schemaAllowsSaved()) return DEFAULT_ASSUMPTIONS;
   try {
     const saved = localStorage.getItem('lotteryStack.assumptions');
     if (saved) return { ...DEFAULT_ASSUMPTIONS, ...JSON.parse(saved) };
@@ -46,11 +66,24 @@ function loadAssumptions(): Assumptions {
   return DEFAULT_ASSUMPTIONS;
 }
 
+function loadModules(): string[] {
+  if (!schemaAllowsSaved()) return [];
+  try {
+    const saved = localStorage.getItem('lotteryStack.modules');
+    if (!saved) return [];
+    const arr = JSON.parse(saved);
+    return Array.isArray(arr) ? arr.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Home() {
   const [view, setView] = useState<View>('calc');
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
   const [scenarios, setScenarios] = useState<(ScenarioSlot | null)[]>(() => {
+    if (!schemaAllowsSaved()) return [null, null, null, null, null];
     try {
       const saved = localStorage.getItem('lotteryStack.scenarios');
       if (saved) {
@@ -75,21 +108,26 @@ export default function Home() {
     } catch { /* ignore */ }
     return [null, null, null, null, null];
   });
+  const [modules, setModules] = useState<string[]>(loadModules);
 
   useEffect(() => {
     try {
       localStorage.setItem('lotteryStack.scenarios', JSON.stringify(scenarios.map((s) => (s ? { name: s.name, inputs: s.inputs } : null))));
+      stampSchema();
     } catch { /* ignore */ }
   }, [scenarios]);
 
   const setInputs = (fn: (p: Inputs) => Inputs) => setInputsRaw(fn);
 
   useEffect(() => {
-    try { localStorage.setItem('lotteryStack.inputs', JSON.stringify(inputs)); } catch { /* ignore */ }
+    try { localStorage.setItem('lotteryStack.inputs', JSON.stringify(inputs)); stampSchema(); } catch { /* ignore */ }
   }, [inputs]);
   useEffect(() => {
-    try { localStorage.setItem('lotteryStack.assumptions', JSON.stringify(asm)); } catch { /* ignore */ }
+    try { localStorage.setItem('lotteryStack.assumptions', JSON.stringify(asm)); stampSchema(); } catch { /* ignore */ }
   }, [asm]);
+  useEffect(() => {
+    try { localStorage.setItem('lotteryStack.modules', JSON.stringify(modules)); stampSchema(); } catch { /* ignore */ }
+  }, [modules]);
 
   const result = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
 
@@ -109,6 +147,19 @@ export default function Home() {
   const resetAll = () => {
     setInputsRaw(DEFAULT_INPUTS);
     setAsm(DEFAULT_ASSUMPTIONS);
+    setScenarios([null, null, null, null, null]);
+    setModules([]);
+  };
+
+  const applyEngine = (id: string) => {
+    const preset = ENGINE_PRESETS[id];
+    if (!preset) return;
+    setInputsRaw((prev) => ({ ...prev, mode: 'manual', manual: { ...preset } }));
+    setView('calc');
+  };
+
+  const toggleModule = (id: string) => {
+    setModules((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   return (
@@ -152,6 +203,9 @@ export default function Home() {
             saveScenario={saveScenario}
             clearScenarios={() => setScenarios([null, null, null, null, null])}
             resetAll={resetAll}
+            modules={modules}
+            removeModule={(id) => setModules((prev) => prev.filter((x) => x !== id))}
+            onOpenLibrary={() => setView('library')}
           />
         )}
         {view === 'lab' && <LabView inputs={inputs} setInputs={setInputs} asm={asm} />}
@@ -166,7 +220,9 @@ export default function Home() {
             onApplyScenario={() => setView('calc')}
           />
         )}
-        {view === 'library' && <StrategyView />}
+        {view === 'library' && (
+          <StrategyView modules={modules} onApplyEngine={applyEngine} onToggleModule={toggleModule} />
+        )}
         {view === 'annuity' && <AnnuityView defaultState={inputs.state} filing={inputs.filing} />}
         {view === 'guide' && <GuideView />}
         {view === 'glossary' && <GlossaryView />}

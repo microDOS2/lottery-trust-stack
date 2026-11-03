@@ -1,5 +1,9 @@
 // 2026 tax data — top marginal state rates verified against Tax Foundation / EY 2026 updates.
 // Withholding rates are approximations of state lottery/prize withholding; always verify with the state DOR.
+// lotteryExempt means a prize from that state's own lottery is excluded from state income tax.
+// California: Gov. Code § 8880.68 — California Lottery prizes only (ticket bought in California),
+// including Powerball and Mega Millions sold there. Out-of-state tickets and other gambling are taxed.
+// Investment income earned after the prize is received is still taxed. Last verified: November 2026.
 export interface StateInfo {
   code: string;
   name: string;

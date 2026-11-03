@@ -68,13 +68,14 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
             <Stat label="Lump: cash option" value={fmtCompact(r.lumpGross)} sub={`${fmtCompact(r.lumpTaxes)} total tax`} />
             <Stat label="Lump: net invested" value={fmtCompact(r.lumpNet)} sub="day one, into the stack" tone="good" />
             <Stat label="Annuity: first check" value={fmtCompact(r.firstPayment)} sub={`rising ${pct(a.escalator, 0)}/yr for ${a.years} yrs`} />
-            <Stat label="Annuity: total tax" value={fmtCompact(r.annuityTaxes)} sub={`on ${fmtCompact(r.totalPayments)} paid`} />
+            <Stat label="Annuity: total tax" value={fmtCompact(r.annuityTaxes)} sub={`on ${fmtCompact(r.totalPayments)} paid · 2026 brackets`} />
           </div>
 
           <div className="hairline-card p-5">
             <h3 className="font-display text-lg font-semibold">Value if you invest it all, year by year</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Both paths reinvest everything at {pct(a.investReturn)}. Final: lump {fmtCompact(r.lumpEnd)} vs annuity {fmtCompact(r.annuityEnd)}.
+              Each annuity check is taxed on 2026 federal brackets for that year's payment, plus the state's top rate — not a flat 37%.
             </p>
             <AnnuityChart yearly={r.yearly} />
           </div>

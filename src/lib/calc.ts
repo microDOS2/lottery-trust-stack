@@ -393,8 +393,9 @@ export function computeAnnuity(a: AnnuityInputs): AnnuityResult {
   for (let k = 0; k < n; k++) {
     const pay = first * Math.pow(1 + e, k);
     total += pay;
-    // Large recurring payments land near the top federal bracket; use flat 37% + state.
-    const tax = pay * (0.37 + stateRate);
+    // Tax that year's check on 2026 brackets (plus the state's top rate above the standard deduction).
+    // A flat 37% overstates tax on smaller checks and understates nothing on jackpot-sized ones.
+    const tax = federalTax(pay, a.filing) + stateRate * Math.max(0, pay - STD_DEDUCTION_2026[a.filing]);
     annuityTaxes += tax;
     annuityFV = (annuityFV + (pay - tax)) * (1 + g); // invested at year-end
     yearly.push({
