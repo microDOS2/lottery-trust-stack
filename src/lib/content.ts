@@ -186,6 +186,23 @@ export const STRATEGIES: Strategy[] = [
     statLabel: 'tax on gains via 1031 chain',
   },
   {
+    id: 'foreign-trust',
+    tag: 'Reality check · Global',
+    name: 'Foreign Trusts (Cook Islands, St. Kitts)',
+    oneLiner:
+      'The gold standard of asset protection — and a total dud for income tax. When a US citizen funds a foreign trust and stays a beneficiary, the IRS taxes every gain inside it back to you personally.',
+    taxMagic:
+      'There is none for taxes, and that is the point. IRC §679 makes any foreign trust funded by a US person with US beneficiaries a grantor trust: every dollar of income and capital gain is yours personally, as if the trust never existed. St. Kitts or the Cook Islands not taxing the trust is irrelevant — the US taxes its citizens on worldwide income wherever the trustee sits. The throwback rules punish accumulated distributions, and Forms 3520/3520-A/8938 carry penalties up to 35% of transfers.',
+    qualifies:
+      'Legitimate for protection, not taxes: assets beyond the practical reach of US courts (no recognition of foreign judgments, short fraudulent-transfer windows). Also legitimate for non-US persons, or in pre-immigration planning before someone becomes a US tax resident.',
+    watchOut:
+      'FTC v. Affordable Media put a Cook Islands settlor in jail for contempt when he could not repatriate assets on court order. Setup runs $20–50K plus $5–15K a year. And treat any "offshore trust = tax-free gains" pitch aimed at a US citizen — including dramatized YouTube stories — as fiction until a tax attorney confirms otherwise in writing.',
+    plugsIn:
+      'Nowhere in the tax math — deliberately. If your threat model someday justifies it, a foreign APT can sit above Trust #2 as a pure asset-protection wrapper at added cost and zero tax change. The DAPT already covers most protection needs domestically.',
+    stat: '$0',
+    statLabel: 'US tax saved for a US grantor',
+  },
+  {
     id: 'expatriation',
     tag: 'Reality check · Global',
     name: 'Expatriation: Why It Rarely Wins',
@@ -229,6 +246,7 @@ export const GLOSSARY: GlossaryTerm[] = [
   { term: '1031 exchange', def: 'IRC §1031: sell investment real estate and roll the entire proceeds into a like-kind property within strict deadlines (45-day identification, 180-day close) and the capital gain is deferred, not taxed. Can be chained forever.' },
   { term: 'Cost segregation', def: 'An engineering study that reclassifies parts of a building (fixtures, flooring, landscaping) into 5/7/15-year property so they depreciate in year one via 100% bonus depreciation, instead of over 27.5 years.' },
   { term: 'Covered expatriate', def: 'A US citizen or long-term resident who renounces with $2M+ net worth (or high average tax liability). Triggers the exit tax: a deemed sale of worldwide assets above a $910,000 exclusion (2026).' },
+  { term: 'Grantor trust rules (§§671–679)', def: 'If you fund a trust and keep benefit or control, the IRS taxes all its income to you personally. This is why offshore trusts cannot shelter a US citizen\'s gains — and why the stack uses tax-free engines instead of hiding income in entities.' },
   { term: 'IRC §2801', def: 'The parting gift of expatriation: a 40% tax on gifts or bequests a covered expatriate later makes to US citizens or residents — paid by the recipient, for the rest of the expatriate\'s life.' },
 ];
 
@@ -257,7 +275,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   {
     phase: 'Month 1–3',
     title: 'Stand up the stack',
-    body: 'Your attorney drafts Trust #2 (DAPT) and Trust #3 (PPLI trust); the insurance trust applies for the policy. Open institutional custody accounts with possession-and-control protection (SEC Rule 15c3-3). Form Entity #4, the anonymous LLC, if you plan property or vehicle purchases.',
+    body: 'Your attorney drafts Trust #2 (DAPT) and Trust #3 (PPLI trust); the insurance trust applies for the policy. Open institutional custody accounts with possession-and-control protection (SEC Rule 15c3-3). Form Entity #4, the anonymous LLC, if you plan property or vehicle purchases. Note who holds the power: you are the beneficiary of Trusts #2 and #3, not the trustee — an independent trustee controls distributions, and that separation is exactly what creates the asset protection and keeps growth outside your estate.',
   },
   {
     phase: 'Month 1–12',
