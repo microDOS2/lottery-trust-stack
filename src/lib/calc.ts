@@ -25,6 +25,8 @@ export interface Inputs {
   amount: number;
   spend: number;
   entity4: number;
+  setupCost: number;    // one-time legal/professional setup of the stack (year 1)
+  annualAdmin: number;  // ongoing trustee, carrier, CPA, registered-agent fees
   mode: Mode;
   residency: Residency;
   filing: Filing;
@@ -64,6 +66,8 @@ export const DEFAULT_INPUTS: Inputs = {
   amount: 18_000_000,
   spend: 400_000,
   entity4: 0,
+  setupCost: 75_000,
+  annualAdmin: 25_000,
   mode: 'balanced',
   residency: 'stay',
   filing: 'single',
@@ -136,6 +140,7 @@ export interface ProjectionRow {
   cash: number;       // to you, after engine distributions
   reinvested: number; // surplus swept back into the growth engine
   growth: number;     // engine appreciation for the year
+  fees: number;       // annual admin/professional drag (stack only)
   end: number;
 }
 
@@ -195,7 +200,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     withheld = 0.24 * gross + (st.wh || 0) * gross;
   }
 
-  const yr1Reserve = inp.spend + 60_000;
+  const yr1Reserve = inp.spend + inp.setupCost;
   const core = Math.max(0, net - yr1Reserve - inp.entity4);
   const qpOk = core >= PPLI_QP_MIN;
   const w = resolveWeights(inp, core);
@@ -227,7 +232,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   for (let y = 1; y <= 25; y++) {
     const begin = muniB + ppliB + eqB;
     if (begin <= 0) {
-      projection.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, end: 0 });
+      projection.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, fees: 0, end: 0 });
       if (depletedYear === null) depletedYear = y;
       continue;
     }
@@ -261,14 +266,22 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const cash = Math.min(desired, outTotal);
     const reinvested = outTotal - cash; // coupon surplus (or year-1 coupons) sweeps to Engine C
 
-    const newMuni = muniB; // coupons distributed, par ladder rolls at par
-    const newPpli = Math.max(0, ppliB * (1 + asm.ppliGrowth) - ppliDrawAmt);
-    const newEq = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt + reinvested);
+    let newMuni = muniB; // coupons distributed, par ladder rolls at par
+    let newPpli = Math.max(0, ppliB * (1 + asm.ppliGrowth) - ppliDrawAmt);
+    let newEq = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt + reinvested);
     const growth = ppliB * asm.ppliGrowth + eqB * asm.eqGrowth;
+
+    // Annual admin & professional fees (inflation-adjusted), paid from the stack: equities, then PPLI, then munis.
+    let fees = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1);
+    const fromEq = Math.min(fees, newEq); newEq -= fromEq; fees -= fromEq;
+    const fromPpli = Math.min(fees, newPpli); newPpli -= fromPpli; fees -= fromPpli;
+    const fromMuni = Math.min(fees, newMuni); newMuni -= fromMuni; fees -= fromMuni;
+    const feesPaid = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1) - fees;
+
     const end = newMuni + newPpli + newEq;
     if (end <= 0 && depletedYear === null) depletedYear = y;
 
-    projection.push({ year: y, begin, cash, reinvested, growth, end });
+    projection.push({ year: y, begin, cash, reinvested, growth, fees: feesPaid, end });
     cumCash += cash;
     if (y === 2) { plannedDrawY2 = cash; reinvestY2 = reinvested; }
     muniB = newMuni; ppliB = newPpli; eqB = newEq;
@@ -288,7 +301,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   for (let y = 1; y <= 25; y++) {
     const begin = bal;
     if (begin <= 0) {
-      baseline.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, end: 0 });
+      baseline.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, fees: 0, end: 0 });
       if (baselineDepletedYear === null) baselineDepletedYear = y;
       continue;
     }
@@ -305,7 +318,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const appreciation = begin * (w.b * asm.ppliGrowth + w.c * asm.eqGrowth); // muni part is the interest cash
     const end = Math.max(0, begin + appreciation + surplus - grossW);
     if (end <= 0 && baselineDepletedYear === null) baselineDepletedYear = y;
-    baseline.push({ year: y, begin, cash, reinvested: surplus, growth: appreciation, end });
+    baseline.push({ year: y, begin, cash, reinvested: surplus, growth: appreciation, fees: 0, end });
     bal = end;
   }
 
