@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { STATES } from '../lib/taxdata';
 import {
-  fmt, fmtCompact, pct, PPLI_QP_MIN,
+  fmt, fmtCompact, pct, PPLI_QP_MIN, SLEEVE_MATH, SLEEVE_PCT_MAX,
   type Inputs, type Assumptions, type StackResult,
 } from '../lib/calc';
 import { Stat, Field, SectionTitle } from '../components/widgets';
@@ -28,8 +28,9 @@ interface Props {
   saveScenario: (i: number) => void;
   clearScenarios: () => void;
   resetAll: () => void;
-  modules: string[];
-  removeModule: (id: string) => void;
+  notice: { text: string; undo?: () => void } | null;
+  dismissNotice: () => void;
+  undoNotice: () => void;
   onOpenLibrary: () => void;
 }
 
@@ -75,7 +76,7 @@ export default function CalculatorView(p: Props) {
   const tg = STATES.find((s) => s.code === inp.target)!;
 
   const share = async () => {
-    const url = `${location.origin}${location.pathname}#s=${btoa(JSON.stringify(inp))}`;
+    const url = `${location.origin}${location.pathname}#s=${btoa(JSON.stringify({ v: 3, inputs: inp, assumptions: asm }))}`;
     try { await navigator.clipboard.writeText(url); } catch { /* clipboard blocked */ }
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
@@ -113,7 +114,7 @@ export default function CalculatorView(p: Props) {
             <div className="hairline-card p-5">
               <h3 className="font-display text-lg font-semibold">Where the core sits</h3>
               <p className="mt-1 text-sm text-muted-foreground">Trust #2 holds Engines A + C · Trust #3 holds Engine B · Entity #4 holds property cash.</p>
-              <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} />
+              <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} sleeve={r.sleeveAmount} sleeveName={STRATEGIES.find((s) => s.id === r.sleeveId)?.name ?? 'Sleeve'} />
             </div>
             <div className="hairline-card p-5">
               <div className="flex items-start justify-between gap-2">
@@ -134,7 +135,7 @@ export default function CalculatorView(p: Props) {
           </div>
         );
       case 'projection':
-        return <ProjectionTable r={r} />;
+        return <ProjectionTable r={r} inp={inp} asm={asm} scenarios={p.scenarios} />;
       case 'schedule':
         return <DrawSchedule inputs={inp} setInputs={p.setInputs} result={r} asm={asm} />;
       case 'realestate':
@@ -154,8 +155,52 @@ export default function CalculatorView(p: Props) {
     }
   };
 
+  const scenarioButtons = (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="w-full text-[12.5px] text-muted-foreground">Save up to five snapshots to compare. Overwrite replaces that slot.</span>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <button key={i} onClick={() => p.saveScenario(i)}
+          className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
+          {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
+        </button>
+      ))}
+    </div>
+  );
+
+  const headline = (
+    <div className="space-y-4">
+      <div>
+        <SectionTitle
+          num="01"
+          title={<>Your after-tax pool, <span className="sig-italic">working for you</span></>}
+          blurb={`${st.name} prize, ${inp.basis === 'gross' ? 'starting from the gross cash option' : 'starting from money already after tax'}, ${inp.filing === 'mfj' ? 'married filing jointly' : 'single'} — 2026 rates.`}
+        />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stat label="Federal tax on prize" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
+          <Stat label="Net after-tax pool" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
+          <Stat label="Year-1 reserve" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
+          <Stat label="Investable core" value={fmtCompact(r.core)} sub={r.qpOk ? 'Qualified Purchaser ✓' : `PPLI needs ${fmtCompact(PPLI_QP_MIN)}+ core`} />
+        </div>
+      </div>
+      {scenarioButtons}
+    </div>
+  );
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px]">
+    <div className="space-y-6">
+      {p.notice && (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-primary/40 bg-accent px-4 py-3 text-sm">
+          <p>{p.notice.text}</p>
+          <div className="flex gap-2">
+            {p.notice.undo && (
+              <button type="button" onClick={p.undoNotice} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">Undo</button>
+            )}
+            <button type="button" onClick={p.dismissNotice} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer">Dismiss</button>
+          </div>
+        </div>
+      )}
+      <div className="lg:hidden">{headline}</div>
+      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px]">
       {/* ---------- Controls ---------- */}
       <div className="hairline-card h-fit p-5 lg:sticky lg:top-20 space-y-4 no-print">
         <div className="flex items-center justify-between">
@@ -287,29 +332,17 @@ export default function CalculatorView(p: Props) {
 
         <div className="rounded-md border border-input p-3">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-[13px] font-medium">Selected modules</div>
+            <div className="text-[13px] font-medium">Optional sleeve</div>
             <button type="button" onClick={p.onOpenLibrary} className="text-[12.5px] text-primary hover:underline cursor-pointer">
               Strategy library
             </button>
           </div>
-          {p.modules.length === 0 ? (
+          {!inp.sleeve ? (
             <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">
-              None yet. Open the library to set a primary engine or add a module. Modules are a list only — they do not change the three-engine math.
+              None. One sleeve at a time — choosing another replaces it. OZ, QSBS, and real estate change the projection. Other items do not.
             </p>
           ) : (
-            <ul className="mt-2 space-y-1.5">
-              {p.modules.map((id) => {
-                const s = STRATEGIES.find((x) => x.id === id);
-                return (
-                  <li key={id} className="flex items-center justify-between gap-2 text-[13px]">
-                    <span>{s?.name ?? id}</span>
-                    <button type="button" onClick={() => p.removeModule(id)} className="text-[12.5px] text-muted-foreground hover:text-destructive cursor-pointer">
-                      Remove
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <SleeveCard inp={inp} setInputs={p.setInputs} amount={r.sleeveAmount} />
           )}
         </div>
 
@@ -320,24 +353,12 @@ export default function CalculatorView(p: Props) {
 
       {/* ---------- Results ---------- */}
       <div className="min-w-0 space-y-6">
-        <div>
-          <SectionTitle
-            num="01"
-            title={<>Your after-tax pool, <span className="sig-italic">working for you</span></>}
-            blurb={`${st.name} prize, ${inp.basis === 'gross' ? 'starting from the gross cash option' : 'starting from money already after tax'}, ${inp.filing === 'mfj' ? 'married filing jointly' : 'single'} — 2026 rates.`}
-          />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Federal tax on prize" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
-            <Stat label="Net after-tax pool" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
-            <Stat label="Year-1 reserve" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
-            <Stat label="Investable core" value={fmtCompact(r.core)} sub={r.qpOk ? 'Qualified Purchaser ✓' : `PPLI needs ${fmtCompact(PPLI_QP_MIN)}+ core`} />
-          </div>
-        </div>
+        <div className="hidden lg:block">{headline}</div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat label="Engine A · Munis" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of core · ${fmtCompact(r.muni * asm.muniYield)}/yr tax-free`} />
           <Stat label="Engine B · PPLI" value={fmtCompact(r.ppli)} sub={`${pct(w.b)} · ${fmtCompact(r.ppli * asm.ppliDraw)}/yr tax-free`} />
-          <Stat label="Engine C · Equities" value={fmtCompact(r.equity)} sub={`${pct(w.c)} · ${fmtCompact(r.equity * asm.eqDraw)}/yr tax-free`} />
+          <Stat label="Engine C · Equities" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} of core after carve · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of core · ${fmtCompact(r.equity * asm.eqDraw)}/yr tax-free`} />
           <Stat label="Tax-free cash capacity" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
         </div>
 
@@ -404,6 +425,7 @@ export default function CalculatorView(p: Props) {
         <ExplainRail inp={inp} r={r} />
       </aside>
     </div>
+    </div>
   );
 }
 
@@ -443,22 +465,85 @@ function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['
   );
 }
 
-function exportProjectionCsv(r: StackResult) {
-  const header = ['year', 'stack_begin', 'cash_to_you', 'reinvested', 'fees', 'growth', 'stack_end', 'baseline_end'];
-  const lines = r.projection.map((row, i) => {
-    const base = r.baseline[i];
-    return [row.year, Math.round(row.begin), Math.round(row.cash), Math.round(row.reinvested), Math.round(row.fees), Math.round(row.growth), Math.round(row.end), Math.round(base?.end ?? 0)].join(',');
+function csvCell(v: string | number) {
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
+
+function exportPlan(inp: Inputs, asm: Assumptions, r: StackResult, scenarios: (ScenarioSlot | null)[]) {
+  const lines: string[] = ['record,c1,c2,c3,c4,c5,c6,c7'];
+  const meta = (k: string, v: string | number) => lines.push(['meta', csvCell(k), csvCell(v), '', '', '', '', ''].join(','));
+  meta('state', inp.state);
+  meta('target', inp.target);
+  meta('basis', inp.basis);
+  meta('amount', inp.amount);
+  meta('spend', inp.spend);
+  meta('residency', inp.residency);
+  meta('filing', inp.filing);
+  meta('mode', inp.mode);
+  meta('federal_tax', Math.round(r.fedTax));
+  meta('state_tax', Math.round(r.stateTax));
+  meta('net', Math.round(r.net));
+  meta('core', Math.round(r.core));
+  meta('muni', Math.round(r.muni));
+  meta('ppli', Math.round(r.ppli));
+  meta('equity_after_carve', Math.round(r.equity));
+  meta('sleeve', r.sleeveId ?? '');
+  meta('sleeve_amount', Math.round(r.sleeveAmount));
+  meta('weights_abc', `${Math.round(r.weights.a * 100)}/${Math.round(r.weights.b * 100)}/${Math.round(r.weights.c * 100)}`);
+  meta('muni_yield', asm.muniYield);
+  meta('ppli_growth', asm.ppliGrowth);
+  meta('ppli_draw', asm.ppliDraw);
+  meta('equity_growth', asm.eqGrowth);
+  meta('equity_draw', asm.eqDraw);
+  meta('inflation', asm.inflation);
+  scenarios.forEach((s, i) => {
+    if (!s?.result) return;
+    lines.push(['scenario', LETTERS[i], csvCell(s.name), Math.round(s.result.net), Math.round(s.result.core), csvCell(s.result.alloc), Math.round(s.result.capacity), Math.round(s.result.stackEnd)].join(','));
   });
-  const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
+  lines.push('year,stack_begin,cash_to_you,reinvested,fees,growth,stack_end,baseline_end');
+  r.projection.forEach((row, i) => {
+    const base = r.baseline[i];
+    lines.push([row.year, Math.round(row.begin), Math.round(row.cash), Math.round(row.reinvested), Math.round(row.fees), Math.round(row.growth), Math.round(row.end), Math.round(base?.end ?? 0)].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'lottery-trust-stack-projection.csv';
+  a.download = 'lottery-trust-stack-plan.csv';
   a.click();
   URL.revokeObjectURL(url);
 }
 
-function ProjectionTable({ r }: { r: StackResult }) {
+function SleeveCard({ inp, setInputs, amount }: { inp: Inputs; setInputs: Props['setInputs']; amount: number }) {
+  const spec = inp.sleeve ? SLEEVE_MATH[inp.sleeve] : undefined;
+  const name = STRATEGIES.find((s) => s.id === inp.sleeve)?.name ?? inp.sleeve;
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex items-center justify-between gap-2 text-[13px]">
+        <span>{name}</span>
+        <button type="button" onClick={() => setInputs((p) => ({ ...p, sleeve: null }))} className="text-[12.5px] text-muted-foreground hover:text-destructive cursor-pointer">Remove</button>
+      </div>
+      {spec ? (
+        <>
+          <label className="block text-[12.5px] text-muted-foreground">
+            Carve {Math.round(inp.sleevePct * 100)}% of core from Engine C ({fmtCompact(amount)})
+            <input type="range" min={0} max={SLEEVE_PCT_MAX * 100} step={1} value={Math.round(inp.sleevePct * 100)}
+              onChange={(e) => setInputs((p) => ({ ...p, sleevePct: (+e.target.value || 0) / 100 }))}
+              className="mt-1 w-full" />
+          </label>
+          <p className="text-[12px] leading-snug text-muted-foreground">
+            Model rates, not forecasts. OZ 6% growth and no draw. QSBS 4% expected growth and no draw. Real estate 3% appreciation and 4% cash draw. The taxable baseline uses the same rates, so the gap stays a tax gap.
+          </p>
+        </>
+      ) : (
+        <p className="text-[12.5px] leading-snug text-muted-foreground">Does not change the three-engine math.</p>
+      )}
+    </div>
+  );
+}
+
+function ProjectionTable({ r, inp, asm, scenarios }: { r: StackResult; inp: Inputs; asm: Assumptions; scenarios: (ScenarioSlot | null)[] }) {
   return (
     <details className="hairline-card p-5">
       <summary className="cursor-pointer font-display text-lg font-semibold">25-year projection, year by year</summary>
@@ -467,8 +552,8 @@ function ProjectionTable({ r }: { r: StackResult }) {
           Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
           (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
         </p>
-        <button type="button" onClick={() => exportProjectionCsv(r)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
-          Download CSV
+        <button type="button" onClick={() => exportPlan(inp, asm, r, scenarios)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
+          Download plan
         </button>
       </div>
       <div className="mt-3 max-h-96 overflow-auto rounded-md border border-border">

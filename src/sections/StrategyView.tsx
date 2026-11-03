@@ -1,44 +1,65 @@
 import { COUNSEL_NOTES, ENGINE_PRESETS, STRATEGIES } from '../lib/content';
+import { SLEEVE_MATH } from '../lib/calc';
 import { SectionTitle } from '../components/widgets';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface Props {
-  modules: string[];
+  sleeve: string | null;
   onApplyEngine: (id: string) => void;
-  onToggleModule: (id: string) => void;
+  onSetSleeve: (id: string | null) => void;
 }
 
-export default function StrategyView({ modules, onApplyEngine, onToggleModule }: Props) {
+export default function StrategyView({ sleeve, onApplyEngine, onSetSleeve }: Props) {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <SectionTitle
         num="03"
         title={<>The strategy <span className="sig-italic">library</span></>}
-        blurb="Every option for tax-free income and long-term compounding, in plain English. Core engines set the calculator weights. Other items are added to your stack as a list — they do not change the three-engine math."
+        blurb="Core engines set the calculator weights. One optional sleeve can be active at a time — choosing another replaces it. OZ, QSBS, and real estate carve cash out of Engine C and change the projection. Every other item is a label only."
       />
 
       <Accordion type="single" collapsible className="space-y-3">
         {STRATEGIES.map((s) => {
           const isEngine = s.id in ENGINE_PRESETS;
-          const selected = modules.includes(s.id);
+          const changesMath = s.id in SLEEVE_MATH;
+          const selected = sleeve === s.id;
+          const label = isEngine ? 'Set engine' : selected ? 'Remove' : sleeve ? 'Replace' : 'Use sleeve';
           return (
             <AccordionItem key={s.id} value={s.id} className="hairline-card border px-5">
-              <AccordionTrigger className="py-4 hover:no-underline">
-                <div className="flex flex-1 items-center gap-4 text-left">
-                  {s.stat && (
-                    <div className="hidden w-20 shrink-0 text-center sm:block">
-                      <div className="font-num text-lg font-semibold stat-warm">{s.stat}</div>
-                      <div className="text-[13.5px] leading-tight text-muted-foreground">{s.statLabel}</div>
+              <div className="flex items-center gap-3">
+                <AccordionTrigger className="flex-1 py-4 hover:no-underline">
+                  <div className="flex flex-1 items-center gap-4 text-left">
+                    {s.stat && (
+                      <div className="hidden w-20 shrink-0 text-center sm:block">
+                        <div className="font-num text-lg font-semibold stat-warm">{s.stat}</div>
+                        <div className="text-[13.5px] leading-tight text-muted-foreground">{s.statLabel}</div>
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-mono text-[14px] uppercase tracking-wider text-muted-foreground">{s.tag}</div>
+                      <div className="font-display text-lg font-semibold leading-tight">{s.name}</div>
                     </div>
-                  )}
-                  <div>
-                    <div className="font-mono text-[14px] uppercase tracking-wider text-muted-foreground">{s.tag}</div>
-                    <div className="font-display text-lg font-semibold leading-tight">{s.name}</div>
                   </div>
-                </div>
-              </AccordionTrigger>
+                </AccordionTrigger>
+                <button
+                  type="button"
+                  onClick={() => (isEngine ? onApplyEngine(s.id) : onSetSleeve(selected ? null : s.id))}
+                  className={`mb-1 shrink-0 rounded-md border px-3 py-2 text-sm font-semibold cursor-pointer ${
+                    selected ? 'border-destructive/40 text-destructive' : 'border-primary text-primary hover:bg-accent'
+                  }`}
+                >
+                  {label}
+                </button>
+              </div>
               <AccordionContent className="pb-6">
                 <p className="max-w-[70ch] text-[15px] leading-relaxed">{s.oneLiner}</p>
+                {!isEngine && (
+                  <p className="mt-2 text-[12.5px] font-medium text-muted-foreground">
+                    {changesMath
+                      ? 'Changes the math. Carves a slice of core out of Engine C and uses its own model growth and draw.'
+                      : 'Does not change the three-engine math.'}
+                  </p>
+                )}
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   <div>
                     <div className="font-mono text-[12.5px] uppercase tracking-wider stat-good">The tax magic</div>
@@ -62,34 +83,6 @@ export default function StrategyView({ modules, onApplyEngine, onToggleModule }:
                     {COUNSEL_NOTES[s.id]}
                   </p>
                 )}
-                <div className="mt-4">
-                  {isEngine ? (
-                    <button
-                      type="button"
-                      onClick={() => onApplyEngine(s.id)}
-                      className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer"
-                    >
-                      Set as primary engine
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onToggleModule(s.id)}
-                      className={`rounded-md border px-3 py-2 text-sm font-semibold cursor-pointer ${
-                        selected
-                          ? 'border-destructive/40 text-destructive hover:bg-destructive/5'
-                          : 'border-primary text-primary hover:bg-accent'
-                      }`}
-                    >
-                      {selected ? 'Remove from stack' : 'Add to stack'}
-                    </button>
-                  )}
-                  <p className="mt-2 text-[12.5px] text-muted-foreground">
-                    {isEngine
-                      ? 'Switches the calculator to manual weights with this engine as the largest sleeve, then opens the calculator.'
-                      : 'Adds this item to the Selected modules list on the calculator. It does not change the numbers.'}
-                  </p>
-                </div>
               </AccordionContent>
             </AccordionItem>
           );

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { QUIZ, profileFromAnswers, recommend, scoreAll, type GoalProfile } from '../lib/quiz';
-import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
+import { computeStack, fmtCompact, pct, SLEEVE_MATH, type Assumptions, type Inputs } from '../lib/calc';
+import { STRATEGIES } from '../lib/content';
 import { SectionTitle } from '../components/widgets';
 import Terrain3D from '../components/Terrain3D';
 import { ScenarioLines, ScenarioBars, useScenarioResults, SCENARIO_COLORS } from '../components/CompareCharts';
@@ -148,6 +149,14 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
               </div>
               <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[14px] text-muted-foreground">
                 {rec.notes.map((n, i) => <li key={i}>{n}</li>)}
+                {inputs.sleeve && (
+                  <li>
+                    Selected sleeve: {STRATEGIES.find((s) => s.id === inputs.sleeve)?.name ?? inputs.sleeve}.
+                    {inputs.sleeve in SLEEVE_MATH
+                      ? ` It carves ${pct(inputs.sleevePct, 0)} of core out of Engine C, so the projection already includes it. Apply does not remove it.`
+                      : ' It does not change the three-engine math. Apply does not remove it.'}
+                  </li>
+                )}
               </ul>
               <button
                 onClick={apply}

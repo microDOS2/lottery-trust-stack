@@ -22,11 +22,12 @@ const tipStyle = {
   color: 'hsl(25 55% 10%)',
 };
 
-export function AllocationDonut({ muni, ppli, equity, reserve }: { muni: number; ppli: number; equity: number; reserve: number }) {
+export function AllocationDonut({ muni, ppli, equity, reserve, sleeve = 0, sleeveName = 'Sleeve' }: { muni: number; ppli: number; equity: number; reserve: number; sleeve?: number; sleeveName?: string }) {
   const data = [
     { name: 'Muni ladder (A)', value: muni, color: CHART_COLORS.muni },
     { name: 'PPLI (B)', value: ppli, color: CHART_COLORS.ppli },
     { name: 'Equities (C)', value: equity, color: CHART_COLORS.equity },
+    ...(sleeve > 0 ? [{ name: sleeveName, value: sleeve, color: '#6B6359' }] : []),
     ...(reserve > 0 ? [{ name: 'Entity #4 reserve', value: reserve, color: CHART_COLORS.reserve }] : []),
   ].filter((d) => d.value > 0);
   const total = data.reduce((s, d) => s + d.value, 0);

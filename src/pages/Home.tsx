@@ -1,24 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, computeStack, type Inputs, type Assumptions } from '../lib/calc';
+import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, SLEEVE_MATH, computeStack, pct, type Inputs, type Assumptions } from '../lib/calc';
 import CalculatorView, { type ScenarioSlot } from '../sections/CalculatorView';
 import GoalsView from '../sections/GoalsView';
 import LabView from '../sections/LabView';
 import StrategyView from '../sections/StrategyView';
 import AnnuityView from '../sections/AnnuityView';
 import { GuideView, GlossaryView } from '../sections/GuideView';
-import { ENGINE_PRESETS } from '../lib/content';
+import { ENGINE_PRESETS, STRATEGIES } from '../lib/content';
 import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass } from 'lucide-react';
 
 type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 function schemaAllowsSaved(): boolean {
   try {
     const raw = localStorage.getItem('lotteryStack.schema');
     if (raw === null) return true;
-    return Number(raw) === SCHEMA_VERSION;
+    const n = Number(raw);
+    return n === 2 || n === SCHEMA_VERSION;
   } catch {
     return false;
   }
@@ -26,6 +27,40 @@ function schemaAllowsSaved(): boolean {
 
 function stampSchema() {
   try { localStorage.setItem('lotteryStack.schema', String(SCHEMA_VERSION)); } catch { /* ignore */ }
+}
+
+function readHash(): { inputs?: Partial<Inputs>; assumptions?: Partial<Assumptions> } | null {
+  try {
+    const h = location.hash;
+    if (!h.startsWith('#s=')) return null;
+    const parsed = JSON.parse(atob(h.slice(3)));
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (parsed.inputs && typeof parsed.inputs === 'object') return parsed;
+    if ('amount' in parsed) return { inputs: parsed };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boolean): Inputs {
+  const hadSleeve = !!parsed && Object.prototype.hasOwnProperty.call(parsed, 'sleeve');
+  const inputs: Inputs = {
+    ...DEFAULT_INPUTS,
+    ...(parsed ?? {}),
+    manual: { ...DEFAULT_INPUTS.manual, ...(parsed?.manual ?? {}) },
+    drawOverrides: { ...(parsed?.drawOverrides ?? {}) },
+  };
+  if (!hadSleeve && migrateSleeve) {
+    try {
+      const raw = localStorage.getItem('lotteryStack.modules');
+      const arr = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(arr) && typeof arr[arr.length - 1] === 'string') inputs.sleeve = arr[arr.length - 1];
+    } catch { /* ignore */ }
+  }
+  if (inputs.sleeve === undefined) inputs.sleeve = null;
+  if (typeof inputs.sleevePct !== 'number') inputs.sleevePct = DEFAULT_INPUTS.sleevePct;
+  return inputs;
 }
 
 const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
@@ -39,25 +74,23 @@ const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
 ];
 
 function loadInputs(): Inputs {
-  try {
-    const h = location.hash;
-    if (h.startsWith('#s=')) {
-      const parsed = JSON.parse(atob(h.slice(3)));
-      return { ...DEFAULT_INPUTS, ...parsed, manual: { ...DEFAULT_INPUTS.manual, ...(parsed.manual ?? {}) } };
-    }
-  } catch { /* ignore bad hash */ }
+  const hash = readHash();
+  if (hash?.inputs) return normalizeInputs(hash.inputs, false);
   if (!schemaAllowsSaved()) return DEFAULT_INPUTS;
   try {
     const saved = localStorage.getItem('lotteryStack.inputs');
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...DEFAULT_INPUTS, ...parsed, manual: { ...DEFAULT_INPUTS.manual, ...(parsed.manual ?? {}) } };
+      const migrate = localStorage.getItem('lotteryStack.schema') !== String(SCHEMA_VERSION);
+      return normalizeInputs(parsed, migrate);
     }
   } catch { /* ignore */ }
   return DEFAULT_INPUTS;
 }
 
 function loadAssumptions(): Assumptions {
+  const hash = readHash();
+  if (hash?.assumptions) return { ...DEFAULT_ASSUMPTIONS, ...hash.assumptions };
   if (!schemaAllowsSaved()) return DEFAULT_ASSUMPTIONS;
   try {
     const saved = localStorage.getItem('lotteryStack.assumptions');
@@ -66,16 +99,9 @@ function loadAssumptions(): Assumptions {
   return DEFAULT_ASSUMPTIONS;
 }
 
-function loadModules(): string[] {
-  if (!schemaAllowsSaved()) return [];
-  try {
-    const saved = localStorage.getItem('lotteryStack.modules');
-    if (!saved) return [];
-    const arr = JSON.parse(saved);
-    return Array.isArray(arr) ? arr.filter((id): id is string => typeof id === 'string') : [];
-  } catch {
-    return [];
-  }
+export interface EngineNotice {
+  text: string;
+  undo?: () => void;
 }
 
 export default function Home() {
@@ -92,10 +118,16 @@ export default function Home() {
           const asmNow = loadAssumptions();
           return [...arr.slice(0, 5), null, null, null, null, null].slice(0, 5).map((s) => {
             if (!s || !s.inputs) return null;
-            const r = computeStack(s.inputs, asmNow);
+            const inputs = {
+              ...DEFAULT_INPUTS,
+              ...s.inputs,
+              manual: { ...DEFAULT_INPUTS.manual, ...(s.inputs.manual ?? {}) },
+              drawOverrides: { ...(s.inputs.drawOverrides ?? {}) },
+            };
+            const r = computeStack(inputs, asmNow);
             return {
               name: s.name ?? 'Scenario',
-              inputs: s.inputs,
+              inputs,
               result: {
                 net: r.net, core: r.core, capacity: r.capacity,
                 stackEnd: r.stackEnd, advantage: r.advantage,
@@ -108,7 +140,7 @@ export default function Home() {
     } catch { /* ignore */ }
     return [null, null, null, null, null];
   });
-  const [modules, setModules] = useState<string[]>(loadModules);
+  const [notice, setNotice] = useState<EngineNotice | null>(null);
 
   useEffect(() => {
     try {
@@ -125,9 +157,6 @@ export default function Home() {
   useEffect(() => {
     try { localStorage.setItem('lotteryStack.assumptions', JSON.stringify(asm)); stampSchema(); } catch { /* ignore */ }
   }, [asm]);
-  useEffect(() => {
-    try { localStorage.setItem('lotteryStack.modules', JSON.stringify(modules)); stampSchema(); } catch { /* ignore */ }
-  }, [modules]);
 
   const result = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
 
@@ -148,18 +177,37 @@ export default function Home() {
     setInputsRaw(DEFAULT_INPUTS);
     setAsm(DEFAULT_ASSUMPTIONS);
     setScenarios([null, null, null, null, null]);
-    setModules([]);
+    setNotice(null);
   };
 
   const applyEngine = (id: string) => {
     const preset = ENGINE_PRESETS[id];
     if (!preset) return;
-    setInputsRaw((prev) => ({ ...prev, mode: 'manual', manual: { ...preset } }));
+    const prev = inputs;
+    const name = STRATEGIES.find((s) => s.id === id)?.name ?? 'Engine';
+    setInputsRaw((p) => ({ ...p, mode: 'manual', manual: { ...preset } }));
+    setNotice({
+      text: `${name} is now ${Math.round(preset.a * 100)}/${Math.round(preset.b * 100)}/${Math.round(preset.c * 100)} of core (A/B/C).`,
+      undo: () => setInputsRaw((p) => ({ ...p, mode: prev.mode, manual: { ...prev.manual } })),
+    });
     setView('calc');
   };
 
-  const toggleModule = (id: string) => {
-    setModules((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const setSleeve = (id: string | null) => {
+    setInputsRaw((p) => ({ ...p, sleeve: id }));
+    if (!id) {
+      setNotice(null);
+      return;
+    }
+    const name = STRATEGIES.find((s) => s.id === id)?.name ?? id;
+    if (SLEEVE_MATH[id]) {
+      setNotice({
+        text: `${name} replaces the sleeve and carves ${pct(inputs.sleevePct, 0)} of core out of Engine C. Capacity and the 25-year line use that sleeve's model rates.`,
+      });
+    } else {
+      setNotice({ text: `${name} is the selected sleeve. It does not change the three-engine math.` });
+    }
+    setView('calc');
   };
 
   return (
@@ -203,8 +251,9 @@ export default function Home() {
             saveScenario={saveScenario}
             clearScenarios={() => setScenarios([null, null, null, null, null])}
             resetAll={resetAll}
-            modules={modules}
-            removeModule={(id) => setModules((prev) => prev.filter((x) => x !== id))}
+            notice={notice}
+            dismissNotice={() => setNotice(null)}
+            undoNotice={() => { notice?.undo?.(); setNotice(null); }}
             onOpenLibrary={() => setView('library')}
           />
         )}
@@ -221,7 +270,7 @@ export default function Home() {
           />
         )}
         {view === 'library' && (
-          <StrategyView modules={modules} onApplyEngine={applyEngine} onToggleModule={toggleModule} />
+          <StrategyView sleeve={inputs.sleeve} onApplyEngine={applyEngine} onSetSleeve={setSleeve} />
         )}
         {view === 'annuity' && <AnnuityView defaultState={inputs.state} filing={inputs.filing} />}
         {view === 'guide' && <GuideView />}

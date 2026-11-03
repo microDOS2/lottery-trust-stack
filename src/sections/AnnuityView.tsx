@@ -75,7 +75,7 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
             <h3 className="font-display text-lg font-semibold">Value if you invest it all, year by year</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Both paths reinvest everything at {pct(a.investReturn)}. Final: lump {fmtCompact(r.lumpEnd)} vs annuity {fmtCompact(r.annuityEnd)}.
-              Each annuity check is taxed on 2026 federal brackets for that year's payment, plus the state's top rate — not a flat 37%.
+              Each annuity check uses 2026 federal brackets. State tax is the top marginal rate on the payment above the federal standard deduction. In a graduated-bracket state that overstates tax on smaller checks.
             </p>
             <AnnuityChart yearly={r.yearly} />
           </div>
