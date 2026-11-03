@@ -93,6 +93,14 @@ export default function CalculatorView(p: Props) {
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.entity4} min={0} step={50000} onChange={(e) => set('entity4', +e.target.value || 0)} />
         </Field>
 
+        <Field label="Structure setup costs ($)" help="One-time year-1 legal and professional work: trusts drafted, PPLI placed, LLC formed, custody opened. Realistic range $50–150K.">
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.setupCost} min={0} step={5000} onChange={(e) => set('setupCost', +e.target.value || 0)} />
+        </Field>
+
+        <Field label="Annual admin & professional fees ($)" help="Trustee fees, PPLI carrier charges, CPA for trust returns, registered agent. Realistic range $15–50K/yr, grows with inflation. Drags the stack — the taxable baseline pays none of this.">
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.annualAdmin} min={0} step={1000} onChange={(e) => set('annualAdmin', +e.target.value || 0)} />
+        </Field>
+
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-[13px] font-medium">Income ↔ Growth dial</span>
@@ -204,7 +212,7 @@ export default function CalculatorView(p: Props) {
               <div>
                 <h3 className="font-display text-lg font-semibold">The compounding race</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Same engines, same returns, same cash to you — but unshielded. The gap is pure tax drag.
+                  Same engines, same returns, same cash to you — but unshielded. The stack's line even carries its admin fees; the baseline pays none.
                   Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
                 </p>
               </div>
@@ -291,6 +299,7 @@ function ProjectionTable({ r }: { r: StackResult }) {
               <th className="px-3 py-2 text-right font-medium">Beginning</th>
               <th className="px-3 py-2 text-right font-medium">Cash to you</th>
               <th className="px-3 py-2 text-right font-medium">Reinvested</th>
+              <th className="px-3 py-2 text-right font-medium">Fees</th>
               <th className="px-3 py-2 text-right font-medium">Growth</th>
               <th className="px-3 py-2 text-right font-medium">Ending</th>
             </tr>
@@ -302,6 +311,7 @@ function ProjectionTable({ r }: { r: StackResult }) {
                 <td className="px-3 py-1.5 text-right">{fmt(row.begin)}</td>
                 <td className="px-3 py-1.5 text-right stat-warm">{fmt(row.cash)}</td>
                 <td className="px-3 py-1.5 text-right">{row.reinvested > 1 ? fmt(row.reinvested) : '—'}</td>
+                <td className="px-3 py-1.5 text-right text-muted-foreground">{row.fees > 1 ? fmt(row.fees) : '—'}</td>
                 <td className="px-3 py-1.5 text-right stat-good">{fmt(row.growth)}</td>
                 <td className="px-3 py-1.5 text-right font-semibold">{fmt(row.end)}</td>
               </tr>
