@@ -34,14 +34,14 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
               onChange={(e) => setA({ ...a, advertised: +e.target.value || 0 })} />
           </Field>
           <div>
-            <div className="mb-1 flex justify-between text-[13px]"><span className="font-medium">Cash-option ratio</span><span className="font-num text-muted-foreground">{pct(a.cashRatio, 0)}</span></div>
+            <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">Cash-option ratio</span><span className="font-num text-muted-foreground">{pct(a.cashRatio, 0)}</span></div>
             <Slider value={[a.cashRatio * 100]} min={35} max={60} step={1} onValueChange={([v]) => setA({ ...a, cashRatio: v / 100 })} />
-            <p className="mt-1 text-[11px] text-muted-foreground">Powerball cash options typically run ~45–50% of the advertised jackpot.</p>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">Powerball cash options typically run ~45–50% of the advertised jackpot.</p>
           </div>
           <div>
-            <div className="mb-1 flex justify-between text-[13px]"><span className="font-medium">Reinvestment return</span><span className="font-num text-muted-foreground">{pct(a.investReturn)}</span></div>
+            <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">Reinvestment return</span><span className="font-num text-muted-foreground">{pct(a.investReturn)}</span></div>
             <Slider value={[a.investReturn * 100]} min={3} max={10} step={0.25} onValueChange={([v]) => setA({ ...a, investReturn: v / 100 })} />
-            <p className="mt-1 text-[11px] text-muted-foreground">What the money earns after tax, either path. 7% ≈ a balanced stack.</p>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">What the money earns after tax, either path. 7% ≈ a balanced stack.</p>
           </div>
           <Field label="State where you'd claim">
             <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={a.state} onChange={(e) => setA({ ...a, state: e.target.value })}>
@@ -52,11 +52,11 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
 
         <div className="min-w-0 space-y-6">
           <div className={`rounded-lg border p-5 ${lumpWins ? 'border-success/40 bg-[hsl(var(--success-tint))]' : 'border-gold/50 bg-[hsl(var(--gold-tint))]'}`}>
-            <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">The model's verdict</div>
+            <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">The model's verdict</div>
             <div className="font-display mt-1 text-2xl font-semibold">
               {lumpWins ? 'Lump sum, by the math' : 'Annuity, by the math'} — <span className="sig-italic">{fmtCompact(r.diff)}</span> apart
             </div>
-            <p className="mt-2 max-w-[70ch] text-[13.5px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 max-w-[70ch] text-[14px] leading-relaxed text-muted-foreground">
               {lumpWins
                 ? 'Invested in the stack, the smaller immediate pile compounds into more than 30 years of checks — plus you keep control, flexibility, and a step-up in basis at death.'
                 : 'The guaranteed rising checks actually out-compound the smaller lump at this return assumption — and they make it impossible to blow it all in year one.'}
@@ -73,7 +73,7 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
 
           <div className="hairline-card p-5">
             <h3 className="font-display text-lg font-semibold">Value if you invest it all, year by year</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               Both paths reinvest everything at {pct(a.investReturn)}. Final: lump {fmtCompact(r.lumpEnd)} vs annuity {fmtCompact(r.annuityEnd)}.
             </p>
             <AnnuityChart yearly={r.yearly} />
@@ -82,7 +82,7 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
           <div className="grid gap-4 md:grid-cols-2">
             <div className="hairline-card p-5">
               <h4 className="font-display font-semibold stat-good">Lump sum — the case for</h4>
-              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-muted-foreground">
+              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14px] text-muted-foreground">
                 <li>Funds the entire 4-entity stack immediately — PPLI, munis, equities, the LLC</li>
                 <li>One tax event, then the engines shield everything after</li>
                 <li>Step-up in basis at death; the annuity dies with you</li>
@@ -91,7 +91,7 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
             </div>
             <div className="hairline-card p-5">
               <h4 className="font-display font-semibold stat-warm">Annuity — the case for</h4>
-              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[13px] text-muted-foreground">
+              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14px] text-muted-foreground">
                 <li>30 years of rising checks is a built-in guardrail against overspending</li>
                 <li>The full advertised amount actually gets paid — no cash-option haircut</li>
                 <li>Each year's tax bill is smaller and partially offset by lower brackets</li>
