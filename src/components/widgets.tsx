@@ -8,9 +8,9 @@ export function Stat({
   const toneCls = tone === 'good' ? 'stat-good' : tone === 'warm' ? 'stat-warm' : '';
   return (
     <div className="hairline-card p-4 md:p-5 transition-transform duration-150 hover:-translate-y-0.5">
-      <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={`font-num mt-1.5 text-xl md:text-2xl font-semibold ${toneCls}`}>{value}</div>
-      {sub && <div className="mt-1 text-xs text-muted-foreground leading-snug">{sub}</div>}
+      {sub && <div className="mt-1 text-sm text-muted-foreground leading-snug">{sub}</div>}
     </div>
   );
 }
@@ -41,9 +41,9 @@ export function Field({
 }: { label: string; help?: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-foreground/90">{label}</span>
+      <span className="mb-1.5 block text-[14px] font-medium text-foreground/90">{label}</span>
       {children}
-      {help && <span className="mt-1 block text-[11.5px] leading-snug text-muted-foreground">{help}</span>}
+      {help && <span className="mt-1 block text-[14px] leading-snug text-muted-foreground">{help}</span>}
     </label>
   );
 }
