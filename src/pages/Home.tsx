@@ -13,7 +13,7 @@ type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goa
 const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
   { id: 'calc', label: 'Calculator', icon: Landmark },
   { id: 'goals', label: 'Goals & Fit', icon: Compass },
-  { id: 'lab', label: 'Income ↔ Growth', icon: TrendingUp },
+  { id: 'lab', label: 'Spend vs. Grow', icon: TrendingUp },
   { id: 'library', label: 'Strategy Library', icon: Library },
   { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
   { id: 'guide', label: 'First-Year Guide', icon: Map },
