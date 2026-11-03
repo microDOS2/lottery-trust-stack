@@ -6,10 +6,10 @@ import {
 } from '../lib/calc';
 import { Stat, Field, SectionTitle } from '../components/widgets';
 import { AllocationDonut, ProjectionChart, FlowDiagram } from '../components/viz';
+import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/CompareCharts';
+import DrawSchedule from './DrawSchedule';
 import { Slider } from '@/components/ui/slider';
-import PRPanel from './PRPanel';
-import RealEstatePanel from './RealEstatePanel';
-import { AlertTriangle, Link2, Check, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Link2, Check, RotateCcw, Settings2, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
 
 export interface ScenarioSlot {
   name: string;
@@ -29,10 +29,43 @@ interface Props {
   resetAll: () => void;
 }
 
+const LETTERS = 'ABCDE';
+
+const SECTION_META: Array<{ id: string; title: string }> = [
+  { id: 'charts', title: 'Charts' },
+  { id: 'projection', title: '25-year projection' },
+  { id: 'schedule', title: 'Custom draw schedule' },
+  { id: 'realestate', title: 'Real estate' },
+  { id: 'flow', title: 'Money flow' },
+  { id: 'compare', title: 'Scenario comparison' },
+];
+
+interface Layout { order: string[]; hidden: string[] }
+const DEFAULT_LAYOUT: Layout = { order: SECTION_META.map((s) => s.id), hidden: [] };
+
+function loadLayout(): Layout {
+  try {
+    const raw = localStorage.getItem('lotteryStack.layout');
+    if (raw) {
+      const parsed = JSON.parse(raw) as Layout;
+      const valid = parsed.order.filter((id) => SECTION_META.some((m) => m.id === id));
+      for (const m of SECTION_META) if (!valid.includes(m.id)) valid.push(m.id);
+      return { order: valid, hidden: (parsed.hidden ?? []).filter((id) => valid.includes(id)) };
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_LAYOUT;
+}
+
 export default function CalculatorView(p: Props) {
   const { inputs: inp, result: r, asm } = p;
   const [copied, setCopied] = useState(false);
   const [realDollars, setRealDollars] = useState(false);
+  const [customizing, setCustomizing] = useState(false);
+  const [layout, setLayoutRaw] = useState<Layout>(loadLayout);
+  const setLayout = (l: Layout) => {
+    setLayoutRaw(l);
+    try { localStorage.setItem('lotteryStack.layout', JSON.stringify(l)); } catch { /* ignore */ }
+  };
   const set = <K extends keyof Inputs>(k: K, v: Inputs[K]) => p.setInputs((prev) => ({ ...prev, [k]: v }));
   const st = STATES.find((s) => s.code === inp.state)!;
   const tg = STATES.find((s) => s.code === inp.target)!;
@@ -48,6 +81,74 @@ export default function CalculatorView(p: Props) {
   const deflate = (v: number, year: number) => (realDollars ? v / Math.pow(1 + asm.inflation, year) : v);
   const projStack = r.projection.map((row) => ({ ...row, end: deflate(row.end, row.year) }));
   const projBase = r.baseline.map((row) => ({ ...row, end: deflate(row.end, row.year) }));
+
+  const savedScenarios = p.scenarios
+    .map((s, i) => (s ? { letter: LETTERS[i], inputs: s.inputs } : null))
+    .filter((s): s is { letter: string; inputs: Inputs } => !!s);
+  const scenarioResults = useScenarioResults(savedScenarios, asm);
+
+  const move = (id: string, dir: -1 | 1) => {
+    const order = [...layout.order];
+    const i = order.indexOf(id);
+    const j = i + dir;
+    if (j < 0 || j >= order.length) return;
+    [order[i], order[j]] = [order[j], order[i]];
+    setLayout({ ...layout, order });
+  };
+  const toggleHide = (id: string) =>
+    setLayout({
+      ...layout,
+      hidden: layout.hidden.includes(id) ? layout.hidden.filter((h) => h !== id) : [...layout.hidden, id],
+    });
+
+  const sectionNode = (id: string) => {
+    switch (id) {
+      case 'charts':
+        return (
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="hairline-card p-5">
+              <h3 className="font-display text-lg font-semibold">Where the core sits</h3>
+              <p className="mt-1 text-xs text-muted-foreground">Trust #2 holds Engines A + C · Trust #3 holds Engine B · Entity #4 holds property cash.</p>
+              <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} />
+            </div>
+            <div className="hairline-card p-5">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-display text-lg font-semibold">The compounding race</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Same engines, same returns, same cash to you — but unshielded. The stack's line even carries its admin fees; the baseline pays none.
+                    Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
+                  </p>
+                </div>
+                <button onClick={() => setRealDollars(!realDollars)}
+                  className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
+                  {realDollars ? "Today's $" : 'Nominal $'}
+                </button>
+              </div>
+              <ProjectionChart stack={projStack} baseline={projBase} />
+            </div>
+          </div>
+        );
+      case 'projection':
+        return <ProjectionTable r={r} />;
+      case 'schedule':
+        return <DrawSchedule inputs={inp} setInputs={p.setInputs} result={r} asm={asm} />;
+      case 'realestate':
+        return <RealEstateLazy inputs={inp} result={r} />;
+      case 'flow':
+        return (
+          <div className="hairline-card p-5">
+            <h3 className="font-display text-lg font-semibold">The money flow</h3>
+            <p className="mt-1 mb-3 text-xs text-muted-foreground">One wire in, four destinations. Everything after Trust #1 is engineered to be tax-free or tax-deferred.</p>
+            <FlowDiagram />
+          </div>
+        );
+      case 'compare':
+        return <ScenarioCompare {...p} scenarioResults={scenarioResults} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px]">
@@ -85,7 +186,7 @@ export default function CalculatorView(p: Props) {
           ))}
         </div>
 
-        <Field label="Target annual tax-free spending" help="What you want to spend each year after Year 1. Sizes the reserve and drives the sustainability check.">
+        <Field label="Target annual tax-free spending" help="What you want to spend each year after Year 1. Sizes the reserve and drives the sustainability check. Per-year control lives in the draw schedule below the charts.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend} min={0} step={10000} onChange={(e) => set('spend', +e.target.value || 0)} />
         </Field>
 
@@ -201,52 +302,53 @@ export default function CalculatorView(p: Props) {
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="hairline-card p-5">
-            <h3 className="font-display text-lg font-semibold">Where the core sits</h3>
-            <p className="mt-1 text-xs text-muted-foreground">Trust #2 holds Engines A + C · Trust #3 holds Engine B · Entity #4 holds property cash.</p>
-            <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} />
-          </div>
-          <div className="hairline-card p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h3 className="font-display text-lg font-semibold">The compounding race</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Same engines, same returns, same cash to you — but unshielded. The stack's line even carries its admin fees; the baseline pays none.
-                  Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
-                </p>
-              </div>
-              <button onClick={() => setRealDollars(!realDollars)}
-                className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
-                {realDollars ? "Today's $" : 'Nominal $'}
-              </button>
-            </div>
-            <ProjectionChart stack={projStack} baseline={projBase} />
-          </div>
-        </div>
-
-        {inp.residency === 'pr' && <PRPanel inputs={inp} setInputs={p.setInputs} result={r} />}
-
         {r.depletedYear && (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="text-sm">
-              <strong>The stack runs dry around year {r.depletedYear}.</strong> At this spending level the engines can't keep up, so the projection dips into principal and eventually empties. Lower the target, raise the dial toward income, or grow the core first.
+              <strong>The stack runs dry around year {r.depletedYear}.</strong> At this draw schedule the engines can't keep up, so the projection dips into principal and eventually empties. Lower the target, raise the dial toward income, or grow the core first.
             </div>
           </div>
         )}
 
-        <ProjectionTable r={r} />
+        {inp.residency === 'pr' && <PRLazy inputs={inp} setInputs={p.setInputs} result={r} />}
 
-        <RealEstatePanel suggestedPrice={inp.entity4} marginalRate={0.37 + r.futureStateRate} />
-
-        <div className="hairline-card p-5">
-          <h3 className="font-display text-lg font-semibold">The money flow</h3>
-          <p className="mt-1 mb-3 text-xs text-muted-foreground">One wire in, four destinations. Everything after Trust #1 is engineered to be tax-free or tax-deferred.</p>
-          <FlowDiagram />
+        <div className="flex justify-end no-print">
+          <button
+            onClick={() => setCustomizing(!customizing)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors cursor-pointer ${customizing ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:text-foreground'}`}
+          >
+            <Settings2 className="h-3.5 w-3.5" /> {customizing ? 'Done customizing' : 'Customize sections'}
+          </button>
         </div>
 
-        <ScenarioCompare {...p} />
+        {customizing && layout.hidden.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            Hidden:
+            {layout.hidden.map((id) => (
+              <button key={id} onClick={() => toggleHide(id)} className="rounded-full border border-dashed border-input px-3 py-1 hover:border-primary hover:text-primary cursor-pointer">
+                Restore {SECTION_META.find((m) => m.id === id)?.title}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {layout.order.filter((id) => !layout.hidden.includes(id)).map((id, idx, arr) => {
+          const meta = SECTION_META.find((m) => m.id === id)!;
+          return (
+            <div key={id}>
+              {customizing && (
+                <div className="mb-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="font-mono uppercase tracking-wider">{meta.title}</span>
+                  <button onClick={() => move(id, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => move(id, 1)} disabled={idx === arr.length - 1} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => toggleHide(id)} className="rounded p-1 hover:bg-secondary cursor-pointer" aria-label="Hide section"><EyeOff className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
+              {sectionNode(id)}
+            </div>
+          );
+        })}
       </div>
 
       {/* ---------- Explanation rail ---------- */}
@@ -255,6 +357,16 @@ export default function CalculatorView(p: Props) {
       </aside>
     </div>
   );
+}
+
+// Lazy wrappers keep imports tidy
+import PRPanel from './PRPanel';
+import RealEstatePanel from './RealEstatePanel';
+function PRLazy(props: { inputs: Inputs; setInputs: Props['setInputs']; result: StackResult }) {
+  return <PRPanel {...props} />;
+}
+function RealEstateLazy({ inputs, result }: { inputs: Inputs; result: StackResult }) {
+  return <RealEstatePanel suggestedPrice={inputs.entity4} marginalRate={0.37 + result.futureStateRate} />;
 }
 
 function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['setInputs'] }) {
@@ -274,7 +386,7 @@ function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['
         ['c', 'Engine C — Equities', m.c],
       ] as const).map(([k, label, v]) => (
         <div key={k}>
-          <div className="flex justify-between text-xs"><span>{k === 'a' ? 'Engine A — Munis' : label}</span><span className="font-num">{Math.round(v * 100)}%</span></div>
+          <div className="flex justify-between text-xs"><span>{label}</span><span className="font-num">{Math.round(v * 100)}%</span></div>
           <Slider value={[Math.round(v * 100)]} min={0} max={100} step={1} onValueChange={([x]) => upd(k, x / 100)} />
         </div>
       ))}
@@ -288,8 +400,8 @@ function ProjectionTable({ r }: { r: StackResult }) {
     <details className="hairline-card p-5">
       <summary className="cursor-pointer font-display text-lg font-semibold">25-year projection, year by year</summary>
       <p className="mt-1 text-xs text-muted-foreground">
-        Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw only your spending target
-        (growing with inflation); automatic muni coupons beyond that sweep back into equities. Overspending dips into principal, which is how a stack can run dry.
+        Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
+        (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
       </p>
       <div className="mt-3 max-h-96 overflow-auto rounded-md border border-border">
         <table className="w-full text-sm">
@@ -323,20 +435,20 @@ function ProjectionTable({ r }: { r: StackResult }) {
   );
 }
 
-function ScenarioCompare(p: Props) {
+function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScenarioResults> }) {
   const filled = p.scenarios.filter(Boolean).length;
   return (
     <div className="hairline-card p-5 no-print">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-semibold">Scenario comparison</h3>
-          <p className="text-xs text-muted-foreground">Snapshot the current setup into a slot, tweak the dial or mode, save again — outcomes recompute automatically.</p>
+          <p className="text-xs text-muted-foreground">Snapshot the current setup into a slot, tweak the dial or mode, save again — outcomes recompute automatically. Then take the Goals &amp; Fit quiz to see which one actually fits you.</p>
         </div>
-        <div className="flex gap-2">
-          {[0, 1, 2].map((i) => (
+        <div className="flex flex-wrap gap-2">
+          {[0, 1, 2, 3, 4].map((i) => (
             <button key={i} onClick={() => p.saveScenario(i)}
               className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
-              Save as {'ABC'[i]}
+              {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
             </button>
           ))}
           {filled > 0 && (
@@ -345,33 +457,45 @@ function ScenarioCompare(p: Props) {
         </div>
       </div>
       {filled > 0 && (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
-            <thead>
-              <tr className="text-left text-xs text-muted-foreground">
-                <th className="py-2 pr-3 font-medium">Outcome</th>
-                {p.scenarios.map((s, i) => <th key={i} className="py-2 pr-3 text-right font-medium">{s ? `Scenario ${'ABC'[i]}` : '—'}</th>)}
-              </tr>
-            </thead>
-            <tbody className="font-num text-[13px]">
-              {([
-                ['Net after-tax pool', (s: ScenarioSlot) => fmtCompact(s.result.net)],
-                ['Investable core', (s: ScenarioSlot) => fmtCompact(s.result.core)],
-                ['Allocation A/B/C', (s: ScenarioSlot) => s.result.alloc],
-                ['Tax-free capacity /yr', (s: ScenarioSlot) => fmtCompact(s.result.capacity)],
-                ['Net worth @ 25 yrs', (s: ScenarioSlot) => fmtCompact(s.result.stackEnd)],
-                ['Edge over taxable', (s: ScenarioSlot) => fmtCompact(s.result.advantage)],
-              ] as const).map(([label, fn]) => (
-                <tr key={label} className="border-t border-border/60">
-                  <td className="py-2 pr-3 font-sans text-muted-foreground">{label}</td>
-                  {p.scenarios.map((s, i) => (
-                    <td key={i} className="py-2 pr-3 text-right">{s ? fn(s) : '—'}</td>
-                  ))}
+        <>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="py-2 pr-3 font-medium">Outcome</th>
+                  {p.scenarios.map((s, i) => <th key={i} className="py-2 pr-3 text-right font-medium">{s ? `Scenario ${LETTERS[i]}` : '—'}</th>)}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="font-num text-[13px]">
+                {([
+                  ['Net after-tax pool', (s: ScenarioSlot) => fmtCompact(s.result.net)],
+                  ['Investable core', (s: ScenarioSlot) => fmtCompact(s.result.core)],
+                  ['Allocation A/B/C', (s: ScenarioSlot) => s.result.alloc],
+                  ['Tax-free capacity /yr', (s: ScenarioSlot) => fmtCompact(s.result.capacity)],
+                  ['Net worth @ 25 yrs', (s: ScenarioSlot) => fmtCompact(s.result.stackEnd)],
+                  ['Edge over taxable', (s: ScenarioSlot) => fmtCompact(s.result.advantage)],
+                ] as const).map(([label, fn]) => (
+                  <tr key={label} className="border-t border-border/60">
+                    <td className="py-2 pr-3 font-sans text-muted-foreground">{label}</td>
+                    {p.scenarios.map((s, i) => (
+                      <td key={i} className="py-2 pr-3 text-right">{s ? fn(s) : '—'}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <div>
+              <h4 className="font-display text-base font-semibold">25-year race</h4>
+              <ScenarioLines scenarios={p.scenarioResults} />
+            </div>
+            <div>
+              <h4 className="font-display text-base font-semibold">Headline metrics</h4>
+              <ScenarioBars scenarios={p.scenarioResults} />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -387,7 +511,7 @@ function ExplainRail({ inp, r }: { inp: Inputs; r: StackResult }) {
         <ul className="mt-3 space-y-3 text-[13px] leading-relaxed text-muted-foreground">
           <li><strong className="text-foreground">Taxes came out first.</strong> The lottery withholds 24% federal, but the real bill is ~37% — the difference is due April 15, which is why Trust #1 parks it in T-Bills.</li>
           <li><strong className="text-foreground">Year 1 is a seasoning year.</strong> You live on the reserve while the PPLI and loss-harvesting engines warm up. Patience here is worth real money.</li>
-          <li><strong className="text-foreground">From month 13, the tap opens — but you choose the flow.</strong> Up to {fmtCompact(r.capacity)}/yr is available tax-free. You plan to draw {fmtCompact(r.plannedDrawY2)}, and the surplus sweeps back into the growth engine.</li>
+          <li><strong className="text-foreground">From month 13, the tap opens — but you choose the flow.</strong> Up to {fmtCompact(r.capacity)}/yr is available tax-free. You plan to draw {fmtCompact(r.plannedDrawY2)}, and the surplus keeps compounding.</li>
         </ul>
       </div>
       <div className="hairline-card p-5">
