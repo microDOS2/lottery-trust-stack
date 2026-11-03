@@ -1,0 +1,219 @@
+import { useMemo, useState } from 'react';
+import { QUIZ, profileFromAnswers, recommend, scoreAll, type GoalProfile } from '../lib/quiz';
+import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
+import { SectionTitle } from '../components/widgets';
+import Terrain3D from '../components/Terrain3D';
+import { ScenarioLines, ScenarioBars, useScenarioResults, SCENARIO_COLORS } from '../components/CompareCharts';
+import { Crown, Wand2 } from 'lucide-react';
+
+export interface SavedScenario {
+  letter: string;
+  inputs: Inputs;
+}
+
+interface Props {
+  inputs: Inputs;
+  setInputs: (fn: (p: Inputs) => Inputs) => void;
+  asm: Assumptions;
+  scenarios: SavedScenario[];
+}
+
+const DIM_LABELS: Array<[keyof GoalProfile, string]> = [
+  ['income', 'Income now'],
+  ['growth', 'Compounding'],
+  ['protection', 'Protection'],
+  ['mobility', 'Relocation'],
+  ['legacy', 'Legacy'],
+  ['simplicity', 'Simplicity'],
+];
+
+export default function GoalsView({ inputs, setInputs, asm, scenarios }: Props) {
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [done, setDone] = useState(false);
+
+  const answered = Object.keys(answers).length;
+  const profile = useMemo(() => profileFromAnswers(answers), [answers]);
+  const rec = useMemo(() => recommend(profile), [profile]);
+
+  const scored = useMemo(
+    () => (done ? scoreAll(scenarios, profile, asm) : []),
+    [done, scenarios, profile, asm]
+  );
+  const best = scored[0];
+
+  // Terrain markers: saved scenarios + the current (unsaved) setup
+  const markers = useMemo(() => {
+    const ms = scenarios.map((s) => {
+      const r = computeStack(s.inputs, asm);
+      return { letter: s.letter, dial: s.inputs.dial, stackEnd: r.stackEnd, best: !!best && best.letter === s.letter };
+    });
+    return ms;
+  }, [scenarios, asm, scored, best]);
+
+  const withResults = useScenarioResults(scenarios, asm);
+  const markedResults = withResults.map((s) => ({ ...s, best: !!best && best.letter === s.letter }));
+
+  const apply = () => {
+    setInputs((p) => ({ ...p, dial: rec.dial, mode: 'balanced', residency: rec.residency }));
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-8">
+      <SectionTitle
+        num="07"
+        title={<>What kind of winner <span className="sig-italic">are you?</span></>}
+        blurb="Twelve questions, no wrong answers. Your replies build a goal profile, recommend a starting configuration, and score your saved scenarios 0–100 — the best fit gets the crown."
+      />
+
+      {/* ---------- Questionnaire ---------- */}
+      <div className="hairline-card p-6 md:p-8">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            {answered} of {QUIZ.length} answered
+          </span>
+          <div className="h-1.5 w-40 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${(answered / QUIZ.length) * 100}%` }} />
+          </div>
+        </div>
+        <div className="space-y-6">
+          {QUIZ.map((q, qi) => (
+            <fieldset key={q.id}>
+              <legend className="mb-2 text-[15px] font-medium">
+                <span className="mr-2 font-mono text-xs text-muted-foreground">{String(qi + 1).padStart(2, '0')}</span>
+                {q.text}
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {q.options.map((o, oi) => (
+                  <button
+                    key={oi}
+                    onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
+                    title={o.hint}
+                    className={`rounded-full border px-4 py-2 text-[13px] transition-all cursor-pointer ${
+                      answers[q.id] === oi
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-input bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+        </div>
+        <button
+          disabled={answered < QUIZ.length}
+          onClick={() => setDone(true)}
+          className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+        >
+          <Wand2 className="h-4 w-4" />
+          {answered < QUIZ.length ? `Answer ${QUIZ.length - answered} more` : 'Score my scenarios'}
+        </button>
+      </div>
+
+      {done && (
+        <>
+          {/* ---------- Profile + recommendation ---------- */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="hairline-card p-6">
+              <h3 className="font-display text-xl font-semibold">Your goal profile</h3>
+              <div className="mt-4 space-y-3">
+                {DIM_LABELS.map(([k, label]) => (
+                  <div key={k}>
+                    <div className="mb-1 flex justify-between text-[12px]">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="font-num">{Math.round(profile[k] * 100)}</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${profile[k] * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="hairline-card p-6">
+              <h3 className="font-display text-xl font-semibold">Recommended starting point</h3>
+              <div className="font-num mt-2 text-sm text-muted-foreground">
+                Dial <span className="font-semibold text-foreground">{rec.dial}</span> · Residency{' '}
+                <span className="font-semibold text-foreground">{rec.residency === 'pr' ? 'Puerto Rico (Act 60)' : rec.residency === 'move' ? 'Move to 0% state' : 'Stay put'}</span>
+              </div>
+              <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[13px] text-muted-foreground">
+                {rec.notes.map((n, i) => <li key={i}>{n}</li>)}
+              </ul>
+              <button
+                onClick={apply}
+                className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer"
+              >
+                Apply to calculator
+              </button>
+            </div>
+          </div>
+
+          {/* ---------- Scenario scoreboard ---------- */}
+          {scenarios.length > 0 ? (
+            <div className="hairline-card p-6">
+              <h3 className="font-display text-xl font-semibold">Scenario scoreboard</h3>
+              <div className="mt-4 space-y-3">
+                {scored.map((s) => (
+                  <div key={s.letter} className={`rounded-lg border p-4 ${s.letter === best?.letter ? 'border-success/50 bg-[hsl(var(--success-tint))]' : 'border-border'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="font-num flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold" style={{ backgroundColor: SCENARIO_COLORS['ABCDE'.indexOf(s.letter)] + '22', color: SCENARIO_COLORS['ABCDE'.indexOf(s.letter)] }}>
+                          {s.letter}
+                        </span>
+                        <div>
+                          <div className="text-sm font-medium">
+                            Scenario {s.letter}
+                            {s.letter === best?.letter && <Crown className="ml-1.5 inline h-4 w-4 text-success" />}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            capacity {fmtCompact(s.result.capacity)}/yr · {fmtCompact(s.result.stackEnd)} @25y
+                          </div>
+                        </div>
+                      </div>
+                      <div className="font-num text-2xl font-semibold">{s.score.total}</div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                      {s.score.parts.map((p) => (
+                        <span key={p.label} className="font-mono text-[10.5px] text-muted-foreground">
+                          {p.label} <span className="text-foreground">{Math.round(p.score * 100)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="hairline-card p-6 text-sm text-muted-foreground">
+              Save scenarios A–E on the Calculator tab and come back — they'll be scored against your profile here.
+            </div>
+          )}
+
+          {/* ---------- Visual comparison ---------- */}
+          {scenarios.length > 0 && (
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="hairline-card p-6">
+                <h3 className="font-display text-lg font-semibold">25-year race</h3>
+                <ScenarioLines scenarios={markedResults} />
+              </div>
+              <div className="hairline-card p-6">
+                <h3 className="font-display text-lg font-semibold">Headline metrics</h3>
+                <ScenarioBars scenarios={markedResults} />
+              </div>
+            </div>
+          )}
+
+          {/* ---------- 3D terrain ---------- */}
+          <div className="hairline-card p-6">
+            <h3 className="font-display text-xl font-semibold">The terrain of your choices</h3>
+            <p className="mt-1 mb-3 text-sm text-muted-foreground">
+              Every dial position across 25 years, as landscape. Your scenarios are the markers — the crowned one carries the beacon.
+            </p>
+            <Terrain3D inputs={inputs} asm={asm} markers={markers} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
