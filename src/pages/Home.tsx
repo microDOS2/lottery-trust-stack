@@ -104,14 +104,14 @@ export default function Home() {
             <span className="font-display text-xl font-bold tracking-tight">
               Lottery <span className="sig-italic">Trust Stack</span>
             </span>
-            <span className="hidden font-mono text-[10px] uppercase tracking-wider text-muted-foreground md:inline">2026 ed.</span>
+            <span className="hidden font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground md:inline">2026 ed.</span>
           </button>
           <nav className="flex gap-1 overflow-x-auto" aria-label="Sections">
             {NAV.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setView(id)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] transition-colors cursor-pointer ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] transition-colors cursor-pointer ${
                   view === id
                     ? 'bg-primary text-primary-foreground font-medium'
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
@@ -159,13 +159,13 @@ export default function Home() {
 
       <footer className="border-t border-border">
         <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">
-          <p className="max-w-[90ch] text-xs leading-relaxed text-muted-foreground">
+          <p className="max-w-[90ch] text-sm leading-relaxed text-muted-foreground">
             This is a mathematical planning model for personal education — not tax, legal, financial, or insurance advice.
             Trust structures, PPLI eligibility, residency rules, and Opportunity Zone / QSBS requirements are fact-specific
             and change with legislation. Figures use approximate 2026 federal and state rates. Consult licensed attorneys,
             CPAs, and fiduciaries before acting on anything here.
           </p>
-          <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
+          <p className="mt-2 font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground/70">
             Rates last verified: November 2026 · For personal use · v1.0
           </p>
         </div>
