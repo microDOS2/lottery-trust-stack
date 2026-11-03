@@ -15,7 +15,7 @@ interface Props {
  */
 export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) {
   const years = Array.from({ length: 24 }, (_, i) => i + 2); // years 2..25
-  const defaultDraw = (y: number) => inputs.spend * Math.pow(1 + asm.inflation, y - 2);
+  const defaultDraw = (y: number) => (inputs.flatDraw ? inputs.spend : inputs.spend * Math.pow(1 + asm.inflation, y - 2));
 
   const setYear = (y: number, v: number | null) =>
     setInputs((p) => {
@@ -36,7 +36,7 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
       <p className="mt-1 text-xs text-muted-foreground">
         Tax-free draws are not an annual allowance — they ride on available basis and policy-loan capacity, so a $0 year and a
         double year are both fine (the $0 year just leaves more compounding). Edit any year; blank = default target
-        (spending × inflation). <span className="text-destructive font-medium">Red</span> = beyond that year's sustainable
+        (flat, or spending × inflation when growth is on). <span className="text-destructive font-medium">Red</span> = beyond that year's sustainable
         capacity, so principal gets dipped.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2">
