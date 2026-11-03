@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, computeStack, type Inputs, type Assumptions } from '../lib/calc';
 import CalculatorView, { type ScenarioSlot } from '../sections/CalculatorView';
+import GoalsView from '../sections/GoalsView';
 import LabView from '../sections/LabView';
 import StrategyView from '../sections/StrategyView';
 import AnnuityView from '../sections/AnnuityView';
 import { GuideView, GlossaryView } from '../sections/GuideView';
-import { Landmark, TrendingUp, Library, Scale, Map, BookOpen } from 'lucide-react';
+import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass } from 'lucide-react';
 
-type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary';
+type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals';
 
 const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
   { id: 'calc', label: 'Calculator', icon: Landmark },
+  { id: 'goals', label: 'Goals & Fit', icon: Compass },
   { id: 'lab', label: 'Income ↔ Growth', icon: TrendingUp },
   { id: 'library', label: 'Strategy Library', icon: Library },
   { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
@@ -48,7 +50,22 @@ export default function Home() {
   const [view, setView] = useState<View>('calc');
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
-  const [scenarios, setScenarios] = useState<(ScenarioSlot | null)[]>([null, null, null]);
+  const [scenarios, setScenarios] = useState<(ScenarioSlot | null)[]>(() => {
+    try {
+      const saved = localStorage.getItem('lotteryStack.scenarios');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) return [...arr.slice(0, 5), null, null, null, null, null].slice(0, 5);
+      }
+    } catch { /* ignore */ }
+    return [null, null, null, null, null];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lotteryStack.scenarios', JSON.stringify(scenarios.map((s) => (s ? { name: s.name, inputs: s.inputs } : null))));
+    } catch { /* ignore */ }
+  }, [scenarios]);
 
   const setInputs = (fn: (p: Inputs) => Inputs) => setInputsRaw(fn);
 
@@ -64,7 +81,7 @@ export default function Home() {
   const saveScenario = (i: number) => {
     const r = computeStack(inputs, asm);
     const slot: ScenarioSlot = {
-      name: `Scenario ${'ABC'[i]}`,
+      name: `Scenario ${'ABCDE'[i]}`,
       inputs,
       result: {
         net: r.net, core: r.core, capacity: r.capacity, stackEnd: r.stackEnd, advantage: r.advantage,
@@ -118,11 +135,21 @@ export default function Home() {
             result={result}
             scenarios={scenarios}
             saveScenario={saveScenario}
-            clearScenarios={() => setScenarios([null, null, null])}
+            clearScenarios={() => setScenarios([null, null, null, null, null])}
             resetAll={resetAll}
           />
         )}
         {view === 'lab' && <LabView inputs={inputs} setInputs={setInputs} asm={asm} />}
+        {view === 'goals' && (
+          <GoalsView
+            inputs={inputs}
+            setInputs={setInputs}
+            asm={asm}
+            scenarios={scenarios
+              .map((s, i) => (s ? { letter: 'ABCDE'[i], inputs: s.inputs } : null))
+              .filter((s): s is { letter: string; inputs: Inputs } => !!s)}
+          />
+        )}
         {view === 'library' && <StrategyView />}
         {view === 'annuity' && <AnnuityView defaultState={inputs.state} filing={inputs.filing} />}
         {view === 'guide' && <GuideView />}
