@@ -55,7 +55,22 @@ export default function Home() {
       const saved = localStorage.getItem('lotteryStack.scenarios');
       if (saved) {
         const arr = JSON.parse(saved);
-        if (Array.isArray(arr)) return [...arr.slice(0, 5), null, null, null, null, null].slice(0, 5);
+        if (Array.isArray(arr)) {
+          const asmNow = loadAssumptions();
+          return [...arr.slice(0, 5), null, null, null, null, null].slice(0, 5).map((s) => {
+            if (!s || !s.inputs) return null;
+            const r = computeStack(s.inputs, asmNow);
+            return {
+              name: s.name ?? 'Scenario',
+              inputs: s.inputs,
+              result: {
+                net: r.net, core: r.core, capacity: r.capacity,
+                stackEnd: r.stackEnd, advantage: r.advantage,
+                alloc: `${Math.round(r.weights.a * 100)}/${Math.round(r.weights.b * 100)}/${Math.round(r.weights.c * 100)}`,
+              },
+            };
+          });
+        }
       }
     } catch { /* ignore */ }
     return [null, null, null, null, null];
