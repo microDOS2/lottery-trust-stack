@@ -39,15 +39,15 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
         (spending × inflation). <span className="text-destructive font-medium">Red</span> = beyond that year's sustainable
         capacity, so principal gets dipped.
       </p>
-      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2">
         {years.map((y) => {
           const row = result.projection[y - 1];
           const override = inputs.drawOverrides[y];
           const val = override ?? Math.round(defaultDraw(y));
           const dipsPrincipal = row ? val > row.capacity + 1 : false;
           return (
-            <div key={y} className="flex items-center gap-1.5">
-              <span className="w-7 shrink-0 font-mono text-[11px] text-muted-foreground">Y{y}</span>
+            <div key={y} className="flex items-center gap-2">
+              <span className="w-8 shrink-0 font-mono text-xs text-muted-foreground">Y{y}</span>
               <input
                 type="number"
                 min={0}
@@ -55,24 +55,26 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
                 value={override ?? ''}
                 placeholder={String(Math.round(defaultDraw(y)))}
                 onChange={(e) => setYear(y, e.target.value === '' ? null : Math.max(0, +e.target.value))}
-                className={`w-full rounded border px-2 py-1 text-xs font-num ${
+                className={`min-w-[120px] flex-1 rounded-md border px-2.5 py-1.5 text-sm font-num ${
                   dipsPrincipal ? 'border-destructive/60 bg-destructive/5 text-destructive' : 'border-input bg-card'
                 }`}
               />
-              <button
-                title="Set this year to $0"
-                onClick={() => quickSet(y, 0)}
-                className={`shrink-0 rounded px-1.5 py-1 font-mono text-[10px] cursor-pointer ${override === 0 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}
-              >
-                0
-              </button>
-              <button
-                title="Double this year"
-                onClick={() => quickSet(y, 2)}
-                className="shrink-0 rounded bg-secondary px-1.5 py-1 font-mono text-[10px] text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                2×
-              </button>
+              <div className="flex shrink-0 overflow-hidden rounded-md border border-input">
+                <button
+                  title="Set this year to $0"
+                  onClick={() => quickSet(y, 0)}
+                  className={`px-2 py-1.5 font-mono text-[11px] cursor-pointer ${override === 0 ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
+                >
+                  0
+                </button>
+                <button
+                  title="Double this year"
+                  onClick={() => quickSet(y, 2)}
+                  className="border-l border-input bg-card px-2 py-1.5 font-mono text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  2×
+                </button>
+              </div>
             </div>
           );
         })}
