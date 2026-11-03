@@ -31,9 +31,9 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
   return (
     <details className="hairline-card p-5">
       <summary className="cursor-pointer font-display text-lg font-semibold">
-        Custom draw schedule{hasOverrides && <span className="ml-2 rounded bg-accent px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">edited</span>}
+        Custom draw schedule{hasOverrides && <span className="ml-2 rounded bg-accent px-2 py-0.5 font-mono text-[13.5px] font-semibold uppercase tracking-wider text-accent-foreground">edited</span>}
       </summary>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-sm text-muted-foreground">
         Tax-free draws are not an annual allowance — they ride on available basis and policy-loan capacity, so a $0 year and a
         double year are both fine (the $0 year just leaves more compounding). Edit any year; blank = default target
         (flat, or spending × inflation when growth is on). <span className="text-destructive font-medium">Red</span> = beyond that year's sustainable
@@ -47,7 +47,7 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
           const dipsPrincipal = row ? val > row.capacity + 1 : false;
           return (
             <div key={y} className="flex items-center gap-2">
-              <span className="w-8 shrink-0 font-mono text-xs text-muted-foreground">Y{y}</span>
+              <span className="w-8 shrink-0 font-mono text-sm text-muted-foreground">Y{y}</span>
               <input
                 type="number"
                 min={0}
@@ -63,14 +63,14 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
                 <button
                   title="Set this year to $0"
                   onClick={() => quickSet(y, 0)}
-                  className={`px-2 py-1.5 font-mono text-[11px] cursor-pointer ${override === 0 ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
+                  className={`px-2 py-1.5 font-mono text-[12.5px] cursor-pointer ${override === 0 ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
                 >
                   0
                 </button>
                 <button
                   title="Double this year"
                   onClick={() => quickSet(y, 2)}
-                  className="border-l border-input bg-card px-2 py-1.5 font-mono text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="border-l border-input bg-card px-2 py-1.5 font-mono text-[12.5px] text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   2×
                 </button>
@@ -80,14 +80,14 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
         })}
       </div>
       <div className="mt-4 flex items-center justify-between">
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[12.5px] text-muted-foreground">
           Total drawn over 25 yrs: <span className="font-num font-semibold">{fmtCompact(result.cumCash)}</span>
           <br />Drawn but unspent at year-end? Sweep it before Dec 31 — pay down PPLI loans, buy more ladder, or see the Guide's "year-end sweep" step.
         </p>
         {hasOverrides && (
           <button
             onClick={() => setInputs((p) => ({ ...p, drawOverrides: {} }))}
-            className="rounded-md border border-input px-3 py-1.5 text-xs text-muted-foreground hover:text-destructive cursor-pointer"
+            className="rounded-md border border-input px-3 py-1.5 text-sm text-muted-foreground hover:text-destructive cursor-pointer"
           >
             Reset schedule
           </button>
