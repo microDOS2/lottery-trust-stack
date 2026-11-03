@@ -77,7 +77,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
       {/* ---------- Questionnaire ---------- */}
       <div className="hairline-card p-6 md:p-8">
         <div className="mb-4 flex items-center justify-between">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">
             {answered} of {QUIZ.length} answered
           </span>
           <div className="h-1.5 w-40 overflow-hidden rounded-full bg-secondary">
@@ -88,7 +88,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
           {QUIZ.map((q, qi) => (
             <fieldset key={q.id}>
               <legend className="mb-2 text-[15px] font-medium">
-                <span className="mr-2 font-mono text-xs text-muted-foreground">{String(qi + 1).padStart(2, '0')}</span>
+                <span className="mr-2 font-mono text-sm text-muted-foreground">{String(qi + 1).padStart(2, '0')}</span>
                 {q.text}
               </legend>
               <div className="flex flex-wrap gap-2">
@@ -97,7 +97,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
                     key={oi}
                     onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
                     title={o.hint}
-                    className={`rounded-full border px-4 py-2 text-[13px] transition-all cursor-pointer ${
+                    className={`rounded-full border px-4 py-2 text-[14px] transition-all cursor-pointer ${
                       answers[q.id] === oi
                         ? 'border-primary bg-primary text-primary-foreground'
                         : 'border-input bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground'
@@ -129,7 +129,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
               <div className="mt-4 space-y-3">
                 {DIM_LABELS.map(([k, label]) => (
                   <div key={k}>
-                    <div className="mb-1 flex justify-between text-[12px]">
+                    <div className="mb-1 flex justify-between text-[13.5px]">
                       <span className="text-muted-foreground">{label}</span>
                       <span className="font-num">{Math.round(profile[k] * 100)}</span>
                     </div>
@@ -146,7 +146,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
                 Dial <span className="font-semibold text-foreground">{rec.dial}</span> · Residency{' '}
                 <span className="font-semibold text-foreground">{rec.residency === 'pr' ? 'Puerto Rico (Act 60)' : rec.residency === 'move' ? 'Move to 0% state' : 'Stay put'}</span>
               </div>
-              <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[13px] text-muted-foreground">
+              <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[14px] text-muted-foreground">
                 {rec.notes.map((n, i) => <li key={i}>{n}</li>)}
               </ul>
               <button
@@ -175,7 +175,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
                             Scenario {s.letter}
                             {s.letter === best?.letter && <Crown className="ml-1.5 inline h-4 w-4 text-success" />}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-sm text-muted-foreground">
                             capacity {fmtCompact(s.result.capacity)}/yr · {fmtCompact(s.result.stackEnd)} @25y
                           </div>
                         </div>
@@ -184,7 +184,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
                     </div>
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
                       {s.score.parts.map((p) => (
-                        <span key={p.label} className="font-mono text-[10.5px] text-muted-foreground">
+                        <span key={p.label} className="font-mono text-[14px] text-muted-foreground">
                           {p.label} <span className="text-foreground">{Math.round(p.score * 100)}</span>
                         </span>
                       ))}
@@ -216,7 +216,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
           {/* ---------- The verdict ---------- */}
           {bestScored && (
             <div className="hairline-card border-success/40 p-6 md:p-8" style={{ boxShadow: '0 4px 20px rgba(76,122,63,0.10)' }}>
-              <div className="font-mono text-[11px] uppercase tracking-wider stat-good">The verdict</div>
+              <div className="font-mono text-[12.5px] uppercase tracking-wider stat-good">The verdict</div>
               <h3 className="font-display mt-1 text-2xl md:text-3xl font-semibold">
                 <Crown className="mr-2 inline h-6 w-6 text-success" />
                 Scenario {bestScored.letter} fits you best
