@@ -82,6 +82,7 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
       <div className="mt-4 flex items-center justify-between">
         <p className="text-[11px] text-muted-foreground">
           Total drawn over 25 yrs: <span className="font-num font-semibold">{fmtCompact(result.cumCash)}</span>
+          <br />Drawn but unspent at year-end? Sweep it before Dec 31 — pay down PPLI loans, buy more ladder, or see the Guide's "year-end sweep" step.
         </p>
         {hasOverrides && (
           <button
