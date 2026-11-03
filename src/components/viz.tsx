@@ -1,6 +1,6 @@
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip, LineChart, Line, XAxis, YAxis,
-  CartesianGrid, Legend, AreaChart, Area, ReferenceDot,
+  CartesianGrid, Legend,
 } from 'recharts';
 import { fmtCompact, fmt } from '../lib/calc';
 import type { ProjectionRow } from '../lib/calc';
@@ -81,57 +81,6 @@ export function ProjectionChart({ stack, baseline }: { stack: ProjectionRow[]; b
         <Line type="monotone" dataKey="Trust stack" stroke={CHART_COLORS.stack} strokeWidth={2.5} dot={false} />
         <Line type="monotone" dataKey="Plain taxable account" stroke={CHART_COLORS.baseline} strokeWidth={2} strokeDasharray="6 4" dot={false} />
       </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-export interface FrontierPoint { dial: number; income: number; end: number; current?: boolean }
-
-export function FrontierChart({ points, current }: { points: FrontierPoint[]; current: FrontierPoint }) {
-  const data = points.map((p) => ({ income: Math.round(p.income), end: Math.round(p.end), dial: p.dial }));
-  return (
-    <ResponsiveContainer width="100%" height={320}>
-      <AreaChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
-        <defs>
-          <linearGradient id="frontierFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#E5604A" stopOpacity={0.25} />
-            <stop offset="100%" stopColor="#E5604A" stopOpacity={0.02} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid stroke="hsl(38 28% 90%)" vertical={false} />
-        <XAxis
-          dataKey="income"
-          type="number"
-          domain={['dataMin', 'dataMax']}
-          tickFormatter={(v: number) => fmtCompact(v)}
-          tick={{ fontSize: 11, fill: 'hsl(33 9% 38%)' }}
-          tickLine={false}
-          axisLine={false}
-          label={{ value: 'Tax-free cash capacity →', position: 'insideBottom', offset: -2, fontSize: 11, fill: 'hsl(33 9% 38%)' }}
-        />
-        <YAxis
-          tickFormatter={(v: number) => fmtCompact(v)}
-          tick={{ fontSize: 11, fill: 'hsl(33 9% 38%)' }}
-          tickLine={false}
-          axisLine={false}
-          width={64}
-          label={{ value: 'Net worth @ 25 yrs', angle: -90, position: 'insideLeft', fontSize: 11, fill: 'hsl(33 9% 38%)', offset: -50 }}
-        />
-        <Tooltip
-          contentStyle={tipStyle}
-          formatter={(v: number, name: string) => [fmt(v), name === 'end' ? 'Net worth at 25 yrs' : name]}
-          labelFormatter={(v) => `Tax-free income: ${fmt(Number(v))}/yr`}
-        />
-        <Area type="monotone" dataKey="end" stroke="#E5604A" strokeWidth={2.5} fill="url(#frontierFill)" />
-        <ReferenceDot
-          x={Math.round(current.income)}
-          y={Math.round(current.end)}
-          r={7}
-          fill="#4C7A3F"
-          stroke="hsl(40 60% 99%)"
-          strokeWidth={3}
-        />
-      </AreaChart>
     </ResponsiveContainer>
   );
 }
