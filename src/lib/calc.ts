@@ -35,6 +35,7 @@ export interface Inputs {
   preMoveWindow: 'within10' | 'after10'; // when pre-move gains are realized
   dial: number; // 0 = max compounding, 100 = max tax-free income
   manual: { a: number; b: number; c: number }; // fractions summing to 1
+  drawOverrides: Record<number, number>; // year (1-25) -> custom tax-free draw; overrides the spend target
 }
 
 export interface Assumptions {
@@ -76,6 +77,7 @@ export const DEFAULT_INPUTS: Inputs = {
   preMoveWindow: 'within10',
   dial: 50,
   manual: { a: 0.25, b: 0.25, c: 0.5 },
+  drawOverrides: {},
 };
 
 export const PPLI_QP_MIN = 5_000_000;      // Qualified Purchaser threshold (investable assets)
@@ -141,6 +143,7 @@ export interface ProjectionRow {
   reinvested: number; // surplus swept back into the growth engine
   growth: number;     // engine appreciation for the year
   fees: number;       // annual admin/professional drag (stack only)
+  capacity: number;   // that year's sustainable tax-free capacity (coupons + draw capacity)
   end: number;
 }
 
@@ -232,7 +235,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   for (let y = 1; y <= 25; y++) {
     const begin = muniB + ppliB + eqB;
     if (begin <= 0) {
-      projection.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, fees: 0, end: 0 });
+      projection.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, fees: 0, capacity: 0, end: 0 });
       if (depletedYear === null) depletedYear = y;
       continue;
     }
@@ -240,7 +243,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const ppliCap = ppliB * asm.ppliDraw;
     const eqCap = eqB * asm.eqDraw;
     const discCap = ppliCap + eqCap;
-    const desired = y === 1 ? 0 : inp.spend * Math.pow(1 + asm.inflation, y - 2);
+    const desired = y === 1 ? 0 : (inp.drawOverrides[y] ?? inp.spend * Math.pow(1 + asm.inflation, y - 2));
 
     let ppliDrawAmt = 0;
     let eqDrawAmt = 0;
@@ -281,7 +284,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const end = newMuni + newPpli + newEq;
     if (end <= 0 && depletedYear === null) depletedYear = y;
 
-    projection.push({ year: y, begin, cash, reinvested, growth, fees: feesPaid, end });
+    projection.push({ year: y, begin, cash, reinvested, growth, fees: feesPaid, capacity: coupons + ppliCap + eqCap, end });
     cumCash += cash;
     if (y === 2) { plannedDrawY2 = cash; reinvestY2 = reinvested; }
     muniB = newMuni; ppliB = newPpli; eqB = newEq;
@@ -301,11 +304,11 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   for (let y = 1; y <= 25; y++) {
     const begin = bal;
     if (begin <= 0) {
-      baseline.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, fees: 0, end: 0 });
+      baseline.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, fees: 0, capacity: 0, end: 0 });
       if (baselineDepletedYear === null) baselineDepletedYear = y;
       continue;
     }
-    const desired = y === 1 ? 0 : inp.spend * Math.pow(1 + asm.inflation, y - 2);
+    const desired = y === 1 ? 0 : (inp.drawOverrides[y] ?? inp.spend * Math.pow(1 + asm.inflation, y - 2));
     const interestNet = begin * w.a * asm.muniYield * (1 - ordRate);
     const divNet = begin * w.c * asm.divYield * (1 - divDrag);
     const autoNet = interestNet + divNet;
@@ -318,7 +321,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const appreciation = begin * (w.b * asm.ppliGrowth + w.c * asm.eqGrowth); // muni part is the interest cash
     const end = Math.max(0, begin + appreciation + surplus - grossW);
     if (end <= 0 && baselineDepletedYear === null) baselineDepletedYear = y;
-    baseline.push({ year: y, begin, cash, reinvested: surplus, growth: appreciation, fees: 0, end });
+    baseline.push({ year: y, begin, cash, reinvested: surplus, growth: appreciation, fees: 0, capacity: 0, end });
     bal = end;
   }
 
