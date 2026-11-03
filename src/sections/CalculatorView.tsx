@@ -108,20 +108,20 @@ export default function CalculatorView(p: Props) {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="hairline-card p-5">
               <h3 className="font-display text-lg font-semibold">Where the core sits</h3>
-              <p className="mt-1 text-xs text-muted-foreground">Trust #2 holds Engines A + C · Trust #3 holds Engine B · Entity #4 holds property cash.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Trust #2 holds Engines A + C · Trust #3 holds Engine B · Entity #4 holds property cash.</p>
               <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} />
             </div>
             <div className="hairline-card p-5">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="font-display text-lg font-semibold">The compounding race</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Same engines, same returns, same cash to you — but unshielded. The stack's line even carries its admin fees; the baseline pays none.
                     Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
                   </p>
                 </div>
                 <button onClick={() => setRealDollars(!realDollars)}
-                  className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
+                  className={`shrink-0 rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
                   {realDollars ? "Today's $" : 'Nominal $'}
                 </button>
               </div>
@@ -139,7 +139,7 @@ export default function CalculatorView(p: Props) {
         return (
           <div className="hairline-card p-5">
             <h3 className="font-display text-lg font-semibold">The money flow</h3>
-            <p className="mt-1 mb-3 text-xs text-muted-foreground">One wire in, four destinations. Everything after Trust #1 is engineered to be tax-free or tax-deferred.</p>
+            <p className="mt-1 mb-3 text-sm text-muted-foreground">One wire in, four destinations. Everything after Trust #1 is engineered to be tax-free or tax-deferred.</p>
             <FlowDiagram />
           </div>
         );
@@ -156,7 +156,7 @@ export default function CalculatorView(p: Props) {
       <div className="hairline-card h-fit p-5 lg:sticky lg:top-20 space-y-4 no-print">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-lg font-semibold">Your numbers</h3>
-          <button onClick={p.resetAll} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+          <button onClick={p.resetAll} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer">
             <RotateCcw className="h-3 w-3" /> Reset
           </button>
         </div>
@@ -191,9 +191,9 @@ export default function CalculatorView(p: Props) {
         </Field>
 
         <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
-          <span className="text-[13px]">Grow draw with inflation</span>
+          <span className="text-[14px]">Grow draw with inflation</span>
           <button onClick={() => set('flatDraw', !inp.flatDraw)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer ${inp.flatDraw ? 'bg-card border border-input text-muted-foreground hover:border-primary/50' : 'bg-primary text-primary-foreground'}`}>
+            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${inp.flatDraw ? 'bg-card border border-input text-muted-foreground hover:border-primary/50' : 'bg-primary text-primary-foreground'}`}>
             {inp.flatDraw ? 'Off — flat draw' : 'On'}
           </button>
         </div>
@@ -212,8 +212,8 @@ export default function CalculatorView(p: Props) {
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[13px] font-medium">Income ↔ Growth dial</span>
-            <span className="font-mono text-xs text-muted-foreground">{inp.mode === 'manual' ? 'manual' : inp.dial < 34 ? 'growth' : inp.dial > 66 ? 'income' : 'balanced'}</span>
+            <span className="text-[14px] font-medium">Income ↔ Growth dial</span>
+            <span className="font-mono text-sm text-muted-foreground">{inp.mode === 'manual' ? 'manual' : inp.dial < 34 ? 'growth' : inp.dial > 66 ? 'income' : 'balanced'}</span>
           </div>
           <Slider
             value={[inp.dial]}
@@ -221,15 +221,15 @@ export default function CalculatorView(p: Props) {
             disabled={inp.mode === 'manual'}
             onValueChange={([v]) => p.setInputs((prev) => ({ ...prev, dial: v, mode: v === 0 ? 'growth' : v === 100 ? 'income' : v === 50 ? 'balanced' : prev.mode === 'manual' ? 'balanced' : prev.mode }))}
           />
-          <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
+          <div className="mt-1 flex justify-between text-[12.5px] text-muted-foreground">
             <span>Compound for 25 yrs</span><span>Max tax-free income</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
-          <span className="text-[13px]">Manual allocation</span>
+          <span className="text-[14px]">Manual allocation</span>
           <button onClick={() => set('mode', inp.mode === 'manual' ? 'balanced' : 'manual')}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer ${inp.mode === 'manual' ? 'bg-primary text-primary-foreground' : 'bg-card border border-input text-muted-foreground hover:border-primary/50'}`}>
+            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${inp.mode === 'manual' ? 'bg-primary text-primary-foreground' : 'bg-card border border-input text-muted-foreground hover:border-primary/50'}`}>
             {inp.mode === 'manual' ? 'On' : 'Off'}
           </button>
         </div>
@@ -255,17 +255,17 @@ export default function CalculatorView(p: Props) {
         </Field>
 
         <details className="rounded-md border border-input">
-          <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-muted-foreground hover:text-foreground">Assumptions (editable)</summary>
+          <summary className="cursor-pointer px-3 py-2 text-[14px] font-medium text-muted-foreground hover:text-foreground">Assumptions (editable)</summary>
           <div className="grid grid-cols-2 gap-2 px-3 pb-3 pt-1">
             {([
               ['muniYield', 'Muni yield'], ['ppliDraw', 'PPLI draw'], ['ppliGrowth', 'PPLI growth'],
               ['eqDraw', 'Equity draw'], ['eqGrowth', 'Equity growth'], ['divYield', 'Equity dividends'],
               ['inflation', 'Inflation'],
             ] as const).map(([k, label]) => (
-              <label key={k} className="text-[11px] text-muted-foreground">
+              <label key={k} className="text-[12.5px] text-muted-foreground">
                 {label}
                 <input type="number" step={0.25} min={0} max={20}
-                  className="mt-0.5 w-full rounded border border-input bg-card px-2 py-1 text-xs font-num"
+                  className="mt-0.5 w-full rounded border border-input bg-card px-2 py-1 text-sm font-num"
                   value={(asm[k] * 100).toFixed(2)}
                   onChange={(e) => p.setAsm({ ...asm, [k]: (+e.target.value || 0) / 100 })} />
               </label>
@@ -324,14 +324,14 @@ export default function CalculatorView(p: Props) {
         <div className="flex justify-end no-print">
           <button
             onClick={() => setCustomizing(!customizing)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors cursor-pointer ${customizing ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:text-foreground'}`}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors cursor-pointer ${customizing ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:text-foreground'}`}
           >
             <Settings2 className="h-3.5 w-3.5" /> {customizing ? 'Done customizing' : 'Customize sections'}
           </button>
         </div>
 
         {customizing && layout.hidden.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             Hidden:
             {layout.hidden.map((id) => (
               <button key={id} onClick={() => toggleHide(id)} className="rounded-full border border-dashed border-input px-3 py-1 hover:border-primary hover:text-primary cursor-pointer">
@@ -346,7 +346,7 @@ export default function CalculatorView(p: Props) {
           return (
             <div key={id}>
               {customizing && (
-                <div className="mb-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="mb-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
                   <span className="font-mono uppercase tracking-wider">{meta.title}</span>
                   <button onClick={() => move(id, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
                   <button onClick={() => move(id, 1)} disabled={idx === arr.length - 1} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
@@ -394,11 +394,11 @@ function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['
         ['c', 'Engine C — Equities', m.c],
       ] as const).map(([k, label, v]) => (
         <div key={k}>
-          <div className="flex justify-between text-xs"><span>{label}</span><span className="font-num">{Math.round(v * 100)}%</span></div>
+          <div className="flex justify-between text-sm"><span>{label}</span><span className="font-num">{Math.round(v * 100)}%</span></div>
           <Slider value={[Math.round(v * 100)]} min={0} max={100} step={1} onValueChange={([x]) => upd(k, x / 100)} />
         </div>
       ))}
-      <p className="text-[11px] text-muted-foreground">Sliders auto-balance to 100%. PPLI carrier minimums still apply.</p>
+      <p className="text-[12.5px] text-muted-foreground">Sliders auto-balance to 100%. PPLI carrier minimums still apply.</p>
     </div>
   );
 }
@@ -407,14 +407,14 @@ function ProjectionTable({ r }: { r: StackResult }) {
   return (
     <details className="hairline-card p-5">
       <summary className="cursor-pointer font-display text-lg font-semibold">25-year projection, year by year</summary>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-sm text-muted-foreground">
         Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
         (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
       </p>
       <div className="mt-3 max-h-96 overflow-auto rounded-md border border-border">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-secondary">
-            <tr className="text-left text-xs text-muted-foreground">
+            <tr className="text-left text-sm text-muted-foreground">
               <th className="px-3 py-2 font-medium">Year</th>
               <th className="px-3 py-2 text-right font-medium">Beginning</th>
               <th className="px-3 py-2 text-right font-medium">Cash to you</th>
@@ -426,7 +426,7 @@ function ProjectionTable({ r }: { r: StackResult }) {
           </thead>
           <tbody>
             {r.projection.map((row) => (
-              <tr key={row.year} className="border-t border-border/60 font-num text-[13px]">
+              <tr key={row.year} className="border-t border-border/60 font-num text-[14px]">
                 <td className="px-3 py-1.5">{row.year}</td>
                 <td className="px-3 py-1.5 text-right">{fmt(row.begin)}</td>
                 <td className="px-3 py-1.5 text-right stat-warm">{fmt(row.cash)}</td>
@@ -450,17 +450,17 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-display text-lg font-semibold">Scenario comparison</h3>
-          <p className="text-xs text-muted-foreground">Snapshot the current setup into a slot, tweak the dial or mode, save again — outcomes recompute automatically. Then take the Goals &amp; Fit quiz to see which one actually fits you.</p>
+          <p className="text-sm text-muted-foreground">Snapshot the current setup into a slot, tweak the dial or mode, save again — outcomes recompute automatically. Then take the Goals &amp; Fit quiz to see which one actually fits you.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {[0, 1, 2, 3, 4].map((i) => (
             <button key={i} onClick={() => p.saveScenario(i)}
-              className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
+              className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
               {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
             </button>
           ))}
           {filled > 0 && (
-            <button onClick={p.clearScenarios} className="rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:text-destructive cursor-pointer">Clear</button>
+            <button onClick={p.clearScenarios} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-destructive cursor-pointer">Clear</button>
           )}
         </div>
       </div>
@@ -469,12 +469,12 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className="text-left text-xs text-muted-foreground">
+                <tr className="text-left text-sm text-muted-foreground">
                   <th className="py-2 pr-3 font-medium">Outcome</th>
                   {p.scenarios.map((s, i) => <th key={i} className="py-2 pr-3 text-right font-medium">{s ? `Scenario ${LETTERS[i]}` : '—'}</th>)}
                 </tr>
               </thead>
-              <tbody className="font-num text-[13px]">
+              <tbody className="font-num text-[14px]">
                 {([
                   ['Net after-tax pool', (s: ScenarioSlot) => fmtCompact(s.result.net)],
                   ['Investable core', (s: ScenarioSlot) => fmtCompact(s.result.core)],
@@ -516,7 +516,7 @@ function ExplainRail({ inp, r }: { inp: Inputs; r: StackResult }) {
     <>
       <div className="hairline-card p-5">
         <h4 className="font-display text-base font-semibold">What just happened to your money</h4>
-        <ul className="mt-3 space-y-3 text-[13px] leading-relaxed text-muted-foreground">
+        <ul className="mt-3 space-y-3 text-[14px] leading-relaxed text-muted-foreground">
           <li><strong className="text-foreground">Taxes came out first.</strong> The lottery withholds 24% federal, but the real bill is ~37% — the difference is due April 15, which is why Trust #1 parks it in T-Bills.</li>
           <li><strong className="text-foreground">Year 1 is a seasoning year.</strong> You live on the reserve while the PPLI and loss-harvesting engines warm up. Patience here is worth real money.</li>
           <li><strong className="text-foreground">From month 13, the tap opens — but you choose the flow.</strong> Up to {fmtCompact(r.capacity)}/yr is available tax-free. You plan to draw {fmtCompact(r.plannedDrawY2)}, and the surplus keeps compounding.</li>
@@ -524,13 +524,13 @@ function ExplainRail({ inp, r }: { inp: Inputs; r: StackResult }) {
       </div>
       <div className="hairline-card p-5">
         <h4 className="font-display text-base font-semibold">Your residency math</h4>
-        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
           {inp.residency === 'stay' && <>Staying in {st.name} means future unshielded income faces {pct(st.rate)} state tax. The stack's engines are designed so that number touches as little of your money as possible.</>}
           {inp.residency === 'pr' && <>As a bona fide Puerto Rico resident with an Act 60 decree, federal tax on post-move investment <em>gains</em> drops to <span className="font-num stat-good font-semibold">{pct(r.prRate, 0)}</span> under IRC §933 — the strongest legal rate available to a US person who keeps their citizenship. Details and the filing deadline are in the PR module above.</>}
           {(inp.residency === 'second' || inp.residency === 'move') && <>Domiciled in {tg.name} ({tg.noTax ? '0% income tax' : `${pct(tg.rate)} top rate`}), your future investment income faces <span className="font-num stat-good font-semibold">{pct(r.futureStateRate)}</span> state tax. Keep a day-count log — {st.name} will check.</>}
         </p>
       </div>
-      <div className="rounded-lg border border-gold/40 bg-[hsl(var(--gold-tint))] p-4 text-[12.5px] leading-relaxed text-[hsl(var(--espresso-soft))]">
+      <div className="rounded-lg border border-gold/40 bg-[hsl(var(--gold-tint))] p-4 text-[14px] leading-relaxed text-[hsl(var(--espresso-soft))]">
         <strong>Honest math, not advice.</strong> This is an educational model with simplified 2026 rates. Real trust drafting, PPLI underwriting, and residency law are fact-specific — run everything past a licensed attorney and CPA before acting.
       </div>
     </>
