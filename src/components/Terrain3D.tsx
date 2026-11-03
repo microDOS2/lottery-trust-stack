@@ -226,7 +226,7 @@ export default function Terrain3D({ inputs, asm, markers }: Props) {
   return (
     <div>
       <div ref={mountRef} className="h-[420px] w-full overflow-hidden rounded-lg border border-border" />
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2 text-sm text-muted-foreground">
         The terrain is every dial position across 25 years — higher ground means more net worth. Drag to orbit.
         Letters mark your saved scenarios at year 25; the green beacon is your best fit.
       </p>
