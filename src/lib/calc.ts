@@ -27,6 +27,8 @@ export interface Inputs {
   debt: number;         // paid from the after-tax cash before anything is invested
   entity4: number;      // dollars you typed for a home; nothing is set aside if this is 0
   venture: number;      // dollars you typed for a business; nothing is taken if this is 0
+  rental: number;       // dollars you typed for a rental; nothing is taken if this is 0
+  gift: number;         // dollars you typed for a gift; nothing is taken if this is 0
   setupCost: number;    // one-time legal/professional setup of the stack (year 1)
   annualAdmin: number;  // ongoing trustee, carrier, CPA, registered-agent fees
   mode: Mode;
@@ -90,6 +92,8 @@ export const DEFAULT_INPUTS: Inputs = {
   debt: 0,
   entity4: 0,
   venture: 0,
+  rental: 0,
+  gift: 0,
   setupCost: 0,
   annualAdmin: 0,
   mode: 'balanced',
@@ -255,10 +259,9 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   left -= housePaid;
   const venturePaid = Math.min(left, Math.max(0, inp.venture || 0));
   left -= venturePaid;
-  const chosen = Array.isArray(inp.chosen) ? inp.chosen : [];
-  const dollars = inp.strategyDollars ?? {};
-  const giftWant = chosen.includes('charitable') ? Math.max(0, dollars.charitable || 0) : 0;
-  const giftPaid = Math.min(left, giftWant);
+  const rentalPaid = Math.min(left, Math.max(0, inp.rental || 0));
+  left -= rentalPaid;
+  const giftPaid = Math.min(left, Math.max(0, inp.gift || 0));
   left -= giftPaid;
   const core = left;
   const qpOk = core >= PPLI_QP_MIN;
