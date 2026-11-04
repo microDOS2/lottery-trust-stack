@@ -61,16 +61,13 @@ export function conflicts(chosen: string[]): string[] {
   const lines: string[] = [];
   const engines = ENGINES.filter((id) => chosen.includes(id));
   if (engines.length > 1) {
-    lines.push('More than one mix is on. Bonds, the policy, and stocks cannot each hold all of the money. The numbers blend the mixes you turned on. Turn one off if you want only that mix.');
+    lines.push('More than one investment mix is on. The numbers average them. Turn one off if you want only that mix.');
   }
   if (chosen.includes('pr-act60') && chosen.includes('expatriation')) {
-    lines.push('Puerto Rico keeps US citizenship. Giving up citizenship is a different life. Both are on. The investment result uses Puerto Rico. The exit tax is separate.');
-  }
-  if (chosen.includes('foreign-trust')) {
-    lines.push('A foreign trust is on. For a US citizen it does not lower the US tax in these numbers. The other strategies still do whatever they do.');
+    lines.push('Puerto Rico and giving up citizenship are both on. They are different lives. The investment numbers use Puerto Rico. The exit tax is separate.');
   }
   if (chosen.includes('oz') && chosen.includes('leverage')) {
-    lines.push('The opportunity-zone money is locked for ten years. A loan does not unlock it. Do not count that slice as something you can borrow against next year.');
+    lines.push('Opportunity-zone money is locked for ten years. A loan does not free it.');
   }
   return lines;
 }
@@ -79,10 +76,15 @@ function nameOf(id: string): string {
   return STRATEGIES.find((s) => s.id === id)?.name ?? id;
 }
 
+export interface ComboSection {
+  heading: string;
+  lines: string[];
+}
+
 export interface ComboView {
   result: StackResult;
   plain: StackResult;
-  lines: string[];
+  sections: ComboSection[];
   conflicts: string[];
 }
 
@@ -92,73 +94,98 @@ export function describeCombo(inp: Inputs, asm: Assumptions): ComboView {
   const plain = computeStack({ ...inp, chosen: [], strategyDollars: {} }, asm);
   const chosen = inp.chosen ?? [];
   const dollars = inp.strategyDollars ?? {};
-  const lines: string[] = [];
+  const sections: ComboSection[] = [];
+
   const dCash = result.capacity - plain.capacity;
   const dEnd = result.stackEnd - plain.stackEnd;
-  lines.push(`With what you turned on: ${fmt(result.capacity)} a year, and ${fmt(result.stackEnd)} in 25 years. With none of the library turned on: ${fmt(plain.capacity)} a year, and ${fmt(plain.stackEnd)} in 25 years. That is ${fmt(Math.abs(dCash))} ${dCash >= 0 ? 'more' : 'less'} a year, and ${fmt(Math.abs(dEnd))} ${dEnd >= 0 ? 'more' : 'less'} in 25 years.`);
+  sections.push({
+    heading: 'The numbers',
+    lines: [
+      `With these on: ${fmt(result.capacity)} a year, and ${fmt(result.stackEnd)} in 25 years.`,
+      `With none of the library on: ${fmt(plain.capacity)} a year, and ${fmt(plain.stackEnd)} in 25 years.`,
+      `Difference: ${fmt(Math.abs(dCash))} ${dCash >= 0 ? 'more' : 'less'} a year, and ${fmt(Math.abs(dEnd))} ${dEnd >= 0 ? 'more' : 'less'} in 25 years.`,
+    ],
+  });
 
-  for (const id of chosen) {
-    lines.push(...effectLine(id, inp, result, dollars));
-  }
-  if (!chosen.length) lines.push('Nothing in the library is on. The numbers are only the cash, the spending, the debt, the home, and the business you already typed.');
-  return { result, plain, lines, conflicts: conflicts(chosen) };
-}
-
-function effectLine(id: string, inp: Inputs, result: StackResult, dollars: Record<string, number>): string[] {
-  const label = nameOf(id);
-  if (id === 'engine-a' || id === 'engine-b' || id === 'engine-c') {
+  const engines = ENGINES.filter((id) => chosen.includes(id));
+  if (engines.length) {
     const w = result.weights;
-    const policy = id === 'engine-b' && result.ppli <= 0
-      ? ` The policy is ${fmt(0)} because ${fmt(result.core)} is invested and the policy is only used from ${fmt(PPLI_QP_MIN)}.`
+    const names = engines.map(nameOf).join(', ');
+    const policy = engines.includes('engine-b') && result.ppli <= 0
+      ? ` The policy is ${fmt(0)} because ${fmt(result.core)} is invested and the policy starts at ${fmt(PPLI_QP_MIN)}.`
       : '';
-    return [`${label} is on. The blend in these numbers is ${pct(w.a, 0)} bonds, ${pct(w.b, 0)} insurance, and ${pct(w.c, 0)} stocks.${policy}`];
+    sections.push({
+      heading: 'How the money is split',
+      lines: [`${names} ${engines.length > 1 ? 'are' : 'is'} on. The blend is ${pct(w.a, 0)} bonds, ${pct(w.b, 0)} insurance, and ${pct(w.c, 0)} stocks.${policy}`],
+    });
   }
-  if (id === 'oz' || id === 'qsbs' || id === 'real-estate') {
-    const typed = Math.max(0, dollars[id] || 0);
-    if (typed <= 0) return [`${label} is on, and the amount is ${fmt(0)}. Nothing has been taken out of the stocks yet. Type the dollars, or use the suggestion.`];
-    const taken = Math.min(typed, result.sleeveAmount > 0 ? typed : 0);
-    const extra = id === 'qsbs'
-      ? ` The calculator grows that slice at ${pct(SLEEVE_MATH.qsbs.growth)} and pays ${pct(SLEEVE_MATH.qsbs.draw)} a year from it. A real startup can go to zero. That loss is not added on top.`
-      : id === 'oz'
-        ? ` That money stays locked for ten years in this description. The calculator grows it at ${pct(SLEEVE_MATH.oz.growth)} and pays ${pct(SLEEVE_MATH.oz.draw)} a year from it.`
-        : ` The calculator grows that slice at ${pct(SLEEVE_MATH['real-estate'].growth)} and pays ${pct(SLEEVE_MATH['real-estate'].draw)} a year. A real building can sit empty. That loss is not added on top.`;
-    return [`${label}: you accepted ${fmt(typed)}. ${fmt(Math.min(typed, taken || typed))} is the amount you set aside for it. If the stocks were smaller than that, only what was left moved.${extra}`];
+
+  const money: string[] = [];
+  for (const id of ['oz', 'qsbs', 'real-estate', 'charitable', 'leverage'] as const) {
+    if (!chosen.includes(id)) continue;
+    money.push(...moneyLine(id, result, dollars));
   }
-  if (id === 'charitable') {
-    const typed = Math.max(0, dollars.charitable || 0);
-    if (typed <= 0) return ['A charitable gift is on, and the amount is $0. Nothing is given until you type it.'];
-    return [`You accepted a gift of ${fmt(typed)}. ${fmt(result.giftPaid)} of that is not invested. A deduction might lower the prize-year tax. This chart does not lower the tax. The yearly check and the pile are lower only because the gift is gone. At least 10% of a charitable remainder trust has to go to charity. That rule is not a dollar in this chart.`];
-  }
-  if (id === 'leverage') {
-    const loan = Math.max(0, dollars.leverage || 0);
-    if (loan <= 0) return ['Borrowing is on, and the loan is $0. The pile is unchanged until you type a loan.'];
-    const hot = result.equity > 0 && loan > result.equity * 0.3;
-    const loanLine = hot
-      ? `The loan is more than 30% of the stocks (${fmt(result.equity)}). A drop can let the lender sell.`
-      : `The stocks in this result are ${fmt(result.equity)}. If the loan climbs too high when stocks fall, the lender can sell.`;
-    return [`You accepted a loan of ${fmt(loan)}. The pile is not sold, so the 25-year number does not drop by the loan. You still owe ${fmt(loan)}. This page does not guess the interest. ${loanLine}`];
-  }
-  if (id === 'legacy') {
+  if (money.length) sections.push({ heading: 'Money you set aside or borrowed', lines: money });
+
+  const other: string[] = [];
+  if (chosen.includes('legacy')) {
     const over = Math.max(0, result.stackEnd - ESTATE_EXEMPTION);
     const tax = over * ESTATE_RATE;
-    return [`The family trust is on. It does not move any money. In 25 years this result is ${fmt(result.stackEnd)}. The federal exclusion used here is ${fmt(ESTATE_EXEMPTION)} per person. The amount above that is ${fmt(over)}. At 40% that is ${fmt(tax)} if it is still in your estate when you die. The trust changes that only if a lawyer drafts it and you actually give the money away. That gift is irrevocable.`];
+    other.push(`Family trust is on. It does not move money. In 25 years the pile is ${fmt(result.stackEnd)}. The federal exclusion used here is ${fmt(ESTATE_EXEMPTION)} per person. Above that is ${fmt(over)}. At 40% that is ${fmt(tax)} if it is still in your estate when you die. A trust changes that only if a lawyer drafts it and you actually give the money away.`);
   }
-  if (id === 'pr-act60') {
-    return [`Puerto Rico is on in this result, not necessarily in the rest of the site until you use the combination. Later investment gains use the Puerto Rico path. The prize tax does not change. You would have to live there more than half the year. A mailing address does not count. The pile in this result is ${fmt(result.stackEnd)}.`];
+  if (chosen.includes('pr-act60')) {
+    other.push(`Puerto Rico is on in these numbers. Later investment gains use that path. The prize tax does not change. You would have to live there more than half the year. A mailing address does not count. The pile here is ${fmt(result.stackEnd)}.`);
   }
-  if (id === 'foreign-trust') {
-    return ['A foreign trust is on. The US tax saved in these numbers is $0. A US person who funds it and can benefit from it is taxed as if the trust were not there. It can matter for lawsuits. It does not raise the yearly check or the pile.'];
+  if (chosen.includes('foreign-trust')) {
+    other.push('Foreign trust is on. The US tax saved in these numbers is $0. A US person who funds it and can benefit from it is taxed as if the trust were not there. It can matter for lawsuits. It does not raise the yearly check or the pile.');
   }
-  if (id === 'expatriation') {
-    if (inp.assetValue <= 0) return ['Giving up citizenship is on. The exit tax cannot be calculated yet. Type what the assets would sell for today, and what you paid for them.'];
-    const gain = Math.max(0, inp.assetValue - Math.max(0, inp.costBasis));
-    const taxable = Math.max(0, gain - EXIT_EXCLUSION);
-    const tax = taxable * EXIT_RATE;
-    const covered = inp.assetValue >= COVERED_NET;
-    const coveredLine = covered
-      ? `That value is at or over ${fmt(COVERED_NET)}, so the covered-expatriate rules are the ones that apply here.`
-      : `That value is under ${fmt(COVERED_NET)}. The covered-expatriate net-worth test is not met by this number alone. Other tests exist.`;
-    return [`The assets would sell for ${fmt(inp.assetValue)}. You paid ${fmt(inp.costBasis)}. The gain is ${fmt(gain)}. ${coveredLine} The exclusion used here is ${fmt(EXIT_EXCLUSION)}. Tax at ${pct(EXIT_RATE)} on the gain above that is ${fmt(tax)}. This does not change the yearly check or the 25-year pile. Gifts to a US person after you leave can be taxed at 40%. That 40% is not in the ${fmt(tax)}.`];
+  if (chosen.includes('expatriation')) {
+    other.push(...exitLine(inp));
   }
-  return [`${label} is on.`];
+  if (other.length) sections.push({ heading: 'Other things that are on', lines: other });
+
+  if (!chosen.length) {
+    sections.push({ heading: 'Nothing on', lines: ['Nothing in the library is on. The numbers are only the cash, the spending, the debt, the home, and the business you already typed.'] });
+  }
+
+  return { result, plain, sections, conflicts: conflicts(chosen) };
+}
+
+function moneyLine(id: string, result: StackResult, dollars: Record<string, number>): string[] {
+  const label = nameOf(id);
+  const typed = Math.max(0, dollars[id] || 0);
+  if (id === 'oz' || id === 'qsbs' || id === 'real-estate') {
+    if (typed <= 0) return [`${label}: $0. Nothing is taken from the stocks until you type an amount.`];
+    const extra = id === 'qsbs'
+      ? ` Grown at ${pct(SLEEVE_MATH.qsbs.growth)}, paying ${pct(SLEEVE_MATH.qsbs.draw)} a year. A real startup can go to zero. That loss is not added.`
+      : id === 'oz'
+        ? ` Locked for ten years. Grown at ${pct(SLEEVE_MATH.oz.growth)}, paying ${pct(SLEEVE_MATH.oz.draw)} a year.`
+        : ` Grown at ${pct(SLEEVE_MATH['real-estate'].growth)}, paying ${pct(SLEEVE_MATH['real-estate'].draw)} a year. A real building can sit empty. That loss is not added.`;
+    return [`${label}: ${fmt(typed)}.${extra}`];
+  }
+  if (id === 'charitable') {
+    if (typed <= 0) return ['Charitable gift: $0. Nothing is given until you type it.'];
+    return [`Charitable gift: ${fmt(typed)}. ${fmt(result.giftPaid)} is not invested. The chart does not lower the prize tax for this. The yearly check and the pile are lower only because the gift is gone.`];
+  }
+  if (id === 'leverage') {
+    if (typed <= 0) return ['Borrowing: $0. The pile is unchanged until you type a loan.'];
+    const hot = result.equity > 0 && typed > result.equity * 0.3;
+    const warn = hot
+      ? ` The loan is more than 30% of the stocks (${fmt(result.equity)}). A drop can let the lender sell.`
+      : ` The stocks in this result are ${fmt(result.equity)}. If the loan climbs too high when stocks fall, the lender can sell.`;
+    return [`Borrowing: ${fmt(typed)}. The pile is not sold, so the 25-year number does not drop by the loan. You still owe ${fmt(typed)}. This page does not guess the interest.${warn}`];
+  }
+  return [];
+}
+
+function exitLine(inp: Inputs): string[] {
+  if (inp.assetValue <= 0) return ['Giving up citizenship: type what the assets would sell for today, and what you paid for them. The exit tax cannot be calculated yet.'];
+  const gain = Math.max(0, inp.assetValue - Math.max(0, inp.costBasis));
+  const taxable = Math.max(0, gain - EXIT_EXCLUSION);
+  const tax = taxable * EXIT_RATE;
+  const covered = inp.assetValue >= COVERED_NET;
+  const coveredLine = covered
+    ? `That value is at or over ${fmt(COVERED_NET)}, so the covered-expatriate rules apply here.`
+    : `That value is under ${fmt(COVERED_NET)}. The net-worth test is not met by this number alone.`;
+  return [`Giving up citizenship: assets would sell for ${fmt(inp.assetValue)}, you paid ${fmt(inp.costBasis)}, gain is ${fmt(gain)}. ${coveredLine} Exclusion used is ${fmt(EXIT_EXCLUSION)}. Tax at ${pct(EXIT_RATE)} on the gain above that is ${fmt(tax)}. This does not change the yearly check or the 25-year pile. Gifts to a US person after you leave can be taxed at 40%. That is not in the ${fmt(tax)}.`];
 }
