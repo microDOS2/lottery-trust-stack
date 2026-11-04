@@ -55,12 +55,12 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'depend', group: 'short',
-    text: 'Does anyone depend on this money in the next few years?',
-    why: 'If someone else relies on it, the yearly amount has to cover them too. This does not assume who that is.',
+    text: 'In the next few years, will you pay for anyone else\'s living costs, school, or care from this money?',
+    why: 'A spouse, partner, child, parent, or anyone else you support. If yes, the yearly amount has to include what they need. The question does not assume you have any of them.',
     options: [
-      { label: 'No', note: 'The yearly amount is only for you.', weights: {} },
-      { label: 'Yes', note: 'Include what they need in the yearly amount. The result uses that number.', weights: {} },
-      { label: 'I have not decided', note: 'You can change this later. Until you do, the result uses only the yearly amount you typed.', weights: {} },
+      { label: 'No one else', note: 'The yearly amount is only for you.', weights: {} },
+      { label: 'Yes. I support someone', note: 'Include their living costs, school, or care in the yearly amount. The result uses that number.', weights: {} },
+      { label: 'Not sure yet', note: 'You can change this later. Until you do, the result uses only the yearly amount you typed.', weights: {} },
     ],
   },
   {
