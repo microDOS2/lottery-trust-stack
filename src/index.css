@@ -117,21 +117,24 @@
 }
 
 /* Larger readable text */
-.text-sm { font-size: 16px !important; }
-.text-xs { font-size: 14px !important; }
-.text-\[12px\] { font-size: 14px !important; }
-.text-\[12\.5px\] { font-size: 14.5px !important; }
-.text-\[13px\] { font-size: 15px !important; }
-.text-\[13\.5px\] { font-size: 15.5px !important; }
-.text-\[14px\] { font-size: 16px !important; }
-.text-\[14\.5px\] { font-size: 16.5px !important; }
-.text-\[15px\] { font-size: 17px !important; }
+.text-sm { font-size: 17px !important; line-height: 1.6 !important; }
+.text-xs { font-size: 15px !important; line-height: 1.5 !important; }
+.text-\[12px\] { font-size: 15px !important; }
+.text-\[12\.5px\] { font-size: 15.5px !important; }
+.text-\[13px\] { font-size: 16px !important; }
+.text-\[13\.5px\] { font-size: 16.5px !important; }
+.text-\[14px\] { font-size: 17px !important; }
+.text-\[14\.5px\] { font-size: 17.5px !important; }
+.text-\[15px\] { font-size: 18px !important; }
+body { font-size: 18px; line-height: 1.7; }
 
 /* Contain text inside cards and main areas */
-.hairline-card, main, section, article, fieldset, label {
+.hairline-card, main, section, article, fieldset, label, td, th {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
-.hairline-card p, .hairline-card li, .hairline-card span, .hairline-card legend {
+.hairline-card p, .hairline-card li, .hairline-card span, .hairline-card legend, td, th {
   max-width: 100%;
 }
+table { font-size: 16px; }
+td, th { padding: 0.5rem 0.6rem; }
