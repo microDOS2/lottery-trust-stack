@@ -57,12 +57,12 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'spend', text: 'How much of this money do you want to spend each year?',
+    id: 'spend', text: 'How much do you want to spend each year?',
     options: [
-      { label: 'Under $150,000', hint: 'Sets spending to $100,000', weights: { income: 0.15, growth: 1 } },
-      { label: '$150,000 to $400,000', hint: 'Sets spending to $275,000', weights: { income: 0.5, growth: 0.6 } },
-      { label: '$400,000 to $800,000', hint: 'Sets spending to $600,000', weights: { income: 0.85, growth: 0.35 } },
-      { label: 'More than $800,000', hint: 'Sets spending to $1,000,000', weights: { income: 1, growth: 0.15 } },
+      { label: '$100,000 a year', hint: 'The plans use $100,000 a year, starting in year 2. More of the pile stays invested.', weights: { income: 0.15, growth: 1 } },
+      { label: '$275,000 a year', hint: 'The plans use $275,000 a year, starting in year 2.', weights: { income: 0.5, growth: 0.6 } },
+      { label: '$600,000 a year', hint: 'The plans use $600,000 a year, starting in year 2. A larger check leaves less to grow.', weights: { income: 0.85, growth: 0.35 } },
+      { label: '$1,000,000 a year', hint: 'The plans use $1,000,000 a year, starting in year 2. This is the largest check, and it can spend the pile down.', weights: { income: 1, growth: 0.15 } },
     ],
   },
   {
