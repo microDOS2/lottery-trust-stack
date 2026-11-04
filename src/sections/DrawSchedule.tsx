@@ -25,7 +25,6 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
       return { ...p, drawOverrides: next };
     });
 
-  const quickSet = (y: number, mult: number) => setYear(y, mult === 1 ? null : Math.round(defaultDraw(y) * mult));
   const hasOverrides = Object.keys(inputs.drawOverrides).length > 0;
 
   return (
@@ -34,10 +33,8 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
         Custom draw schedule{hasOverrides && <span className="ml-2 rounded bg-accent px-2 py-0.5 font-mono text-[13.5px] font-semibold uppercase tracking-wider text-accent-foreground">edited</span>}
       </summary>
       <p className="mt-1 text-sm text-muted-foreground">
-        Tax-free draws are not an annual allowance — they ride on available basis and policy-loan capacity, so a $0 year and a
-        double year are both fine (the $0 year just leaves more compounding). Edit any year; blank = default target
-        (flat, or spending × inflation when growth is on). <span className="text-destructive font-medium">Red</span> = beyond that year's sustainable
-        capacity, so principal gets dipped.
+        Type the dollars you want that year. Leave a box blank to use the yearly amount from the page.
+        <span className="text-destructive font-medium"> Red</span> means that year is more than the money can pay without spending the pile.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2">
         {years.map((y) => {
@@ -59,22 +56,6 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
                   dipsPrincipal ? 'border-destructive/60 bg-destructive/5 text-destructive' : 'border-input bg-card'
                 }`}
               />
-              <div className="flex shrink-0 overflow-hidden rounded-md border border-input">
-                <button
-                  title="Set this year to $0"
-                  onClick={() => quickSet(y, 0)}
-                  className={`px-2 py-1.5 font-mono text-[12.5px] cursor-pointer ${override === 0 ? 'bg-primary text-primary-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
-                >
-                  0
-                </button>
-                <button
-                  title="Double this year"
-                  onClick={() => quickSet(y, 2)}
-                  className="border-l border-input bg-card px-2 py-1.5 font-mono text-[12.5px] text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  2×
-                </button>
-              </div>
             </div>
           );
         })}
