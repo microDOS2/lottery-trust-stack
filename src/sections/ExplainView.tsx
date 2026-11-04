@@ -135,14 +135,21 @@ export default function ExplainView() {
       <SectionTitle
         num="08"
         title={<>Why the <span className="sig-italic">numbers</span> move</>}
-        blurb="The glossary defines the words. This page is the trade. The short note on a number or a button links here."
+        blurb="The glossary defines the words. This page is the trade. It opens in its own tab so the page you were on stays put."
       />
       <nav className="hairline-card p-5">
         <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">On this page</div>
         <ul className="mt-3 columns-1 gap-x-8 sm:columns-2">
           {SECTIONS.map((s) => (
             <li key={s.id} className="py-1">
-              <a href={`#${s.id}`} className="text-[15px] text-primary hover:underline">{s.title}</a>
+              <a
+                href={`#${s.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-[15px] text-primary hover:underline"
+              >{s.title}</a>
             </li>
           ))}
         </ul>

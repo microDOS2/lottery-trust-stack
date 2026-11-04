@@ -173,7 +173,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
               No landscape. Two lists. A longer bar on the first list means more cash each year. A longer bar on the second means more left after 25 years. The plan that wins one usually loses the other.
             </p>
             <button type="button" onClick={() => openExplain('trade')} className="mb-6 text-sm font-medium text-primary underline cursor-pointer">
-              Full explanation of the trade
+              Full explanation of the trade (new tab)
             </button>
             <div className="grid gap-8 lg:grid-cols-2">
               <Bars

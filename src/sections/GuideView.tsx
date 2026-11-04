@@ -47,7 +47,7 @@ export function GlossaryView() {
         blurb="Every term on this site, translated. The longer why — the trade, the rates, what each plan gives up — is on Explanations."
       />
       <button type="button" onClick={() => open('trade')} className="text-sm font-medium text-primary underline cursor-pointer">
-        Open Explanations
+        Open Explanations in a new tab
       </button>
       <dl className="grid gap-3 md:grid-cols-2">
         {GLOSSARY.map((g) => (

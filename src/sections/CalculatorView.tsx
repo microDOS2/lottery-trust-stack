@@ -334,7 +334,7 @@ export default function CalculatorView(p: Props) {
           <p className="px-3 pb-2 text-[12.5px] leading-snug text-muted-foreground">
             These are the middle, not a forecast and not a quote. The previous defaults were the optimistic end. Each rate below is what the chart uses, and why that number — not higher, not lower. Change any of them. Last set: November 2026.
           </p>
-          <button type="button" onClick={() => openExplain('assumptions')} className="px-3 pb-2 text-left text-[12.5px] font-medium text-primary underline cursor-pointer">Why these rates, in full</button>
+          <button type="button" onClick={() => openExplain('assumptions')} className="px-3 pb-2 text-left text-[12.5px] font-medium text-primary underline cursor-pointer">Why these rates, in full (new tab)</button>
           <div className="space-y-3 px-3 pb-3">
             {([
               ['muniYield', 'Muni yield', 'The tax-free interest the bond ladder pays. That cash is the first money you can spend. In early November 2026 a 10-year AAA municipal bond yielded about 3.4%, and a 30-year AAA bond about 4.5% to 4.8%. A ladder spread across those years is about 4%. The old 4.25% was a round number, a bit high for a mixed ladder. The model holds 4% flat for 25 years. Real coupons will move.'],

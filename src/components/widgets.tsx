@@ -8,7 +8,7 @@ function MoreLink({ more }: { more?: string }) {
   if (!more) return null;
   return (
     <button type="button" onClick={() => open(more)} className="mt-2 block text-left text-[13px] font-medium text-primary underline cursor-pointer">
-      Open the explanation
+      Open in a new tab
     </button>
   );
 }

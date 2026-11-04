@@ -7,7 +7,7 @@ import StrategyView from '../sections/StrategyView';
 import AnnuityView from '../sections/AnnuityView';
 import { GuideView, GlossaryView } from '../sections/GuideView';
 import ExplainView from '../sections/ExplainView';
-import { ExplainNav } from '../explainNav';
+import { ExplainNav, explainSectionFromHash, openExplainTab } from '../explainNav';
 import { Tip } from '../components/widgets';
 import { ENGINE_PRESETS, STRATEGIES } from '../lib/content';
 import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText } from 'lucide-react';
@@ -85,7 +85,7 @@ const NAV_TIP: Record<View, string> = {
   library: 'Extra ideas. Each row says whether it changes the chart or is only a note.',
   lab: 'Slide between spending more now and leaving more to grow.',
   glossary: 'What the words mean. The longer why is on Explanations.',
-  explain: 'The trade, the rates, and what each kind of plan gives up.',
+  explain: 'The trade, the rates, and what each kind of plan gives up. Opens in a new tab, so this page stays where it is.',
 };
 
 function loadInputs(): Inputs {
@@ -131,8 +131,8 @@ export interface EngineNotice {
 }
 
 export default function Home() {
-  const [view, setView] = useState<View>(() => (location.hash.startsWith('#s=') ? 'calc' : 'annuity'));
-  const [explainAt, setExplainAt] = useState<string | null>(null);
+  const [view, setView] = useState<View>(() => (explainSectionFromHash() !== null ? 'explain' : location.hash.startsWith('#s=') ? 'calc' : 'annuity'));
+  const [explainAt] = useState<string | null>(() => explainSectionFromHash() || null);
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
   const [scenarios, setScenarios] = useState<(ScenarioSlot | null)[]>(() => {
@@ -246,8 +246,7 @@ export default function Home() {
   }, [view, explainAt]);
 
   const openExplain = (id?: string) => {
-    setExplainAt(id ?? null);
-    setView('explain');
+    openExplainTab(id);
   };
 
   return (
@@ -267,7 +266,10 @@ export default function Home() {
             {NAV.map(({ id, label, icon: Icon }) => (
               <Tip key={id} text={NAV_TIP[id]}>
               <button
-                onClick={() => { setExplainAt(null); setView(id); }}
+                onClick={() => {
+                  if (id === 'explain') { openExplainTab(); return; }
+                  setView(id);
+                }}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] transition-colors cursor-pointer ${
                   view === id
                     ? 'bg-primary text-primary-foreground font-medium'
