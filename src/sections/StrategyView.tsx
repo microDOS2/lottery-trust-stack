@@ -108,7 +108,7 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                     type="number"
                     min={0}
                     step={1}
-                    value={dollars[s.id] ?? 0}
+                    value={dollars[s.id] || ''}
                     onChange={(e) => setDollars(s.id, +e.target.value || 0)}
                     className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num"
                   />
@@ -127,11 +127,11 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <label className="block">
                     <span className="mb-1 block text-sm font-medium">What the assets would sell for today</span>
-                    <input type="number" min={0} step={1} value={inputs.assetValue} onChange={(e) => setInputs((p) => ({ ...p, assetValue: +e.target.value || 0 }))} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+                    <input type="number" min={0} step={1} value={inputs.assetValue || ''} onChange={(e) => setInputs((p) => ({ ...p, assetValue: +e.target.value || 0 }))} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-sm font-medium">What you paid for them</span>
-                    <input type="number" min={0} step={1} value={inputs.costBasis} onChange={(e) => setInputs((p) => ({ ...p, costBasis: +e.target.value || 0 }))} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+                    <input type="number" min={0} step={1} value={inputs.costBasis || ''} onChange={(e) => setInputs((p) => ({ ...p, costBasis: +e.target.value || 0 }))} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
                   </label>
                 </div>
               )}
