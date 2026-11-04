@@ -164,7 +164,9 @@ export const QUIZ: QuizQuestion[] = [
     why: 'This is the irrevocable trust decision. An irrevocable trust cannot be taken back, and you cannot change it on your own. Someone else is the trustee. You no longer own what you put in. That is why a later lawsuit has a harder time taking those assets. It has to be funded before any claim. A revocable trust does not protect assets from your own creditors while you are alive. Answering here does not create a trust.',
     options: [
       { label: 'No', note: 'Nothing is moved.', weights: {} },
+      { label: 'Yes. A revocable trust', note: 'You can change it. It does not protect assets from your own creditors while you are alive.', weights: { protection: 0.3 } },
       { label: 'Yes. An irrevocable trust', note: 'It has to be funded before any claim. You no longer own what you put in. Answering here does not create it.', weights: { protection: 1 } },
+      { label: 'Yes. Both. A revocable trust and an irrevocable trust', note: 'The revocable one you can change. The irrevocable one protects what you put in, if it is funded before any claim.', weights: { protection: 1 } },
       { label: 'I do not know yet', note: 'Nothing is moved until you decide.', weights: {} },
     ],
   },
