@@ -14,6 +14,20 @@ export interface Strategy {
   statLabel?: string;
 }
 
+export interface GuideStep {
+  phase: string;
+  title: string;
+  body: string;
+}
+
+export const GUIDE_STEPS: GuideStep[] = [
+  { phase: 'First', title: 'Type the cash and your age', body: 'The cash is the lottery check or what is left after tax. Age sets what short, middle, and long mean. Nothing is calculated until those are in.' },
+  { phase: 'Then', title: 'Answer the life questions', body: 'Where you want to live, what worries you, who depends on the money, and what you will not do. The result uses those answers. It does not invent a plan name.' },
+  { phase: 'Then', title: 'See whether the life is paid for', body: 'The result says whether the yearly amount can be paid without running out, and what would be left if you died in 10 years. A pile at year 25 is not the finish line.' },
+  { phase: 'Then', title: 'Look at the strategies if you want', body: 'Each card says how the tax works, who it is for, and what can go wrong. Turn them on to see the combination. A suggested amount does nothing until you use it.' },
+  { phase: 'Last', title: 'Use the calculator', body: 'Open the result or the combination in the calculator. Change a number and the figures change with it. Nothing is set up by answering a question.' },
+];
+
 export const ENGINE_PRESETS: Record<string, { a: number; b: number; c: number }> = {
   'engine-a': { a: 0.5, b: 0.2, c: 0.3 },
   'engine-b': { a: 0.2, b: 0.45, c: 0.35 },
