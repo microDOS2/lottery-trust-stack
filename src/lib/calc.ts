@@ -202,6 +202,7 @@ export interface StackResult {
   debtPaid: number;
   housePaid: number;
   venturePaid: number;
+  rentalPaid: number;
   giftPaid: number;
   yr1Reserve: number;
   core: number;
@@ -437,7 +438,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 
   return {
     prMode, prRate, preMoveGainsTax,
-    gross, fedTax: fed, stateTax: stx, withheld, net, debtPaid, housePaid, venturePaid, giftPaid, yr1Reserve, core,
+    gross, fedTax: fed, stateTax: stx, withheld, net, debtPaid, housePaid, venturePaid, rentalPaid, giftPaid, yr1Reserve, core,
     weights: w, muni, ppli, equity, sleeveId: inp.sleeve ?? null, sleeveAmount,
     capacity, plannedDrawY2, reinvestY2, blendedDraw,
     futureStateRate: fsr, sustainable, requiredCore, qpOk,
