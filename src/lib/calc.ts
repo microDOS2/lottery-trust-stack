@@ -29,6 +29,8 @@ export interface Inputs {
   venture: number;      // dollars you typed for a business; nothing is taken if this is 0
   rental: number;       // dollars you typed for a rental; nothing is taken if this is 0
   gift: number;         // dollars you typed for a gift; nothing is taken if this is 0
+  laterSpend: number;   // from year 11 on, if above 0; otherwise spend is used
+  ppliFee: number;      // insurance charge in dollars per year; nothing is taken if this is 0
   setupCost: number;    // one-time legal/professional setup of the stack (year 1)
   annualAdmin: number;  // ongoing trustee, carrier, CPA, registered-agent fees
   mode: Mode;
@@ -51,7 +53,7 @@ export interface Inputs {
 
 export interface Assumptions {
   muniYield: number;   // tax-free coupon yield on the AAA/AA muni ladder
-  ppliGrowth: number;  // net growth inside the PPLI separate account (after insurance charges)
+  ppliGrowth: number;  // growth inside the policy before the insurance charge you type
   ppliDraw: number;    // sustainable tax-free draw capacity (withdrawals to basis + policy loans)
   eqGrowth: number;    // nominal growth of direct-indexed equities
   eqDraw: number;      // tax-efficient draw capacity (basis + harvested losses + box spreads)
@@ -62,7 +64,7 @@ export interface Assumptions {
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
   muniYield: 0.04,
-  ppliGrowth: 0.062,
+  ppliGrowth: 0.07,
   ppliDraw: 0.045,
   eqGrowth: 0.07,
   eqDraw: 0.035,
@@ -94,6 +96,8 @@ export const DEFAULT_INPUTS: Inputs = {
   venture: 0,
   rental: 0,
   gift: 0,
+  laterSpend: 0,
+  ppliFee: 0,
   setupCost: 0,
   annualAdmin: 0,
   mode: 'balanced',
@@ -114,9 +118,13 @@ export const DEFAULT_INPUTS: Inputs = {
   assetValue: 0,
 };
 
-export const PPLI_QP_MIN = 5_000_000;      // Qualified Purchaser threshold (investable assets)
-export const PPLI_PREMIUM_MIN = 2_500_000; // typical carrier minimum premium
+export const PPLI_QP_MIN = 5_000_000;      // invested amount before the policy is used
+export const PPLI_PREMIUM_MIN = 2_500_000; // carrier minimum inside the policy; not applied automatically
 export const SLEEVE_PCT_MAX = 0.25;
+export const BOND_MIN = 0.15;
+export const BOND_MAX = 0.55;
+export const STOCK_MIN = 0.20;
+export const STOCK_MAX = 0.60;
 
 /** Investment sleeves carved from Engine C. Rates are model assumptions, not forecasts.
  *  Other library items are labels only and are absent from this map. */
@@ -127,6 +135,15 @@ export const SLEEVE_MATH: Record<string, { growth: number; draw: number; div: nu
 };
 
 export interface Weights { a: number; b: number; c: number }
+
+export function drawForYear(inp: Inputs, asm: Assumptions, y: number): number {
+  if (inp.drawOverrides[y] != null) return inp.drawOverrides[y];
+  const later = (inp.laterSpend || 0) > 0 && y >= 11;
+  const base = later ? inp.laterSpend : inp.spend;
+  if (inp.flatDraw) return base;
+  const steps = later ? y - 11 : y - 2;
+  return base * Math.pow(1 + asm.inflation, Math.max(0, steps));
+}
 
 /** Resolve engine weights from mode / dial / manual, enforcing PPLI minimums and safety floors. */
 export function resolveWeights(inp: Inputs, core: number): Weights {
@@ -148,9 +165,7 @@ export function resolveWeights(inp: Inputs, core: number): Weights {
   });
   let w = d <= 0.5 ? lerp(growth, balanced, d * 2) : lerp(balanced, income, (d - 0.5) * 2);
   if (!qpOk) w = { ...w, b: 0 };
-  else if (w.b > 0 && w.b * core < PPLI_PREMIUM_MIN) w = { ...w, b: PPLI_PREMIUM_MIN / core };
-  // Floors/caps: keep diversification sane
-  w = { ...w, a: Math.min(0.55, Math.max(0.15, w.a)), c: Math.min(0.6, Math.max(0.2, w.c)) };
+  w = { ...w, a: Math.min(BOND_MAX, Math.max(BOND_MIN, w.a)), c: Math.min(STOCK_MAX, Math.max(STOCK_MIN, w.c)) };
   const t = w.a + w.b + w.c;
   return { a: w.a / t, b: w.b / t, c: w.c / t };
 }
@@ -266,7 +281,11 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   left -= giftPaid;
   const core = left;
   const qpOk = core >= PPLI_QP_MIN;
-  const w = resolveWeights(inp, core);
+  let w = resolveWeights(inp, core);
+  if (!qpOk && w.b > 0) {
+    const rest = w.a + w.c || 1;
+    w = { a: w.a / rest, b: 0, c: w.c / rest };
+  }
 
   const muni = core * w.a;
   const ppli = core * w.b;
@@ -338,7 +357,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const eqCap = eqB * asm.eqDraw;
     const slCap = slB * slDrawRate;
     const discCap = ppliCap + eqCap + slCap;
-    const desired = y === 1 ? 0 : (inp.drawOverrides[y] ?? (inp.flatDraw ? inp.spend : inp.spend * Math.pow(1 + asm.inflation, y - 2)));
+    const desired = y === 1 ? 0 : drawForYear(inp, asm, y);
 
     let ppliDrawAmt = 0;
     let eqDrawAmt = 0;
@@ -375,12 +394,12 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     let newEq = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt + reinvested);
     const growth = ppliB * asm.ppliGrowth + eqB * asm.eqGrowth + slB * slGrowth;
 
-    let fees = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1);
+    let fees = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1) + Math.max(0, inp.ppliFee || 0);
     const fromEq = Math.min(fees, newEq); newEq -= fromEq; fees -= fromEq;
     const fromSl = Math.min(fees, newSl); newSl -= fromSl; fees -= fromSl;
     const fromPpli = Math.min(fees, newPpli); newPpli -= fromPpli; fees -= fromPpli;
     const fromMuni = Math.min(fees, newMuni); newMuni -= fromMuni; fees -= fromMuni;
-    const feesPaid = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1) - fees;
+    const feesPaid = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1) + Math.max(0, inp.ppliFee || 0) - fees;
 
     const end = newMuni + newPpli + newEq + newSl;
     if (end <= 0 && depletedYear === null) depletedYear = y;
@@ -409,7 +428,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
       if (baselineDepletedYear === null) baselineDepletedYear = y;
       continue;
     }
-    const desired = y === 1 ? 0 : (inp.drawOverrides[y] ?? (inp.flatDraw ? inp.spend : inp.spend * Math.pow(1 + asm.inflation, y - 2)));
+    const desired = y === 1 ? 0 : drawForYear(inp, asm, y);
     const slW = core > 0 ? sleeveAmount / core : 0;
     const eqW = Math.max(0, w.c - slW);
     const interestNet = begin * w.a * asm.muniYield * (1 - ordRate);

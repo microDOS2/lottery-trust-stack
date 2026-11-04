@@ -28,6 +28,8 @@ export function downloadPlan(inp: Inputs, asm: Assumptions, r: StackResult, scen
   meta('gift', inp.gift);
   meta('setup_cost', inp.setupCost);
   meta('yearly_fees', inp.annualAdmin);
+  meta('later_spend', inp.laterSpend || 0);
+  meta('insurance_charge', inp.ppliFee || 0);
   meta('residency', inp.residency);
   meta('filing', inp.filing);
   meta('mode', inp.mode);

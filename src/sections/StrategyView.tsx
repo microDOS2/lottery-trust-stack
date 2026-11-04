@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { STRATEGIES, COUNSEL_NOTES } from '../lib/content';
 import { fmt, type Assumptions, type Inputs } from '../lib/calc';
-import { COMBOS, describeCombo, needsDollars, previewInputs, suggestion } from '../lib/combine';
-import { SectionTitle } from '../components/widgets';
+import { COMBOS, describeCombo, effectOf, needsDollars, previewInputs, suggestion } from '../lib/combine';
+import { Explainer, SectionTitle } from '../components/widgets';
 
 interface Props {
   inputs: Inputs;
@@ -10,6 +10,21 @@ interface Props {
   asm: Assumptions;
   onUse: () => void;
 }
+
+const MUST: Record<string, string> = {
+  'engine-a': 'Does not change the tax on the lottery check. A bond lot is often $5,000. There is no other minimum here.',
+  'engine-b': 'Not used under $5,000,000 invested. Carriers usually want $2,500,000 in the policy. This page does not move money to hit that. Does not change the prize tax.',
+  'engine-c': 'Does not change the tax on the lottery check. Stocks are kept between 20% and 60% on the calculator slider.',
+  leverage: 'The pile is not sold. You still owe the loan. Above 30% of the stocks, a drop can let the lender sell. Does not change the prize tax.',
+  oz: 'The gain has to go in within 180 days. The new gain is excluded only after 10 years. Does not change the prize tax.',
+  qsbs: '50% excluded after 3 years, 75% after 4, 100% after 5. Stops at $15,000,000 per company, or 10 times what you paid if that is higher. Does not change the prize tax.',
+  legacy: 'Estate tax here uses $15,000,000 per person, then 40%. The trust does not move money until a lawyer drafts it and you give the money away.',
+  charitable: 'At least 10% has to go to charity. You type the dollars. Nothing is given until you do.',
+  'pr-act60': 'You must be there more than half the year. Home within 2 years. $15,000 a year to local charity. File by December 31, 2026 for 0% instead of 4%. Does not change the prize tax.',
+  'real-estate': 'You type the dollars. Land is treated as 20% of the price. The building writes off over 27.5 years unless the study is on.',
+  'foreign-trust': 'Does not lower the US income tax in these numbers. It can matter for a lawsuit.',
+  expatriation: 'Ends US tax on money from anywhere. Has its own tax on the gain as if you sold. You may not be able to live in the US again.',
+};
 
 export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
   const chosen = inputs.chosen ?? [];
@@ -76,6 +91,9 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
           const on = chosen.includes(s.id);
           const sug = suggestion(s.id, core);
           const counsel = COUNSEL_NOTES[s.id];
+          const fx = effectOf(s.id, inputs, asm);
+          const dCash = fx.cashOn - fx.cashOff;
+          const dEnd = fx.endOn - fx.endOff;
           return (
             <article key={s.id} className="hairline-card p-5">
               <div className="flex items-start justify-between gap-3">
@@ -93,7 +111,18 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                 </button>
               </div>
 
-              <div className="mt-4 space-y-3 text-[14.5px] leading-relaxed text-muted-foreground">
+              <p className="mt-3 text-[15px] leading-relaxed">
+                <span className="font-medium">On your numbers: </span>
+                {fmt(fx.cashOff)} a year becomes {fmt(fx.cashOn)} ({fmt(Math.abs(dCash))} {dCash >= 0 ? 'more' : 'less'}).
+                The year-25 pile goes from {fmt(fx.endOff)} to {fmt(fx.endOn)} ({fmt(Math.abs(dEnd))} {dEnd >= 0 ? 'more' : 'less'}). That pile is a comparison, not the finish line.
+              </p>
+              {MUST[s.id] && (
+                <p className="mt-2 flex items-start gap-1.5 text-[15px] leading-relaxed text-muted-foreground">
+                  <Explainer text={MUST[s.id]} />
+                  <span>{MUST[s.id]}</span>
+                </p>
+              )}
+              <div className="mt-4 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
                 <p><span className="font-medium text-foreground">How the tax works. </span>{s.taxMagic}</p>
                 <p><span className="font-medium text-foreground">Who it is for. </span>{s.qualifies}</p>
                 <p><span className="font-medium text-foreground">What can go wrong. </span>{s.watchOut}</p>

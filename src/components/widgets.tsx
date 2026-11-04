@@ -76,6 +76,14 @@ export function Field({
   );
 }
 
+export function Limit({ children }: { children: ReactNode }) {
+  return (
+    <p className="mt-2 rounded-md border border-gold/60 bg-[hsl(var(--gold-tint))] px-3 py-2 text-[15px] font-medium leading-snug text-[hsl(var(--espresso-soft))]">
+      {children}
+    </p>
+  );
+}
+
 export function SectionTitle({ num, title, blurb }: { num: string; title: ReactNode; blurb?: string }) {
   return (
     <div className="mb-6">

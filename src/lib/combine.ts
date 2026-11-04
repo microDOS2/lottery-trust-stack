@@ -25,6 +25,13 @@ export const COMBOS: Array<{ name: string; why: string; ids: string[] }> = [
   { name: 'Give up citizenship', why: 'Asks what the assets would sell for, and what you paid.', ids: ['expatriation'] },
 ];
 
+export function effectOf(id: string, inp: Inputs, asm: Assumptions): { cashOff: number; cashOn: number; endOff: number; endOn: number } {
+  const chosen = (inp.chosen ?? []).filter((x) => x !== id);
+  const off = computeStack(previewInputs({ ...inp, chosen }), asm);
+  const on = computeStack(previewInputs({ ...inp, chosen: [...chosen, id] }), asm);
+  return { cashOff: off.capacity, cashOn: on.capacity, endOff: off.stackEnd, endOn: on.stackEnd };
+}
+
 export function needsDollars(id: string): boolean {
   return id === 'oz' || id === 'qsbs' || id === 'real-estate' || id === 'charitable' || id === 'leverage';
 }

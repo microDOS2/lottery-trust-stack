@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { fmt, fmtCompact, pct } from '../lib/calc';
-import { Explainer } from '../components/widgets';
+import { Explainer, Limit } from '../components/widgets';
 import { Slider } from '@/components/ui/slider';
 
 interface Props {
@@ -49,6 +49,7 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
             <span className="font-num text-muted-foreground">{fmtCompact(price)}</span>
           </div>
           <Slider value={[price]} min={0} max={10000000} step={50000} onValueChange={([v]) => setPrice(v)} />
+          <Limit>Price only moves from $0 to $10,000,000, in steps of $50,000. Appreciation only moves from 0% to 8%. Rent only moves from 0% to 10%.</Limit>
         </div>
         <div>
           <div className="mb-1 flex justify-between text-[14px]">

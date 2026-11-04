@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { STATES } from '../lib/taxdata';
 import {
-  fmt, fmtCompact, pct, PPLI_QP_MIN, SLEEVE_MATH, SLEEVE_PCT_MAX,
+  fmt, fmtCompact, pct, PPLI_QP_MIN, PPLI_PREMIUM_MIN, SLEEVE_MATH, SLEEVE_PCT_MAX, BOND_MIN, BOND_MAX, STOCK_MIN, STOCK_MAX,
   type Inputs, type Assumptions, type StackResult,
 } from '../lib/calc';
-import { Stat, Field, SectionTitle, Tip, Explainer } from '../components/widgets';
+import { Stat, Field, SectionTitle, Tip, Explainer, Limit } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
 import { useExplain } from '../explainNav';
 import { AllocationDonut, ProjectionChart, FlowDiagram } from '../components/viz';
@@ -207,7 +207,7 @@ export default function CalculatorView(p: Props) {
           <Stat label="Federal tax on prize" tip="Federal income tax on the cash option, at 2026 rates. The line under it is the state tax." more="assumptions" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
           <Stat label="Net after-tax pool" tip="What is left after federal and state tax. This is the money the rest of the page invests." more="trade" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
           <Stat label="Year-1 reserve" tip="The first year of spending, plus setup cost, held back. The investments are not touched in year 1." more="trade" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
-          <Stat label="Investable core" tip="The pool minus the year-1 reserve and any cash set aside for a house. This is what the three engines share." more="trade" value={fmtCompact(r.core)} sub={r.qpOk ? 'Qualified Purchaser ✓' : `PPLI needs ${fmtCompact(PPLI_QP_MIN)}+ core`} />
+          <Stat label="Investable core" tip="What is left to invest after tax, the first year of spending, setup cost, and anything you set aside. The policy is not used unless this is at least $5,000,000." more="trade" value={fmtCompact(r.core)} sub={r.qpOk ? 'At least $5,000,000, so the policy can be used' : `Under ${fmtCompact(PPLI_QP_MIN)}. The policy is not used.`} />
         </div>
       </div>
     </div>
@@ -310,9 +310,16 @@ export default function CalculatorView(p: Props) {
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.setupCost || ''} min={0} step={5000} onChange={(e) => set('setupCost', +e.target.value || 0)} />
         </Field>
 
-        <Field label="Annual admin & professional fees ($)" help="Trustee fees, PPLI carrier charges, CPA for trust returns, registered agent. Realistic range $15–50K/yr, grows with inflation. Drags the stack — the taxable baseline pays none of this.">
+        <Field label="Yearly fees to keep it running" tip="Trustee, accountant, and similar fees. Nothing is taken until you type it. This is not the insurance charge." help="Leave blank for no yearly fee.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.annualAdmin || ''} min={0} step={1000} onChange={(e) => set('annualAdmin', +e.target.value || 0)} />
         </Field>
+        <Field label="Insurance charge, dollars a year" tip="Taken out of the pile each year. Nothing is taken until you type it. The policy growth rate is before this charge." help="Leave blank for no charge. A common carrier charge is about 0.8% of the policy. This box does not apply that unless you type it.">
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.ppliFee || ''} min={0} step={1000} onChange={(e) => set('ppliFee', +e.target.value || 0)} />
+        </Field>
+        {r.ppli > 0 && <Limit>0.8% of the policy here would be {fmtCompact(r.ppli * 0.008)} a year. Nothing is taken unless the box above has a number.</Limit>}
+        {!r.qpOk && inp.amount > 0 && <Limit>The insurance policy is not used unless at least {fmtCompact(PPLI_QP_MIN)} is invested. This page has {fmtCompact(r.core)} invested.</Limit>}
+        {r.ppli > 0 && r.ppli < PPLI_PREMIUM_MIN && <Limit>Carriers usually want {fmtCompact(PPLI_PREMIUM_MIN)} inside the policy. This page has {fmtCompact(r.ppli)}. It did not move money to hit that.</Limit>}
+        <Limit>Bonds stay between {Math.round(BOND_MIN * 100)}% and {Math.round(BOND_MAX * 100)}%. Stocks stay between {Math.round(STOCK_MIN * 100)}% and {Math.round(STOCK_MAX * 100)}%. The page will not go outside those.</Limit>
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
@@ -360,14 +367,14 @@ export default function CalculatorView(p: Props) {
 
         <details className="rounded-md border border-input" open>
           <summary className="cursor-pointer px-3 py-2 text-[14px] font-medium text-muted-foreground hover:text-foreground">Assumptions (editable)</summary>
-          <p className="px-3 pb-2 text-[12.5px] leading-snug text-muted-foreground">
-            These are the middle, not a forecast and not a quote. The previous defaults were the optimistic end. Each rate below is what the chart uses, and why that number — not higher, not lower. Change any of them. Last set: November 2026.
+          <p className="px-3 pb-2 text-[15px] leading-snug text-muted-foreground">
+            These boxes only accept 0% to 20%. They are the middle, not a forecast and not a quote.
           </p>
           <button type="button" onClick={() => openExplain('assumptions')} className="px-3 pb-2 text-left text-[12.5px] font-medium text-primary underline cursor-pointer">Why these rates, in full (new tab)</button>
           <div className="space-y-3 px-3 pb-3">
             {([
               ['muniYield', 'Muni yield', 'The tax-free interest the bond ladder pays. That cash is the first money you can spend. In early November 2026 a 10-year AAA municipal bond yielded about 3.4%, and a 30-year AAA bond about 4.5% to 4.8%. A ladder spread across those years is about 4%. The old 4.25% was a round number, a bit high for a mixed ladder. The model holds 4% flat for 25 years. Real coupons will move.'],
-              ['ppliGrowth', 'PPLI growth', 'How fast the policy’s investments grow after the insurer’s charges. Forecasters in 2026 put long-run U.S. stocks around 6% to 7.5% a year. This uses 7%, then takes off 0.8% for insurance costs. The old 8.5% assumed almost no fees and a higher stock return. This is not a quote from an insurance company.'],
+              ['ppliGrowth', 'Policy growth, before the insurance charge', 'How fast the policy investments grow before the dollar charge you type. 7% is the middle of published 2026 long-run stock forecasts. The old 6.2% had already subtracted 0.8% for insurance. That subtraction is no longer hidden. Type the dollars in Insurance charge if you want them taken out. This is not a quote from an insurance company.'],
               ['ppliDraw', 'PPLI draw', 'How much of the policy you can take each year with no tax, first by withdrawing what you paid in, then by borrowing. 4.5% sits under the 6.2% growth, so one bad stretch does not empty the policy on the chart. The old 6.5% was a sales figure. A very cautious illustration is closer to 3%. A real policy can still lapse if the loans and the charges run ahead of this.'],
               ['eqGrowth', 'Equity growth', 'How fast the stocks grow before you take anything out. 7% is the middle of published 2026 long-run forecasts. Vanguard’s 30-year median was about 5.9%. J.P. Morgan’s large-cap forecast in October 2026 was 7.5%. The old 9% was close to the past average, which is the high end. It is not a prediction for any single year.'],
               ['eqDraw', 'Equity draw', 'How much of the stocks the model lets you spend each year. With stocks expected to grow at 7%, spending 3.5% leaves the pile growing. The model treats this whole amount as tax-free, using basis, harvested losses, and loans. That tax-free part is the generous piece: it is easier in the early years than in year 20. The old 4.5% assumed it stayed tax-free for the full 25 years.'],
@@ -417,9 +424,9 @@ export default function CalculatorView(p: Props) {
         <div className="hidden lg:block">{headline}</div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Engine A · Munis" tip="The bond ladder. It pays about 4% tax-free and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of core · ${fmtCompact(r.muni * asm.muniYield)}/yr tax-free`} />
-          <Stat label="Engine B · PPLI" tip="The insurance policy. Up to about 4.5% a year tax-free. It needs about $5 million invested." more="policy" value={fmtCompact(r.ppli)} sub={`${pct(w.b)} · ${fmtCompact(r.ppli * asm.ppliDraw)}/yr tax-free`} />
-          <Stat label="Engine C · Equities" tip="Stocks. Modeled at 7% growth. The spendable slice is about 3.5%." more="stocks" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} of core after carve · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of core · ${fmtCompact(r.equity * asm.eqDraw)}/yr tax-free`} />
+          <Stat label="Bonds" tip="The bond ladder. It pays the bond rate, tax-free, and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of what is invested · ${fmtCompact(r.muni * asm.muniYield)}/yr`} />
+          <Stat label="Insurance policy" tip="The life insurance policy. It is not used under $5,000,000 invested. Carriers usually want $2,500,000 inside it. This page does not move money to hit that." more="policy" value={fmtCompact(r.ppli)} sub={`${pct(w.b)} · ${fmtCompact(r.ppli * asm.ppliDraw)}/yr from this piece`} />
+          <Stat label="Stocks" tip="Stocks. The growth rate and the spendable slice are the rates in the assumptions." more="stocks" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} after anything you moved out · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of what is invested · ${fmtCompact(r.equity * asm.eqDraw)}/yr`} />
           <Stat label="Tax-free cash capacity" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
         </div>
 
@@ -513,16 +520,16 @@ function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['
   return (
     <div className="space-y-3 rounded-md bg-secondary p-3">
       {([
-        ['a', 'Engine A — Munis', m.a],
-        ['b', 'Engine B — PPLI', m.b],
-        ['c', 'Engine C — Equities', m.c],
+        ['a', 'Bonds', m.a],
+        ['b', 'Insurance policy', m.b],
+        ['c', 'Stocks', m.c],
       ] as const).map(([k, label, v]) => (
         <div key={k}>
           <div className="flex justify-between text-sm"><span>{label}</span><span className="font-num">{Math.round(v * 100)}%</span></div>
           <Slider value={[Math.round(v * 100)]} min={0} max={100} step={1} onValueChange={([x]) => upd(k, x / 100)} />
         </div>
       ))}
-      <p className="text-[12.5px] text-muted-foreground">Sliders auto-balance to 100%. PPLI carrier minimums still apply.</p>
+      <p className="text-[15px] text-muted-foreground">The three sliders are forced to add to 100%. Bonds stay between {Math.round(BOND_MIN * 100)}% and {Math.round(BOND_MAX * 100)}% only on the slider above, not in this handmade mix. The policy is still unused under $5,000,000 invested.</p>
     </div>
   );
 }
@@ -539,7 +546,7 @@ function SleeveCard({ inp, setInputs, amount }: { inp: Inputs; setInputs: Props[
       {spec ? (
         <>
           <label className="block text-[12.5px] text-muted-foreground">
-            Carve {Math.round(inp.sleevePct * 100)}% of core from Engine C ({fmtCompact(amount)})
+            Carve {Math.round(inp.sleevePct * 100)}% of the invested money from stocks ({fmtCompact(amount)}). Maximum {Math.round(SLEEVE_PCT_MAX * 100)}%.
             <input type="range" min={0} max={SLEEVE_PCT_MAX * 100} step={1} value={Math.round(inp.sleevePct * 100)}
               onChange={(e) => setInputs((p) => ({ ...p, sleevePct: (+e.target.value || 0) / 100 }))}
               className="mt-1 w-full" />

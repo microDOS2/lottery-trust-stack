@@ -14,14 +14,14 @@ import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollTex
 type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 function schemaAllowsSaved(): boolean {
   try {
     const raw = localStorage.getItem('lotteryStack.schema');
     if (raw === null) return true;
     const n = Number(raw);
-    return n === 2 || n === 3 || n === 4 || n === 5 || n === SCHEMA_VERSION;
+    return n === 2 || n === 3 || n === 4 || n === 5 || n === 6 || n === SCHEMA_VERSION;
   } catch {
     return false;
   }
@@ -129,6 +129,7 @@ function loadAssumptions(): Assumptions {
       (Object.keys(LEGACY_ASSUMPTIONS) as (keyof Assumptions)[]).forEach((k) => {
         if (Math.abs(parsed[k] - LEGACY_ASSUMPTIONS[k]) < 1e-9) next[k] = DEFAULT_ASSUMPTIONS[k];
       });
+      if (Math.abs(next.ppliGrowth - 0.062) < 1e-9) next.ppliGrowth = 0.07;
       return next;
     }
   } catch { /* ignore */ }

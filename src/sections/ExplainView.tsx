@@ -60,7 +60,7 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <section id="trade" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">The choice your cash has to make</h2>
         <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
-          <p>You typed {fmt(inputs.amount)}{inputs.basis === 'net' ? ', and you said the tax is already paid' : ', before tax'}. After tax, that is {fmt(yours.net)}. You live in {here.name}. You asked for {fmt(inputs.spend)} a year.</p>
+          <p>The first question is how many years the yearly amount lasts. A larger pile in 25 years is a comparison, not the finish line. You typed {fmt(inputs.amount)}{inputs.basis === 'net' ? ', and you said the tax is already paid' : ', before tax'}. After tax, that is {fmt(yours.net)}. You live in {here.name}. You asked for {fmt(inputs.spend)} a year.</p>
           <p>The first year holds back {fmt(yours.yr1Reserve)}. That is the spending you typed plus setup cost, and it is not invested. {fmt(yours.core)} is what gets invested. The check from the investments starts in year 2.</p>
           <p>The same dollars can pay you more each year, or leave more later. A dollar you spend is a dollar that is no longer growing. You do not get the larger check and the larger pile. A larger amount left in 25 years is not a win. You may not be alive then. Below, your dollars are split two ways so you can see the trade. Your debt, home, and business amounts are left as you typed them.</p>
         </div>

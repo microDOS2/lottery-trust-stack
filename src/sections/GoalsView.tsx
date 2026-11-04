@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { QUIZ, QUIZ_LONG, QUIZ_MIDDLE, QUIZ_PROTECT, QUIZ_SHORT, type QuizQuestion } from '../lib/quiz';
 import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
 import { STATES } from '../lib/taxdata';
 import { buildBestPlans } from '../lib/plans';
-import { Explainer, SectionTitle, Tip } from '../components/widgets';
+import { Explainer, Limit, SectionTitle, Tip } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
 import type { ScenarioSlot } from './CalculatorView';
 
@@ -43,7 +43,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
   const outcome = set?.plans[0];
   const span = stretches(age);
 
-  const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'venture' | 'rental' | 'gift' | 'setupCost' | 'annualAdmin' | 'state' | 'target', value: number | string) => {
+  const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'venture' | 'rental' | 'gift' | 'laterSpend' | 'ppliFee' | 'setupCost' | 'annualAdmin' | 'state' | 'target', value: number | string) => {
     setInputs((p) => ({ ...p, [key]: value }));
   };
 
@@ -56,7 +56,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       />
       <button
         type="button"
-        onClick={() => { setAnswers({}); setAge(0); setInputs(() => ({ ...inputs, amount: 0, spend: 0, debt: 0, entity4: 0, venture: 0, rental: 0, gift: 0, setupCost: 0, annualAdmin: 0 })); }}
+        onClick={() => { setAnswers({}); setAge(0); setInputs(() => ({ ...inputs, amount: 0, spend: 0, debt: 0, entity4: 0, venture: 0, rental: 0, gift: 0, laterSpend: 0, ppliFee: 0, setupCost: 0, annualAdmin: 0 })); }}
         className="mb-4 rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 cursor-pointer"
       >
         Clear and start over
@@ -94,7 +94,8 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">How old are you? <Explainer text="Age sets what short, middle, and long mean. It is not a range." more="trade" /></span>
-            <input type="number" min={0} max={120} step={1} value={age || ''} onChange={(e) => setAge(+e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+            <input type="number" min={1} max={120} step={1} value={age || ''} onChange={(e) => setAge(+e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+            {(age > 0 && (age < 1 || age > 120)) && <Limit>Age only counts from 1 to 120.</Limit>}
             <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
               {age > 0 ? `Short is ${span.short}. Middle is ${span.middle}. Long is ${span.long}.` : 'Type your age. The three stretches are set from it.'}
             </span>
@@ -115,7 +116,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       <Group heading={`Short term — ${span.short}`} questions={QUIZ.filter((q) => SHORT.has(q.id))} answers={answers} setAnswers={setAnswers} />
 
       <label className="hairline-card block p-6">
-        <span className="mb-1.5 block text-[15px] font-medium">How much do you want available each year to live the way you want?</span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">How much do you want available each year to live the way you want? <Explainer text="This is the check the result tests. Include anyone you support and any care cost. A bigger number runs out sooner." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">This is the amount that buys freedom from the worry. Include anyone who depends on you, and any care cost. The result checks whether the money can pay it without running out.</p>
         <input type="number" min={0} step={1} value={inputs.spend || ''} onChange={(e) => setNum('spend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
         <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
@@ -124,21 +125,28 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       </label>
 
       <label className="hairline-card block p-6">
-        <span className="mb-1.5 block text-[15px] font-medium">Debts to clear before anything else</span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Debts to clear before anything else <Explainer text="Paid from the cash after tax, before anything is invested. Nothing is paid until you type it. It does not change the tax." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the dollars. Nothing is paid until you do.</p>
         <input type="number" min={0} step={1} value={inputs.debt || ''} onChange={(e) => setNum('debt', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
       <label className="hairline-card block p-6">
-        <span className="mb-1.5 block text-[15px] font-medium">Dollars for a home, a boat, or anything else you want to pay for soon</span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a home, a boat, or anything else you want to pay for soon <Explainer text="Set aside and not invested. Nothing is set aside until you type it. There is no automatic home amount." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is set aside until you do. That cash is not invested.</p>
         <input type="number" min={0} step={1} value={inputs.entity4 || ''} onChange={(e) => setNum('entity4', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
-      <Group heading={`Middle term — ${span.middle}`} questions={QUIZ.filter((q) => MIDDLE.has(q.id))} answers={answers} setAnswers={setAnswers} />
+      <Group heading={`Middle term — ${span.middle}`} questions={QUIZ.filter((q) => MIDDLE.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
+        give: answers.give === 1 || answers.give === 2 ? (
+          <label className="mt-3 block">
+            <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for the gift <Explainer text="Taken out before investing. Nothing is given until you type it. A gift to a person can use the $15,000,000 estate exclusion. A gift to charity can reduce income tax in the year you give it. This page does not compute that tax cut." /></span>
+            <input type="number" min={0} step={1} value={inputs.gift || ''} onChange={(e) => setNum('gift', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          </label>
+        ) : null,
+      }} />
 
       <label className="hairline-card block p-6">
-        <span className="mb-1.5 block text-[15px] font-medium">If you would move, which state?</span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">If you would move, which state? <Explainer text="Used only if you said a different state. It changes tax on later income, not the tax on the lottery check." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Used only if you said a different state. The lottery check is still taxed where you live now.</p>
         <select className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm" value={inputs.target} onChange={(e) => setNum('target', e.target.value)}>
           {moveStates.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
@@ -146,29 +154,39 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       </label>
 
       <label className="hairline-card block p-6">
-        <span className="mb-1.5 block text-[15px] font-medium">Dollars for a business</span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a business <Explainer text="Taken out before investing. Nothing is taken until you type it. This is not the rental and not the gift." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
         <input type="number" min={0} step={1} value={inputs.venture || ''} onChange={(e) => setNum('venture', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-[15px] font-medium">Dollars for a rental</span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a rental <Explainer text="Taken out before investing. Nothing is taken until you type it. This is not the business and not the gift." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
         <input type="number" min={0} step={1} value={inputs.rental || ''} onChange={(e) => setNum('rental', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
+
       <label className="block">
-        <span className="mb-1.5 block text-[15px] font-medium">Dollars for a gift</span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
-        <input type="number" min={0} step={1} value={inputs.gift || ''} onChange={(e) => setNum('gift', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-      </label>
-      <label className="block">
-        <span className="mb-1.5 block text-[15px] font-medium">One-time setup cost</span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">One-time setup cost <Explainer text="Legal and trustee fees to set the trusts up. Nothing is taken until you type it. There is no built-in fee." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Legal, trustee, and professional fees to set up the trusts. Nothing is taken until you type it.</p>
         <input type="number" min={0} step={1} value={inputs.setupCost || ''} onChange={(e) => setNum('setupCost', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-[15px] font-medium">Yearly fees to keep it running</span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly fees to keep it running <Explainer text="Trustee, accountant, and similar fees each year. Nothing is taken until you type it." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Trustee, CPA, and carrier fees each year. Nothing is taken until you type it.</p>
         <input type="number" min={0} step={1} value={inputs.annualAdmin || ''} onChange={(e) => setNum('annualAdmin', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Insurance charge, dollars a year <Explainer text="What the insurance company charges to hold the policy. Nothing is subtracted until you type it. A common charge is about 0.8% of the policy. This box does not apply that by itself." /></span>
+        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Leave this blank if you do not want a charge taken out. The policy growth rate is before this charge.</p>
+        <input type="number" min={0} step={1} value={inputs.ppliFee || ''} onChange={(e) => setNum('ppliFee', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+        {preview.ppli > 0 && (
+          <Limit>0.8% of the policy in this result would be {fmtCompact(preview.ppli * 0.008)} a year. Nothing is taken unless you type it above.</Limit>
+        )}
+        {preview.core > 0 && preview.core < 5_000_000 && (
+          <Limit>The insurance policy is not used unless at least $5,000,000 is invested. This result has {fmtCompact(preview.core)} invested, so the policy is not used.</Limit>
+        )}
+        {preview.ppli > 0 && preview.ppli < 2_500_000 && (
+          <Limit>Carriers usually want $2,500,000 inside the policy. This result has {fmtCompact(preview.ppli)}. The page did not move money to hit that.</Limit>
+        )}
       </label>
 
       <div className="space-y-4">
@@ -185,7 +203,15 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <Group heading="" questions={QUIZ.filter((q) => PROTECT.has(q.id))} answers={answers} setAnswers={setAnswers} />
       </div>
 
-      <Group heading={`Long term — ${span.long}`} questions={QUIZ.filter((q) => LONG.has(q.id))} answers={answers} setAnswers={setAnswers} />
+      <Group heading={`Long term — ${span.long}`} questions={QUIZ.filter((q) => LONG.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
+        later: answers.later === 1 ? (
+          <label className="mt-3 block">
+            <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly amount from year 11 on <Explainer text="Replaces the first yearly amount from year 11 through year 25. Years 2 through 10 keep the first amount. Nothing changes until you type it." /></span>
+            <input type="number" min={0} step={1} value={inputs.laterSpend || ''} onChange={(e) => setNum('laterSpend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+            <Limit>From year 11 through year 25. Years 2 through 10 stay on the first yearly amount.</Limit>
+          </label>
+        ) : null,
+      }} />
 
       {outcome && (
         <article className="hairline-card border-success/40 p-6">
@@ -209,12 +235,13 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
 }
 
 function Group({
-  heading, questions, answers, setAnswers,
+  heading, questions, answers, setAnswers, extra,
 }: {
   heading: string;
   questions: QuizQuestion[];
   answers: Record<string, number>;
   setAnswers: (fn: (a: Record<string, number>) => Record<string, number>) => void;
+  extra?: Record<string, ReactNode>;
 }) {
   return (
     <div className="space-y-6">
@@ -225,8 +252,8 @@ function Group({
           <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">{q.why}</p>
           <div className="flex flex-col gap-2">
             {q.options.map((o, oi) => (
+              <Tip key={oi} text={o.note}>
               <button
-                key={oi}
                 type="button"
                 onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
                 className={`rounded-lg border px-4 py-3 text-left cursor-pointer ${
@@ -234,12 +261,14 @@ function Group({
                 }`}
               >
                 <span className="block text-[15px] font-medium">{o.label}</span>
-                <span className={`mt-1 block text-[13px] leading-snug ${answers[q.id] === oi ? 'text-primary-foreground/85' : 'text-muted-foreground'}`}>
+                <span className={`mt-1 block text-[15px] leading-snug ${answers[q.id] === oi ? 'text-primary-foreground/85' : 'text-muted-foreground'}`}>
                   {o.note}
                 </span>
               </button>
+              </Tip>
             ))}
           </div>
+          {extra?.[q.id]}
         </fieldset>
       ))}
     </div>

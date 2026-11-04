@@ -57,12 +57,12 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
               <div>
                 <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">I only know the jackpot</span><span className="font-num text-muted-foreground">{pct(a.cashRatio, 0)}</span></div>
                 <Slider value={[a.cashRatio * 100]} min={35} max={60} step={1} onValueChange={([v]) => setA({ ...a, cashRatio: v / 100, cash: Math.round(a.advertised * (v / 100)) })} />
-                <p className="mt-1 text-[12.5px] text-muted-foreground">Fills the cash amount as this share of the annuity total. A cash option is often about 45–50%. Typing a cash amount yourself replaces it.</p>
+                <p className="mt-1 text-[15px] text-muted-foreground">This slider only moves from 35% to 60% of the annuity total. Typing a cash amount yourself replaces it.</p>
               </div>
               <div>
                 <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">What the money earns</span><span className="font-num text-muted-foreground">{pct(a.investReturn)}</span></div>
                 <Slider value={[a.investReturn * 100]} min={3} max={10} step={0.25} onValueChange={([v]) => setA({ ...a, investReturn: v / 100 })} />
-                <p className="mt-1 text-[12.5px] text-muted-foreground">Used for both paths after tax. 7% is a middle guess, not a promise.</p>
+                <p className="mt-1 text-[15px] text-muted-foreground">This slider only moves from 3% to 10%. 7% is a middle guess, not a promise.</p>
               </div>
             </>
           )}

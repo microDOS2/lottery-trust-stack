@@ -1,4 +1,5 @@
 import { fmt, type Inputs, type StackResult } from '../lib/calc';
+import { Limit } from '../components/widgets';
 import { CalendarClock, Home, HeartHandshake, FileCheck, AlertTriangle } from 'lucide-react';
 
 interface Props {
@@ -26,9 +27,7 @@ export default function PRPanel({ inputs, setInputs, result: r }: Props) {
         {' '}and the rate is <strong>0%</strong> on interest, dividends, and post-move gains through 2035.
         File in 2027 or later and it's a flat <strong>4%</strong> through 2055. Still excellent — but 0% is better.
       </div>
-      <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
-        Statutory summary as of November 2026. Confirm the decree, bona fide residency, and pre-move gain rules with Puerto Rico and U.S. counsel before relying on the 0% or 4% figures.
-      </p>
+      <Limit>You must be present more than half the year. Buy a home within 2 years, owned directly or through a trust, not an LLC. Give $15,000 a year to Puerto Rican charities. File the decree by December 31, 2026 for 0% through 2035. File later and the rate is 4%.</Limit>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <label className="block">

@@ -53,26 +53,6 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'depend', group: 'short',
-    text: 'Will the yearly amount also have to pay for someone else in the next few years?',
-    why: 'If you support a spouse, partner, child, parent, or anyone else, their living costs, school, or care have to come out of the yearly amount. A larger yearly amount leaves less to invest, so the money runs out sooner. The question does not assume you have any of them. If the answer is yes, type a yearly amount that includes what they need.',
-    options: [
-      { label: 'No. The yearly amount is only for me', note: 'Nothing is added for anyone else.', weights: {} },
-      { label: 'Yes. I support someone', note: 'Include their living costs, school, or care in the yearly amount. The result uses that number.', weights: {} },
-      { label: 'Not sure yet', note: 'You can change this later. Until you do, the result uses only the yearly amount you typed.', weights: {} },
-    ],
-  },
-  {
-    id: 'health', group: 'short',
-    text: 'Is there a health or care cost that has to come out of the yearly amount in the next few years?',
-    why: 'Care costs are cash that is not invested. If they are not in the yearly amount, the result will show the money lasting longer than it actually will. You do not have to name the issue. If yes, type a yearly amount that includes the care.',
-    options: [
-      { label: 'No', note: 'No extra amount is added.', weights: {} },
-      { label: 'Yes', note: 'Put the care cost into the yearly amount. The result checks that number.', weights: {} },
-      { label: 'I would rather not say, but the money has to cover care', note: 'Same as yes. The yearly amount should include care. No detail is stored.', weights: {} },
-    ],
-  },
-  {
     id: 'live', group: 'middle',
     text: 'Where do you want to live for most of the year in the next 10 years?',
     why: 'State tax on money you earn later depends on where you actually live. The lottery check is taxed in the state you live in when you receive it. Moving later does not change that tax. Puerto Rico can change the tax on later investment gains if you are present there more than half the year. A mailing address does not count.',
@@ -102,16 +82,6 @@ export const QUIZ: QuizQuestion[] = [
       { label: 'The yearly amount has to keep coming', note: 'More of the money is in things that do not drop as much. The yearly amount is more likely to be paid. Less is left to grow.', weights: { income: 1, growth: 0 } },
       { label: 'I can cut the yearly amount for a while', note: 'More of the money can stay in things that grow. The yearly amount may be smaller for a few years.', weights: { growth: 1, income: 0 } },
       { label: 'I do not know', note: 'The result uses a middle split. You can change it later.', weights: {} },
-    ],
-  },
-  {
-    id: 'cbi', group: 'middle',
-    text: 'Do you want a passport from another country?',
-    why: 'A second passport can change travel, banking, and where you are allowed to live. It does not lower US tax. US tax continues until you give up US citizenship. Buying citizenship is not a tax cut.',
-    options: [
-      { label: 'No', note: 'Nothing changes.', weights: {} },
-      { label: 'Yes. I want easier travel and another place I am allowed to live', note: 'A second passport can do that. It does not lower US tax.', weights: { mobility: 0.5 } },
-      { label: 'Yes. I think a second passport will lower my US tax', note: 'It will not. US tax continues until you give up US citizenship. A second passport is not a tax cut.', weights: {} },
     ],
   },
   {
@@ -202,33 +172,32 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'aging', group: 'long',
-    text: 'Do you want money set aside for care later, even if you never need it?',
-    why: 'You cannot know if you will need care. Setting money aside means the yearly amount in later years is larger, so less is left to grow. Not setting it aside means the result assumes the yearly amount stays the same. You can change this later.',
+    id: 'later', group: 'long',
+    text: 'Do later years cost more than the yearly amount?',
+    why: 'The yearly amount you typed is what the early years use. If later years cost more, because of care or anyone you support, type that amount under this question. From year 11 through year 25, the page uses that amount instead. If you say no, every year uses the first amount.',
     options: [
-      { label: 'No. Do not set any aside', note: 'The yearly amount stays what you typed.', weights: {} },
-      { label: 'Yes. Set some aside for care', note: 'Include the care in the yearly amount for later years. The result uses that number.', weights: {} },
-      { label: 'I have not decided', note: 'Nothing is set aside until you do.', weights: {} },
+      { label: 'No. The yearly amount stays the same', note: 'Years 2 through 25 use the yearly amount you typed.', weights: {} },
+      { label: 'Yes. Later years cost more', note: 'Type the later amount under this question. From year 11 on, that amount replaces the first one.', weights: {} },
+      { label: 'I have not decided', note: 'The yearly amount stays what you typed until you type a later amount.', weights: {} },
     ],
   },
   {
     id: 'never', group: 'long',
-    text: 'What will you not do, even if it would lower a future tax?',
-    why: 'A tax saving you will not actually do is not a plan. If you will not move, state tax on later income stays where you are. If you will not live in Puerto Rico, that path is off the table. If you will not give up US citizenship, US tax on worldwide income continues. The lottery check is taxed where you live when you receive it either way.',
+    text: 'Which of these are you willing to do?',
+    why: 'A tax change you will not actually do is not a plan. Pick the one you would do. If you would not move, later income stays taxed where you are. If you would not live in Puerto Rico, that path is off. If you would not give up US citizenship, US tax on money from anywhere continues.',
     options: [
-      { label: 'I will not move', note: 'State tax on later income stays where you are. The lottery check is taxed there either way.', weights: { mobility: 0 } },
-      { label: 'I will not live in Puerto Rico', note: 'The Puerto Rico tax treatment is off the table.', weights: {} },
-      { label: 'I will not live in another country', note: 'Living abroad is off the table. US tax is unchanged by this.', weights: {} },
-      { label: 'I will not give up US citizenship', note: 'US tax on worldwide income continues.', weights: {} },
-      { label: 'None of these are off the table', note: 'All of the options above stay open.', weights: { mobility: 0.5 } },
+      { label: 'I would move to another state', note: 'Later income can be taxed in that state. The lottery check is taxed where you live when you receive it.', weights: { mobility: 0.5 } },
+      { label: 'I would live in Puerto Rico more than half the year', note: 'Later investment gains can use that path. You have to actually be there.', weights: { mobility: 1 } },
+      { label: 'I would give up US citizenship', note: 'That is the step that ends US tax on money from anywhere. It has its own tax.', weights: { mobility: 1 } },
+      { label: 'None of these', note: 'You stay where you are. US tax on money from anywhere continues.', weights: { mobility: 0 } },
     ],
   },
 ];
 
-export const QUIZ_SHORT = ['claim', 'filing', 'worry', 'depend', 'health'] as const;
-export const QUIZ_MIDDLE = ['live', 'time', 'market', 'cbi', 'give'] as const;
+export const QUIZ_SHORT = ['claim', 'filing', 'worry'] as const;
+export const QUIZ_MIDDLE = ['live', 'time', 'market', 'give'] as const;
 export const QUIZ_PROTECT = ['sue', 'stolen', 'who', 'hold'] as const;
-export const QUIZ_LONG = ['last', 'renounce', 'gone', 'aging', 'never'] as const;
+export const QUIZ_LONG = ['last', 'renounce', 'gone', 'later', 'never'] as const;
 
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
   const acc: GoalProfile = { income: 1, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
