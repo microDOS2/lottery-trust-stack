@@ -1,6 +1,5 @@
 import { SectionTitle } from '../components/widgets';
-import { DEFAULT_ASSUMPTIONS, DEFAULT_INPUTS, PPLI_QP_MIN, SLEEVE_MATH, fmtCompact, pct } from '../lib/calc';
-import { HOUSE_CAP, HOUSE_FLOOR, HOUSE_SHARE } from '../lib/plans';
+import { DEFAULT_ASSUMPTIONS, PPLI_QP_MIN, fmtCompact, pct } from '../lib/calc';
 
 const a = DEFAULT_ASSUMPTIONS;
 
@@ -70,21 +69,21 @@ const SECTIONS: Array<{ id: string; title: string; paragraphs: string[] }> = [
     id: 'house',
     title: 'A home',
     paragraphs: [
-      `Cash set aside for a home is ${pct(HOUSE_SHARE, 0)} of the cash you typed, at least ${fmtCompact(HOUSE_FLOOR)} and at most ${fmtCompact(HOUSE_CAP)}. It is taken out before anything is invested. You give up 25 years of growth on that money. You get a house, which these numbers do not value. They only show the smaller pile.`,
+      'Nothing is set aside for a home unless you type the dollars. There is no percentage and no cap. The dollars you type are not invested. You give up the growth on that cash. The numbers do not put a value on the house.',
     ],
   },
   {
     id: 'business',
     title: 'A business',
     paragraphs: [
-      `${pct(DEFAULT_INPUTS.sleevePct, 0)} of the invested money leaves the stocks. In the assumptions that slice grows at ${pct(SLEEVE_MATH.qsbs.growth)} a year and pays ${pct(SLEEVE_MATH.qsbs.draw)} a year. You give up the stock growth on that slice and any check from it. A real business can also go to zero. That loss is not in the number.`,
+      'Nothing is taken out for a business unless you type the dollars. There is no automatic slice.',
     ],
   },
   {
     id: 'lockup',
     title: 'A slice locked for ten years',
     paragraphs: [
-      `${pct(DEFAULT_INPUTS.sleevePct, 0)} of the invested money pays ${pct(SLEEVE_MATH.oz.draw)} a year and grows at ${pct(SLEEVE_MATH.oz.growth)} in the assumptions. You cannot decide next year that you needed it for bills.`,
+      'Nothing is locked away unless you type the dollars. There is no automatic slice.',
     ],
   },
   {

@@ -79,7 +79,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
   }, [answers, inputs, asm]);
   const preview = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
 
-  const setNum = (key: 'amount' | 'spend' | 'debt' | 'state' | 'target', value: number | string) => {
+  const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'state' | 'target', value: number | string) => {
     setInputs((p) => ({ ...p, [key]: value }));
   };
 
@@ -153,10 +153,29 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
               : `${fmtCompact(preview.debtPaid)} is paid from the cash after tax, before anything is invested.`}
           </span>
         </label>
+        <label className="mt-8 block max-w-md">
+          <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">
+            <span className="font-mono text-sm text-muted-foreground">{String(nowQs.length + 2).padStart(2, '0')}</span>
+            Dollars set aside for a home
+          </span>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={inputs.entity4}
+            onChange={(e) => setNum('entity4', +e.target.value || 0)}
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num"
+          />
+          <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
+            {inputs.entity4 > 0
+              ? `${fmtCompact(inputs.entity4)} is not invested. Nothing is set aside unless you type it.`
+              : 'Nothing is set aside. Type the dollars if you want a home paid from this cash.'}
+          </span>
+        </label>
         <div className="mt-8">
           <label className="mb-8 block max-w-md">
             <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">
-              <span className="font-mono text-sm text-muted-foreground">{String(nowQs.length + 2).padStart(2, '0')}</span>
+              <span className="font-mono text-sm text-muted-foreground">{String(nowQs.length + 3).padStart(2, '0')}</span>
               How much do you want to spend each year?
               <Explainer text="This is the check you are asking the plans to pay." more="trade" />
             </span>
@@ -174,7 +193,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
                 : `Year 2 is a draw of ${fmtCompact(preview.plannedDrawY2)}. The investments can pay ${fmtCompact(preview.capacity)} a year.`}
             </span>
           </label>
-          <QuestionGroup heading="What you want later" start={nowQs.length + 3} questions={laterQs} answers={answers} setAnswers={setAnswers} outcomes={outcomes} />
+          <QuestionGroup heading="What you want later" start={nowQs.length + 4} questions={laterQs} answers={answers} setAnswers={setAnswers} outcomes={outcomes} />
         </div>
 
         {!ready && (

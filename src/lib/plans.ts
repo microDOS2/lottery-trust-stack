@@ -23,15 +23,6 @@ function chose(answers: Record<string, number>, id: string): string {
   return q.options[i]?.label ?? '';
 }
 
-export const HOUSE_SHARE = 0.12;
-export const HOUSE_CAP = 2_000_000;
-export const HOUSE_FLOOR = 100_000;
-
-function houseCash(amount: number): number {
-  const n = Math.round(Math.min(amount * HOUSE_SHARE, HOUSE_CAP));
-  return n >= HOUSE_FLOOR ? n : 0;
-}
-
 function dialFrom(profile: GoalProfile): number {
   const total = profile.income + profile.growth || 1;
   return Math.max(0, Math.min(100, Math.round((profile.income / total) * 100)));
@@ -51,7 +42,7 @@ function drafts(): Draft[] {
       id: 'stay-spend',
       name: () => 'Stay and spend more now',
       when: () => true,
-      patch: () => ({ residency: 'stay', dial: 80, mode: 'balanced', sleeve: null, entity4: 0 }),
+      patch: () => ({ residency: 'stay', dial: 80, mode: 'balanced' }),
       reasons: (a) => {
         const lines = [
           a.work === 0
@@ -73,8 +64,6 @@ function drafts(): Draft[] {
         residency: 'stay',
         dial: Math.min(70, Math.max(30, dialFrom(profile))),
         mode: 'balanced',
-        sleeve: null,
-        entity4: 0,
       }),
       reasons: (a) => [
         a.horizon === 1 || a.work === 1
@@ -87,7 +76,7 @@ function drafts(): Draft[] {
       id: 'stay-grow',
       name: () => 'Stay and let it grow',
       when: () => true,
-      patch: () => ({ residency: 'stay', dial: 20, mode: 'balanced', sleeve: null, entity4: 0 }),
+      patch: () => ({ residency: 'stay', dial: 20, mode: 'balanced' }),
       reasons: (a) => {
         const lines = [
           a.work === 2
@@ -104,7 +93,7 @@ function drafts(): Draft[] {
       id: 'bonds',
       name: () => 'Mostly bonds, so the cash is steadier',
       when: () => true,
-      patch: () => ({ residency: 'stay', dial: 100, mode: 'balanced', sleeve: null, entity4: 0 }),
+      patch: () => ({ residency: 'stay', dial: 100, mode: 'balanced' }),
       reasons: (a) => [
         a.risk === 0
           ? `You said "${chose(a, 'risk')}", so this plan puts as much as it can into the bond ladder. Bonds pay 4% in this model. A stock drop is not simulated.`
@@ -123,8 +112,6 @@ function drafts(): Draft[] {
         dial: 40,
         mode: 'manual' as const,
         manual: { a: 0.5, b: 0, c: 0.5 },
-        sleeve: null,
-        entity4: 0,
       }),
       reasons: (a, _i, result) => {
         const lines = [
@@ -141,7 +128,7 @@ function drafts(): Draft[] {
       id: 'move',
       name: (inputs) => `Move to ${stateByCode(inputs.target).name}`,
       when: (a) => (a.move ?? 0) >= 1,
-      patch: (_a, _i, profile) => ({ residency: 'move' as const, dial: dialFrom(profile), mode: 'balanced' as const, sleeve: null, entity4: 0 }),
+      patch: (_a, _i, profile) => ({ residency: 'move' as const, dial: dialFrom(profile), mode: 'balanced' as const }),
       reasons: (a, inputs) => {
         const here = stateByCode(inputs.state);
         const there = stateByCode(inputs.target);
@@ -159,7 +146,7 @@ function drafts(): Draft[] {
       id: 'pr',
       name: () => 'Live in Puerto Rico',
       when: (a) => (a.pr ?? 0) >= 1,
-      patch: (_a, _i, profile) => ({ residency: 'pr' as const, dial: Math.min(dialFrom(profile), 35), mode: 'balanced' as const, sleeve: null, entity4: 0 }),
+      patch: (_a, _i, profile) => ({ residency: 'pr' as const, dial: Math.min(dialFrom(profile), 35), mode: 'balanced' as const }),
       reasons: (a) => {
         const lines = [
           `You said "${chose(a, 'pr')}". This plan drops state tax on investment gains only if you actually live in Puerto Rico more than half the year.`,
@@ -169,60 +156,6 @@ function drafts(): Draft[] {
         if (a.pr === 2) lines.push('You said you could live there. Read the Act 60 note and the December 31, 2026 filing deadline before you treat this as the plan.');
         return lines;
       },
-    },
-    {
-      id: 'house',
-      name: () => 'Set cash aside for a home',
-      when: (a, inputs) => a.house === 2 && houseCash(inputs.amount) > 0,
-      patch: (_a, inputs, profile) => ({
-        residency: 'stay' as const,
-        dial: dialFrom(profile),
-        mode: 'balanced' as const,
-        sleeve: null,
-        entity4: houseCash(inputs.amount),
-      }),
-      reasons: (a, inputs) => [
-        `You said "${chose(a, 'house')}". This plan parks ${fmtCompact(houseCash(inputs.amount))} outside the investments for that purchase.`,
-        'That cash is not in the bond ladder, the policy, or the stocks, so the year-25 pile is smaller. The rest of the plan stays where you live.',
-      ],
-    },
-    {
-      id: 'business',
-      name: () => 'A slice for a business',
-      when: (a) => (a.business ?? 0) >= 1,
-      patch: (_a, _i, profile) => ({
-        residency: 'stay' as const,
-        dial: Math.min(dialFrom(profile), 40),
-        mode: 'balanced' as const,
-        sleeve: 'qsbs',
-        sleevePct: 0.08,
-        entity4: 0,
-      }),
-      reasons: (a) => {
-        const lines = [
-          `You said "${chose(a, 'business')}". About 8% of the invested money is pulled out of the stocks and modeled as a business.`,
-          'The model grows that slice at 4% and pays you nothing from it. That is a middle guess, not a promise the company works. A real business can go to zero.',
-        ];
-        if (a.business === 1) lines.push('You called it a small slice, so it is not allowed to become the whole plan.');
-        return lines;
-      },
-    },
-    {
-      id: 'oz',
-      name: () => 'Lock a slice away for ten years',
-      when: (a) => a.horizon === 2 && a.complexity !== 0 && a.business !== 2,
-      patch: () => ({
-        residency: 'stay' as const,
-        dial: 25,
-        mode: 'balanced' as const,
-        sleeve: 'oz',
-        sleevePct: 0.08,
-        entity4: 0,
-      }),
-      reasons: () => [
-        'You said the money should work over 20 or more years, and you did not ask for the simplest paperwork, so one plan locks about 8% away.',
-        'That slice pays you nothing in the model and is grown at 6%. The lockup is real paperwork. It is not the place for money you need to live on.',
-      ],
     },
   ];
 }
@@ -270,8 +203,6 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
     basis,
     filing,
     spend,
-    sleeve: null,
-    entity4: 0,
     residency: 'stay',
     mode: 'balanced',
     flatDraw: false,
@@ -298,8 +229,6 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
   if (answers.complexity === 0) forced.add('simple');
   if ((answers.pr ?? 0) >= 1) forced.add('pr');
   if ((answers.move ?? 0) >= 1) forced.add('move');
-  if (answers.business === 2) forced.add('business');
-  if (answers.house === 2 && houseCash(inputs.amount) > 0) forced.add('house');
 
   const chosen: typeof ranked = [];
   for (const id of forced) {
@@ -334,10 +263,6 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
         ? `${fmtCompact(debtPaid)} of the ${fmtCompact(inputs.debt)} you entered for debt is subtracted. That is all the cash left after tax. It comes out before anything is invested.`
         : `${fmtCompact(debtPaid)} of debt is subtracted after tax, before anything is invested.`,
     );
-  }
-  if (answers.house === 2 && houseCash(inputs.amount) === 0) {
-    const raw = Math.round(inputs.amount * HOUSE_SHARE);
-    preface.push(`${fmtCompact(raw)} is 12% of the cash you typed. A home is set aside only when that amount is at least ${fmtCompact(HOUSE_FLOOR)} and no more than ${fmtCompact(HOUSE_CAP)}. Nothing is set aside.`);
   }
 
   const plans: PlanOption[] = chosen.map((p) => {

@@ -97,7 +97,7 @@ export const DEFAULT_INPUTS: Inputs = {
   drawOverrides: {},
   flatDraw: false,
   sleeve: null,
-  sleevePct: 0.08,
+  sleevePct: 0,
 };
 
 export const PPLI_QP_MIN = 5_000_000;      // Qualified Purchaser threshold (investable assets)
