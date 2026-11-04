@@ -42,7 +42,7 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <SectionTitle
-        num="04"
+        num="05"
         title={<>Choose the <span className="sig-italic">strategies</span></>}
         blurb="Turn on any of them. Turn on more than one. The result below is that combination. A suggested amount does nothing until you use it."
       />
