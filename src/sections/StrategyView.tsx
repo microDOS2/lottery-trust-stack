@@ -1,103 +1,153 @@
-import { COUNSEL_NOTES, ENGINE_PRESETS, STRATEGIES } from '../lib/content';
-import { SLEEVE_MATH } from '../lib/calc';
-import { Tip } from '../components/widgets';
+import { useMemo } from 'react';
+import { STRATEGIES } from '../lib/content';
+import { fmt, type Assumptions, type Inputs } from '../lib/calc';
+import { COMBOS, describeCombo, needsDollars, previewInputs, suggestion } from '../lib/combine';
 import { SectionTitle } from '../components/widgets';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface Props {
-  sleeve: string | null;
-  onApplyEngine: (id: string) => void;
-  onSetSleeve: (id: string | null) => void;
+  inputs: Inputs;
+  setInputs: (fn: (p: Inputs) => Inputs) => void;
+  asm: Assumptions;
+  onUse: () => void;
 }
 
-export default function StrategyView({ sleeve, onApplyEngine, onSetSleeve }: Props) {
+export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
+  const chosen = inputs.chosen ?? [];
+  const dollars = inputs.strategyDollars ?? {};
+  const view = useMemo(() => describeCombo(inputs, asm), [inputs, asm]);
+  const core = view.plain.core;
+
+  const toggle = (id: string) => {
+    setInputs((p) => {
+      const cur = p.chosen ?? [];
+      const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+      return { ...p, chosen: next };
+    });
+  };
+
+  const setDollars = (id: string, amount: number) => {
+    setInputs((p) => ({ ...p, strategyDollars: { ...(p.strategyDollars ?? {}), [id]: amount } }));
+  };
+
+  const useCombo = (ids: string[]) => {
+    setInputs((p) => ({ ...p, chosen: ids }));
+  };
+
+  const apply = () => {
+    const next = previewInputs(inputs);
+    setInputs(() => next);
+    onUse();
+  };
+
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className="mx-auto max-w-3xl space-y-8">
       <SectionTitle
         num="03"
-        title={<>The strategy <span className="sig-italic">library</span></>}
-        blurb="Each row says whether it changes the chart. One sleeve at a time — choosing another replaces it. A note does not change the numbers."
+        title={<>Choose the <span className="sig-italic">strategies</span></>}
+        blurb="Turn on any of them. Turn on more than one. The result below is that combination. A suggested amount does nothing until you use it."
       />
 
-      <Accordion type="single" collapsible className="space-y-3">
+      {inputs.amount <= 0 && (
+        <p className="text-[15px] leading-relaxed text-muted-foreground">
+          Type the winning cash amount on Goals & Fit first. Until then every result is zero.
+        </p>
+      )}
+
+      <section className="hairline-card p-6">
+        <h2 className="font-display text-xl font-semibold">Combinations you can start from</h2>
+        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">Clicking one turns those strategies on and turns the others off. You can change it after.</p>
+        <div className="mt-4 flex flex-col gap-2">
+          {COMBOS.map((c) => (
+            <button
+              key={c.name}
+              type="button"
+              onClick={() => useCombo(c.ids)}
+              className="rounded-lg border border-input bg-card px-4 py-3 text-left cursor-pointer hover:border-primary/50"
+            >
+              <span className="block text-[15px] font-medium">{c.name}</span>
+              <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">{c.why}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
         {STRATEGIES.map((s) => {
-          const isEngine = s.id in ENGINE_PRESETS;
-          const changesMath = s.id in SLEEVE_MATH;
-          const selected = sleeve === s.id;
-          const label = isEngine ? 'Set engine' : selected ? 'Remove' : sleeve ? 'Replace' : 'Use sleeve';
+          const on = chosen.includes(s.id);
+          const sug = suggestion(s.id, core);
           return (
-            <AccordionItem key={s.id} value={s.id} className="hairline-card border px-5">
-              <div className="flex items-center gap-3">
-                <AccordionTrigger className="flex-1 py-4 hover:no-underline">
-                  <div className="flex flex-1 items-center gap-4 text-left">
-                    {s.stat && (
-                      <div className="hidden w-20 shrink-0 text-center sm:block">
-                        <div className="font-num text-lg font-semibold stat-warm">{s.stat}</div>
-                        <div className="text-[13.5px] leading-tight text-muted-foreground">{s.statLabel}</div>
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-mono text-[14px] uppercase tracking-wider text-muted-foreground">{s.tag}</div>
-                      <div className="font-display text-lg font-semibold leading-tight">{s.name}</div>
-                      <div className="text-[12.5px] font-medium text-muted-foreground">{isEngine || changesMath ? 'Changes the chart' : 'Note only'}</div>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <Tip text={isEngine ? 'Sets the calculator mix of bonds, insurance, and stocks. This changes the chart.' : changesMath ? (selected ? 'Removes this idea and puts the money back into stocks.' : 'Uses this idea in the chart. It takes cash out of the stock engine. Only one at a time.') : (selected ? 'Removes this note. It was not changing the numbers.' : 'Saves this as a note for your lawyer. It does not change the chart.')} more={changesMath ? 'business' : 'trade'}>
+            <article key={s.id} className="hairline-card p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-mono text-[12px] uppercase tracking-wider text-muted-foreground">{s.tag}</div>
+                  <h3 className="font-display text-lg font-semibold">{s.name}</h3>
+                  <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">{s.oneLiner}</p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => (isEngine ? onApplyEngine(s.id) : onSetSleeve(selected ? null : s.id))}
-                  className={`mb-1 shrink-0 rounded-md border px-3 py-2 text-sm font-semibold cursor-pointer ${
-                    selected ? 'border-destructive/40 text-destructive' : 'border-primary text-primary hover:bg-accent'
-                  }`}
+                  onClick={() => toggle(s.id)}
+                  className={`shrink-0 rounded-md border px-3 py-2 text-sm font-semibold cursor-pointer ${on ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card'}`}
                 >
-                  {label}
+                  {on ? 'On' : 'Off'}
                 </button>
-                </Tip>
               </div>
-              <AccordionContent className="pb-6">
-                <p className="max-w-[70ch] text-[15px] leading-relaxed">{s.oneLiner}</p>
-                {!isEngine && (
-                  <p className="mt-2 text-[12.5px] font-medium text-muted-foreground">
-                    {changesMath
-                      ? 'Changes the math. Carves a slice of core out of Engine C and uses its own model growth and draw.'
-                      : 'Does not change the three-engine math.'}
-                  </p>
-                )}
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div>
-                    <div className="font-mono text-[12.5px] uppercase tracking-wider stat-good">The tax magic</div>
-                    <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">{s.taxMagic}</p>
-                  </div>
-                  <div>
-                    <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">Who qualifies</div>
-                    <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">{s.qualifies}</p>
-                  </div>
-                  <div>
-                    <div className="font-mono text-[12.5px] uppercase tracking-wider text-destructive">Watch out</div>
-                    <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">{s.watchOut}</p>
-                  </div>
-                  <div>
-                    <div className="font-mono text-[12.5px] uppercase tracking-wider stat-warm">How it plugs in</div>
-                    <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">{s.plugsIn}</p>
-                  </div>
+              {on && needsDollars(s.id) && (
+                <label className="mt-4 block max-w-sm">
+                  <span className="mb-1 block text-sm font-medium">Dollars for this strategy</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={dollars[s.id] ?? 0}
+                    onChange={(e) => setDollars(s.id, +e.target.value || 0)}
+                    className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num"
+                  />
+                  {sug && (
+                    <button
+                      type="button"
+                      onClick={() => setDollars(s.id, sug.amount)}
+                      className="mt-2 text-left text-sm text-primary hover:underline cursor-pointer"
+                    >
+                      Use {fmt(sug.amount)}. {sug.note}
+                    </button>
+                  )}
+                </label>
+              )}
+              {on && s.id === 'expatriation' && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium">What the assets would sell for today</span>
+                    <input type="number" min={0} step={1} value={inputs.assetValue} onChange={(e) => setInputs((p) => ({ ...p, assetValue: +e.target.value || 0 }))} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-sm font-medium">What you paid for them</span>
+                    <input type="number" min={0} step={1} value={inputs.costBasis} onChange={(e) => setInputs((p) => ({ ...p, costBasis: +e.target.value || 0 }))} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+                  </label>
                 </div>
-                {COUNSEL_NOTES[s.id] && (
-                  <p className="mt-4 max-w-[75ch] rounded-md border border-border bg-secondary/60 px-3 py-2 text-[13px] leading-relaxed text-muted-foreground">
-                    {COUNSEL_NOTES[s.id]}
-                  </p>
-                )}
-              </AccordionContent>
-            </AccordionItem>
+              )}
+            </article>
           );
         })}
-      </Accordion>
+      </section>
 
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        Figures reflect 2026 law (including the 2025 tax act's QSBS, Opportunity Zone, and estate-exclusion changes) at summary level.
-        Last verified: November 2026. Eligibility, diversification, and drafting requirements are fact-specific — subject to counsel review.
-        This library is for understanding the menu, not ordering from it without your attorney and CPA.
-      </p>
+      <section className="hairline-card p-6">
+        <h2 className="font-display text-xl font-semibold">What this combination does</h2>
+        {view.conflicts.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {view.conflicts.map((c) => (
+              <p key={c} className="text-[14.5px] leading-relaxed text-destructive">{c}</p>
+            ))}
+          </div>
+        )}
+        <div className="mt-4 space-y-3">
+          {view.lines.map((line) => (
+            <p key={line.slice(0, 80)} className="text-[15px] leading-relaxed text-muted-foreground">{line}</p>
+          ))}
+        </div>
+        <button type="button" onClick={apply} className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground cursor-pointer">
+          Use this combination in the calculator
+        </button>
+      </section>
     </div>
   );
 }

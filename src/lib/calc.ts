@@ -41,6 +41,10 @@ export interface Inputs {
   flatDraw: boolean; // true = same dollar amount every year (no inflation growth)
   sleeve: string | null; // one optional library item; a new choice replaces the old one
   sleevePct: number;   // fraction of core carved from Engine C when the sleeve has model rates
+  chosen: string[];     // library strategies the user turned on
+  strategyDollars: Record<string, number>; // dollars the user accepted for a strategy
+  costBasis: number;    // what they paid for assets, for the exit-tax result
+  assetValue: number;   // what those assets would sell for, for the exit-tax result
 }
 
 export interface Assumptions {
@@ -100,6 +104,10 @@ export const DEFAULT_INPUTS: Inputs = {
   flatDraw: false,
   sleeve: null,
   sleevePct: 0,
+  chosen: [],
+  strategyDollars: {},
+  costBasis: 0,
+  assetValue: 0,
 };
 
 export const PPLI_QP_MIN = 5_000_000;      // Qualified Purchaser threshold (investable assets)
@@ -190,6 +198,7 @@ export interface StackResult {
   debtPaid: number;
   housePaid: number;
   venturePaid: number;
+  giftPaid: number;
   yr1Reserve: number;
   core: number;
   weights: Weights;
@@ -246,6 +255,11 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   left -= housePaid;
   const venturePaid = Math.min(left, Math.max(0, inp.venture || 0));
   left -= venturePaid;
+  const chosen = Array.isArray(inp.chosen) ? inp.chosen : [];
+  const dollars = inp.strategyDollars ?? {};
+  const giftWant = chosen.includes('charitable') ? Math.max(0, dollars.charitable || 0) : 0;
+  const giftPaid = Math.min(left, giftWant);
+  left -= giftPaid;
   const core = left;
   const qpOk = core >= PPLI_QP_MIN;
   const w = resolveWeights(inp, core);
@@ -253,14 +267,43 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   const muni = core * w.a;
   const ppli = core * w.b;
   const equityGross = core * w.c;
-  const sleeveSpec = inp.sleeve ? SLEEVE_MATH[inp.sleeve] : undefined;
-  const sleevePct = Math.max(0, Math.min(SLEEVE_PCT_MAX, inp.sleevePct ?? 0));
-  const sleeveAmount = sleeveSpec ? Math.min(equityGross, sleevePct * core) : 0;
-  const equity = equityGross - sleeveAmount;
+  const chosenIds = Array.isArray(inp.chosen) ? inp.chosen : [];
+  const strategyDollars = inp.strategyDollars ?? {};
+  let equity = equityGross;
+  let sleeveAmount = 0;
+  let gSum = 0;
+  let dSum = 0;
+  let divSum = 0;
+  for (const id of ['oz', 'qsbs', 'real-estate'] as const) {
+    if (!chosenIds.includes(id)) continue;
+    const spec = SLEEVE_MATH[id];
+    const take = Math.min(Math.max(0, strategyDollars[id] || 0), equity);
+    equity -= take;
+    sleeveAmount += take;
+    gSum += take * spec.growth;
+    dSum += take * spec.draw;
+    divSum += take * spec.div;
+  }
+  let slGrowth = 0;
+  let slDrawRate = 0;
+  let slDivRate = 0;
+  if (sleeveAmount > 0) {
+    slGrowth = gSum / sleeveAmount;
+    slDrawRate = dSum / sleeveAmount;
+    slDivRate = divSum / sleeveAmount;
+  } else if (inp.sleeve && SLEEVE_MATH[inp.sleeve] && !chosenIds.includes(inp.sleeve)) {
+    const spec = SLEEVE_MATH[inp.sleeve];
+    const sleevePct = Math.max(0, Math.min(SLEEVE_PCT_MAX, inp.sleevePct ?? 0));
+    sleeveAmount = Math.min(equity, sleevePct * core);
+    equity -= sleeveAmount;
+    slGrowth = spec.growth;
+    slDrawRate = spec.draw;
+    slDivRate = spec.div;
+  }
 
   // Muni interest is federal-tax-free; in 'stay' mode we assume in-state bonds → state-free too.
   // `capacity` is what the engines COULD pay tax-free each year — it is a ceiling, not a forced draw.
-  const capacity = muni * asm.muniYield + ppli * asm.ppliDraw + equity * asm.eqDraw + sleeveAmount * (sleeveSpec?.draw ?? 0);
+  const capacity = muni * asm.muniYield + ppli * asm.ppliDraw + equity * asm.eqDraw + sleeveAmount * slDrawRate;
   const blendedDraw = core > 0 ? capacity / core : 0;
 
   const sustainable = inp.spend <= capacity + 1e-9;
@@ -278,8 +321,6 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   let depletedYear: number | null = null;
   let plannedDrawY2 = 0;
   let reinvestY2 = 0;
-  const slGrowth = sleeveSpec?.growth ?? 0;
-  const slDrawRate = sleeveSpec?.draw ?? 0;
 
   for (let y = 1; y <= 25; y++) {
     const begin = muniB + ppliB + eqB + slB;
@@ -369,7 +410,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const eqW = Math.max(0, w.c - slW);
     const interestNet = begin * w.a * asm.muniYield * (1 - ordRate);
     const divNet = begin * eqW * asm.divYield * (1 - divDrag);
-    const sleeveCash = begin * slW * (sleeveSpec?.div ?? 0) * (1 - ordRate);
+    const sleeveCash = begin * slW * slDivRate * (1 - ordRate);
     const autoNet = interestNet + divNet + sleeveCash;
     const surplus = Math.max(0, autoNet - desired);
     const need = Math.max(0, desired - autoNet);
@@ -377,7 +418,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     let grossW = need > 0 ? need / Math.max(0.05, 1 - gainShare * gainDrag) : 0;
     grossW = Math.min(grossW, begin); // can't sell more than you have
     const cash = Math.min(desired, autoNet + grossW * (1 - gainShare * gainDrag));
-    const appreciation = begin * (w.b * asm.ppliGrowth + eqW * asm.eqGrowth + slW * (sleeveSpec?.growth ?? 0));
+    const appreciation = begin * (w.b * asm.ppliGrowth + eqW * asm.eqGrowth + slW * slGrowth);
     const end = Math.max(0, begin + appreciation + surplus - grossW);
     if (end <= 0 && baselineDepletedYear === null) baselineDepletedYear = y;
     baseline.push({ year: y, begin, cash, reinvested: surplus, growth: appreciation, fees: 0, capacity: 0, end });
@@ -393,7 +434,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 
   return {
     prMode, prRate, preMoveGainsTax,
-    gross, fedTax: fed, stateTax: stx, withheld, net, debtPaid, housePaid, venturePaid, yr1Reserve, core,
+    gross, fedTax: fed, stateTax: stx, withheld, net, debtPaid, housePaid, venturePaid, giftPaid, yr1Reserve, core,
     weights: w, muni, ppli, equity, sleeveId: inp.sleeve ?? null, sleeveAmount,
     capacity, plannedDrawY2, reinvestY2, blendedDraw,
     futureStateRate: fsr, sustainable, requiredCore, qpOk,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, LEGACY_ASSUMPTIONS, SLEEVE_MATH, computeStack, pct, type Inputs, type Assumptions } from '../lib/calc';
+import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, LEGACY_ASSUMPTIONS, computeStack, type Inputs, type Assumptions } from '../lib/calc';
 import CalculatorView, { type ScenarioSlot } from '../sections/CalculatorView';
 import GoalsView from '../sections/GoalsView';
 import LabView from '../sections/LabView';
@@ -9,7 +9,6 @@ import { GuideView, GlossaryView } from '../sections/GuideView';
 import ExplainView from '../sections/ExplainView';
 import { ExplainNav, explainSectionFromHash, openExplainTab } from '../explainNav';
 import { Tip } from '../components/widgets';
-import { ENGINE_PRESETS, STRATEGIES } from '../lib/content';
 import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText } from 'lucide-react';
 
 type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain';
@@ -63,6 +62,10 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
   }
   if (inputs.sleeve === undefined) inputs.sleeve = null;
   if (typeof inputs.sleevePct !== 'number') inputs.sleevePct = DEFAULT_INPUTS.sleevePct;
+  if (typeof inputs.assetValue !== 'number') inputs.assetValue = 0;
+  if (typeof inputs.costBasis !== 'number') inputs.costBasis = 0;
+  if (!Array.isArray(inputs.chosen)) inputs.chosen = [];
+  if (!inputs.strategyDollars || typeof inputs.strategyDollars !== 'object') inputs.strategyDollars = {};
   if (typeof inputs.debt !== 'number') inputs.debt = 0;
   if (typeof inputs.venture !== 'number') inputs.venture = 0;
   return inputs;
@@ -214,36 +217,6 @@ export default function Home() {
     setNotice(null);
   };
 
-  const applyEngine = (id: string) => {
-    const preset = ENGINE_PRESETS[id];
-    if (!preset) return;
-    const prev = inputs;
-    const name = STRATEGIES.find((s) => s.id === id)?.name ?? 'Engine';
-    setInputsRaw((p) => ({ ...p, mode: 'manual', manual: { ...preset } }));
-    setNotice({
-      text: `${name} is now ${Math.round(preset.a * 100)}/${Math.round(preset.b * 100)}/${Math.round(preset.c * 100)} of core (A/B/C).`,
-      undo: () => setInputsRaw((p) => ({ ...p, mode: prev.mode, manual: { ...prev.manual } })),
-    });
-    setView('calc');
-  };
-
-  const setSleeve = (id: string | null) => {
-    setInputsRaw((p) => ({ ...p, sleeve: id }));
-    if (!id) {
-      setNotice(null);
-      return;
-    }
-    const name = STRATEGIES.find((s) => s.id === id)?.name ?? id;
-    if (SLEEVE_MATH[id]) {
-      setNotice({
-        text: `${name} replaces the sleeve and carves ${pct(inputs.sleevePct, 0)} of core out of Engine C. Capacity and the 25-year line use that sleeve's model rates.`,
-      });
-    } else {
-      setNotice({ text: `${name} is the selected sleeve. It does not change the three-engine math.` });
-    }
-    setView('calc');
-  };
-
   useEffect(() => {
     if (view !== 'explain' || !explainAt) return;
     const t = window.setTimeout(() => {
@@ -320,7 +293,7 @@ export default function Home() {
           />
         )}
         {view === 'library' && (
-          <StrategyView sleeve={inputs.sleeve} onApplyEngine={applyEngine} onSetSleeve={setSleeve} />
+          <StrategyView inputs={inputs} setInputs={setInputsRaw} asm={asm} onUse={() => setView('calc')} />
         )}
         {view === 'annuity' && (
           <AnnuityView
