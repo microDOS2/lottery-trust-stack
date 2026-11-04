@@ -49,6 +49,13 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
         title={<>Plan the life, <span className="sig-italic">short, middle, and long</span></>}
         blurb="One page. Age first, because a 40-year-old and a 75-year-old do not mean the same thing by later. The result is whether the money can pay for the life without running out. A pile at a fixed year 25 is not the finish line."
       />
+      <button
+        type="button"
+        onClick={() => { setAnswers({}); setAge(0); setInputs(() => ({ ...inputs, amount: 0, spend: 0, debt: 0, entity4: 0, venture: 0, rental: 0, gift: 0 })); }}
+        className="rounded-md border border-input bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+      >
+        Clear and start over
+      </button>
 
       <div className="hairline-card p-6 md:p-8">
         <div className="grid gap-4 md:grid-cols-2">
