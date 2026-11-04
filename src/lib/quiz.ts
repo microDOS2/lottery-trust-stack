@@ -57,15 +57,6 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'spend', text: 'How much do you want to spend each year?',
-    options: [
-      { label: '$100,000 a year', hint: 'The plans use $100,000 a year, starting in year 2. More of the pile stays invested.', weights: { income: 0.15, growth: 1 } },
-      { label: '$275,000 a year', hint: 'The plans use $275,000 a year, starting in year 2.', weights: { income: 0.5, growth: 0.6 } },
-      { label: '$600,000 a year', hint: 'The plans use $600,000 a year, starting in year 2. A larger check leaves less to grow.', weights: { income: 0.85, growth: 0.35 } },
-      { label: '$1,000,000 a year', hint: 'The plans use $1,000,000 a year, starting in year 2. This is the largest check, and it can spend the pile down.', weights: { income: 1, growth: 0.15 } },
-    ],
-  },
-  {
     id: 'horizon', text: 'When should this money work hardest?',
     options: [
       { label: 'This year — I need income', weights: { income: 1 } },
@@ -147,8 +138,6 @@ export const QUIZ: QuizQuestion[] = [
   },
 ];
 
-export const SPEND_BY_ANSWER = [100_000, 275_000, 600_000, 1_000_000];
-
 export const QUIZ_NOW = ['claim', 'filing', 'work', 'debts', 'house'] as const;
 
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
@@ -189,7 +178,6 @@ export function recommend(p: GoalProfile, answers: Record<string, number> = {}):
   const moveYes = answers.move === 2;
   const residency: Inputs['residency'] = prYes ? 'pr' : moveYes ? 'move' : 'stay';
 
-  const spend = answers.spend === undefined ? null : SPEND_BY_ANSWER[answers.spend] ?? null;
   const filing: Inputs['filing'] | null = answers.filing === undefined ? null : answers.filing === 1 ? 'mfj' : 'single';
   const basis: Inputs['basis'] | null = answers.claim === undefined ? null : answers.claim === 2 ? 'net' : 'gross';
 
@@ -208,7 +196,7 @@ export function recommend(p: GoalProfile, answers: Record<string, number> = {}):
   if (p.protection >= 0.6) notes.push('Privacy or lawsuits matter to you. The trust that holds the investments, and the company that holds a house or cars, are the pieces that keep your name off the records. A foreign trust does not hide the money from U.S. tax.');
   if (p.legacy >= 0.6) notes.push('Leaving money to family or charity matters. Once the pile is past the $15 million federal estate exclusion, that is the conversation to have with your lawyer. Charity can also lower the tax in the year you claim the prize.');
   if (p.simplicity >= 0.7) notes.push('You want this simple. Two trusts and no insurance policy means less paperwork and less tax-free cash. Apply does not remove the insurance sleeve. Turn that dial only if you and your lawyer agree.');
-  return { dial, residency, spend, filing, basis, notes };
+  return { dial, residency, spend: null, filing, basis, notes };
 }
 
 export interface ScenarioScore {

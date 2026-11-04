@@ -78,7 +78,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
   const nowQs = QUIZ.filter((q) => NOW.has(q.id));
   const laterQs = QUIZ.filter((q) => !NOW.has(q.id));
 
-  const setNum = (key: 'amount' | 'state' | 'target', value: number | string) => {
+  const setNum = (key: 'amount' | 'spend' | 'state' | 'target', value: number | string) => {
     setInputs((p) => ({ ...p, [key]: value }));
   };
 
@@ -133,7 +133,23 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
 
         <QuestionGroup heading="Where you are now" start={1} questions={nowQs} answers={answers} setAnswers={setAnswers} />
         <div className="mt-8">
-          <QuestionGroup heading="What you want later" start={nowQs.length + 1} questions={laterQs} answers={answers} setAnswers={setAnswers} />
+          <label className="mb-8 block max-w-md">
+            <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">
+              <span className="font-mono text-sm text-muted-foreground">{String(nowQs.length + 1).padStart(2, '0')}</span>
+              How much do you want to spend each year?
+              <Explainer text="Every plan uses this exact dollar amount from year 2. Type any amount. There is no list and no gap." more="trade" />
+            </span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={inputs.spend}
+              onChange={(e) => setNum('spend', +e.target.value || 0)}
+              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num"
+            />
+            <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">The exact amount, in dollars. Year 1 is a reserve and pays you nothing from the investments.</span>
+          </label>
+          <QuestionGroup heading="What you want later" start={nowQs.length + 2} questions={laterQs} answers={answers} setAnswers={setAnswers} />
         </div>
 
         {!ready && (

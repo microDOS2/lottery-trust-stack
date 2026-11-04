@@ -1,6 +1,6 @@
 import { computeStack, fmtCompact, type Assumptions, type Inputs, type StackResult } from './calc';
 import { stateByCode } from './taxdata';
-import { QUIZ, SPEND_BY_ANSWER, profileFromAnswers, scoreScenario, type GoalProfile } from './quiz';
+import { QUIZ, profileFromAnswers, scoreScenario, type GoalProfile } from './quiz';
 
 export interface PlanOption {
   id: string;
@@ -232,7 +232,7 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
   const profile = profileFromAnswers(answers);
   const basis: Inputs['basis'] = answers.claim === 2 ? 'net' : 'gross';
   const filing: Inputs['filing'] = answers.filing === 1 ? 'mfj' : 'single';
-  const spend = answers.spend === undefined ? inputs.spend : SPEND_BY_ANSWER[answers.spend] ?? inputs.spend;
+  const spend = inputs.spend;
   const base: Inputs = {
     ...inputs,
     basis,
