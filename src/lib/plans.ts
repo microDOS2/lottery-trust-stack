@@ -56,7 +56,7 @@ function outcomeLines(inputs: Inputs, result: StackResult, answers: Record<strin
     lines.push('A passport from another country does not lower US tax. The tax ends only if you give up US citizenship.');
   }
   if (answers.renounce && answers.renounce > 0) {
-    lines.push('Giving up US citizenship has its own tax. It is not treated as reversible.');
+    lines.push('Giving up US citizenship ends US tax on money from anywhere. It has its own tax, the exit tax, on the gain in your assets as if you sold them. You may not be able to live in the US again. Type what the assets would sell for and what you paid, on the calculator, to see the tax.');
   }
   if (answers.worry === 1) {
     lines.push('A trust can keep a name off a house, a car, or a court paper. It does not hide the money from the tax office.');
