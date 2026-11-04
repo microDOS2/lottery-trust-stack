@@ -130,7 +130,7 @@ export function FlowDiagram({ compact = false }: { compact?: boolean }) {
       {/* Engines */}
       <path d={box(486, 16, 226, 50)} fill="#FBE7E0" stroke="#E5604A" strokeWidth={1.5} />
       <text x={570} y={36} textAnchor="middle" fill="#2A1A0E" fontSize={14} fontWeight={700} fontFamily="Fraunces, serif">Trust #3 · PPLI — Engine B</text>
-      <text x={570} y={52} textAnchor="middle" fill="#6B6359" fontSize={12}>compounds untaxed · ~6.5% tax-free draw</text>
+      <text x={570} y={52} textAnchor="middle" fill="#6B6359" fontSize={12}>compounds untaxed · ~4.5% tax-free draw</text>
 
       <path d={box(486, 92, 226, 50)} fill="#EDF3E9" stroke="#4C7A3F" strokeWidth={1.5} />
       <text x={570} y={112} textAnchor="middle" fill="#2A1A0E" fontSize={14} fontWeight={700} fontFamily="Fraunces, serif">Trust #2 · Munis — Engine A</text>

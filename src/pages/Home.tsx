@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, SLEEVE_MATH, computeStack, pct, type Inputs, type Assumptions } from '../lib/calc';
+import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, LEGACY_ASSUMPTIONS, SLEEVE_MATH, computeStack, pct, type Inputs, type Assumptions } from '../lib/calc';
 import CalculatorView, { type ScenarioSlot } from '../sections/CalculatorView';
 import GoalsView from '../sections/GoalsView';
 import LabView from '../sections/LabView';
@@ -12,14 +12,14 @@ import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass } from 'lu
 type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 function schemaAllowsSaved(): boolean {
   try {
     const raw = localStorage.getItem('lotteryStack.schema');
     if (raw === null) return true;
     const n = Number(raw);
-    return n === 2 || n === 3 || n === SCHEMA_VERSION;
+    return n === 2 || n === 3 || n === 4 || n === SCHEMA_VERSION;
   } catch {
     return false;
   }
@@ -83,7 +83,8 @@ function loadInputs(): Inputs {
       const parsed = JSON.parse(saved);
       const migrate = localStorage.getItem('lotteryStack.schema') !== String(SCHEMA_VERSION);
       const inputs = normalizeInputs(parsed, migrate);
-      if (localStorage.getItem('lotteryStack.schema') !== '4' && inputs.amount === 18_000_000) inputs.amount = 0;
+      const schemaN = Number(localStorage.getItem('lotteryStack.schema') ?? 0);
+      if (schemaN < 4 && inputs.amount === 18_000_000) inputs.amount = 0;
       return inputs;
     }
   } catch { /* ignore */ }
@@ -96,7 +97,15 @@ function loadAssumptions(): Assumptions {
   if (!schemaAllowsSaved()) return DEFAULT_ASSUMPTIONS;
   try {
     const saved = localStorage.getItem('lotteryStack.assumptions');
-    if (saved) return { ...DEFAULT_ASSUMPTIONS, ...JSON.parse(saved) };
+    if (saved) {
+      const parsed: Assumptions = { ...DEFAULT_ASSUMPTIONS, ...JSON.parse(saved) };
+      if (localStorage.getItem('lotteryStack.schema') === '5') return parsed;
+      const next = { ...parsed };
+      (Object.keys(LEGACY_ASSUMPTIONS) as (keyof Assumptions)[]).forEach((k) => {
+        if (Math.abs(parsed[k] - LEGACY_ASSUMPTIONS[k]) < 1e-9) next[k] = DEFAULT_ASSUMPTIONS[k];
+      });
+      return next;
+    }
   } catch { /* ignore */ }
   return DEFAULT_ASSUMPTIONS;
 }

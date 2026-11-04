@@ -45,8 +45,8 @@ export const STRATEGIES: Strategy[] = [
       'Yields are modest (~4%+), and some "private activity" bonds trigger the AMT. Out-of-state bonds can be taxed by your home state. Interest rate rises push existing bond prices down.',
     plugsIn:
       'Lives inside Trust #2 (the DAPT). It is the reliable floor of your tax-free income — the annuity you build yourself.',
-    stat: '~4.25%',
-    statLabel: 'model yield, AAA/AA ladder',
+    stat: '~4%',
+    statLabel: 'model yield, mixed ladder',
   },
   {
     id: 'engine-b',
@@ -61,7 +61,7 @@ export const STRATEGIES: Strategy[] = [
     watchOut:
       'Must respect IRS diversification rules (IRC §817(h)) and investor-control doctrine — you cannot pick the stocks yourself. Fees matter; only large premiums make the math beat a taxable account. Never let it lapse with loans outstanding.',
     plugsIn:
-      'Trust #3 owns the policy. It is the highest tax-free draw rate in the stack (~6.5%) and the engine that does the heaviest lifting for both income and compounding.',
+      'Trust #3 owns the policy. The model takes about 4.5% a year tax-free, under the policy’s assumed growth, so one bad stretch does not empty it on the chart.',
     stat: '$5M',
     statLabel: 'Qualified Purchaser minimum',
   },
@@ -79,7 +79,7 @@ export const STRATEGIES: Strategy[] = [
       'Markets fall — harvesting softens but does not erase drawdowns. Leverage must stay conservative (keep loan-to-value low) or a downturn can force sales at the worst time.',
     plugsIn:
       'Lives in Trust #2 next to the muni ladder. This is your primary growth engine — the part of the stack built to compound for 25 years.',
-    stat: '~9%',
+    stat: '~7%',
     statLabel: 'model long-run growth',
   },
   {

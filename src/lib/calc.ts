@@ -53,6 +53,18 @@ export interface Assumptions {
 }
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
+  muniYield: 0.04,
+  ppliGrowth: 0.062,
+  ppliDraw: 0.045,
+  eqGrowth: 0.07,
+  eqDraw: 0.035,
+  divYield: 0.015,
+  ltcgRate: 0.238,
+  inflation: 0.025,
+};
+
+/** Shipped before November 2026. Kept so a saved copy of these exact rates can be moved to the middle. */
+export const LEGACY_ASSUMPTIONS: Assumptions = {
   muniYield: 0.0425,
   ppliGrowth: 0.085,
   ppliDraw: 0.065,

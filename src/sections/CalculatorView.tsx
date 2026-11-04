@@ -321,25 +321,33 @@ export default function CalculatorView(p: Props) {
           </select>
         </Field>
 
-        <details className="rounded-md border border-input">
+        <details className="rounded-md border border-input" open>
           <summary className="cursor-pointer px-3 py-2 text-[14px] font-medium text-muted-foreground hover:text-foreground">Assumptions (editable)</summary>
-          <p className="px-3 pb-2 text-[12px] leading-snug text-muted-foreground">
-            These are model assumptions, not forecasts or promises. Change any rate. Last verified: November 2026.
+          <p className="px-3 pb-2 text-[12.5px] leading-snug text-muted-foreground">
+            These are the middle, not a forecast and not a quote. The previous defaults were the optimistic end. Each rate below is what the chart uses, and why that number — not higher, not lower. Change any of them. Last set: November 2026.
           </p>
-          <div className="grid grid-cols-2 gap-2 px-3 pb-3 pt-1">
+          <div className="space-y-3 px-3 pb-3">
             {([
-              ['muniYield', 'Muni yield'], ['ppliDraw', 'PPLI draw'], ['ppliGrowth', 'PPLI growth'],
-              ['eqDraw', 'Equity draw'], ['eqGrowth', 'Equity growth'], ['divYield', 'Equity dividends'],
-              ['inflation', 'Inflation'],
-            ] as const).map(([k, label]) => (
-              <label key={k} className="text-[12.5px] text-muted-foreground">
-                {label}
+              ['muniYield', 'Muni yield', 'The tax-free interest the bond ladder pays. That cash is the first money you can spend. In early November 2026 a 10-year AAA municipal bond yielded about 3.4%, and a 30-year AAA bond about 4.5% to 4.8%. A ladder spread across those years is about 4%. The old 4.25% was a round number, a bit high for a mixed ladder. The model holds 4% flat for 25 years. Real coupons will move.'],
+              ['ppliGrowth', 'PPLI growth', 'How fast the policy’s investments grow after the insurer’s charges. Forecasters in 2026 put long-run U.S. stocks around 6% to 7.5% a year. This uses 7%, then takes off 0.8% for insurance costs. The old 8.5% assumed almost no fees and a higher stock return. This is not a quote from an insurance company.'],
+              ['ppliDraw', 'PPLI draw', 'How much of the policy you can take each year with no tax, first by withdrawing what you paid in, then by borrowing. 4.5% sits under the 6.2% growth, so one bad stretch does not empty the policy on the chart. The old 6.5% was a sales figure. A very cautious illustration is closer to 3%. A real policy can still lapse if the loans and the charges run ahead of this.'],
+              ['eqGrowth', 'Equity growth', 'How fast the stocks grow before you take anything out. 7% is the middle of published 2026 long-run forecasts. Vanguard’s 30-year median was about 5.9%. J.P. Morgan’s large-cap forecast in October 2026 was 7.5%. The old 9% was close to the past average, which is the high end. It is not a prediction for any single year.'],
+              ['eqDraw', 'Equity draw', 'How much of the stocks the model lets you spend each year. With stocks expected to grow at 7%, spending 3.5% leaves the pile growing. The model treats this whole amount as tax-free, using basis, harvested losses, and loans. That tax-free part is the generous piece: it is easier in the early years than in year 20. The old 4.5% assumed it stayed tax-free for the full 25 years.'],
+              ['divYield', 'Equity dividends', 'Used only on the normal taxable account, which pays tax on these dividends every year. The trust stack does not. 1.5% is about what the broad U.S. market pays. This one was already in the middle, so it did not change.'],
+              ['inflation', 'Inflation', 'Raises your spending each year, and powers the “today’s dollars” switch. The Federal Reserve’s target is 2%. 2.5% allows for inflation staying a bit above that. It is not a forecast for one year. This one was already in the middle, so it did not change.'],
+            ] as const).map(([k, label, why]) => (
+              <label key={k} className="block text-[12.5px] text-muted-foreground">
+                <span className="font-medium text-foreground/90">{label}</span>
                 <input type="number" step={0.25} min={0} max={20}
-                  className="mt-0.5 w-full rounded border border-input bg-card px-2 py-1 text-sm font-num"
+                  className="mt-0.5 w-full rounded border border-input bg-card px-2 py-1 text-sm font-num text-foreground"
                   value={(asm[k] * 100).toFixed(2)}
                   onChange={(e) => p.setAsm({ ...asm, [k]: (+e.target.value || 0) / 100 })} />
+                <span className="mt-1 block leading-snug">{why}</span>
               </label>
             ))}
+            <p className="text-[12.5px] leading-snug text-muted-foreground">
+              The normal taxable account also pays 23.8% federal tax on stock gains. That is the real top rate: 20% plus the 3.8% net-investment surtax. It is not a guess, so it is not a box you edit.
+            </p>
           </div>
         </details>
 
