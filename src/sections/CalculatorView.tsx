@@ -174,7 +174,7 @@ export default function CalculatorView(p: Props) {
     <div className="space-y-4">
       <div>
         <SectionTitle
-          num="01"
+          num="03"
           title={<>Your after-tax pool, <span className="sig-italic">working for you</span></>}
           blurb={`${st.name} prize, ${inp.basis === 'gross' ? 'starting from the gross cash option' : 'starting from money already after tax'}, ${inp.filing === 'mfj' ? 'married filing jointly' : 'single'} — 2026 rates.`}
         />
