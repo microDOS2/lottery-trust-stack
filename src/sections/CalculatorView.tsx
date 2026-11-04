@@ -241,8 +241,12 @@ export default function CalculatorView(p: Props) {
           ))}
         </div>
 
-        <Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than the engines can pay, the pile gets spent." more="trade" help="What you want to spend each year after the first year. This sizes the reserve and checks whether the stack can pay it.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend} min={0} step={10000} onChange={(e) => set('spend', +e.target.value || 0)} />
+        <Field label="Debt to pay before investing ($)" tip="Subtracted after tax and before anything is invested. Zero subtracts nothing. It does not change the tax." more="not-included" help="The exact amount. If it is larger than the cash left after tax, only the cash left is subtracted.">
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.debt} min={0} step={1} onChange={(e) => set('debt', +e.target.value || 0)} />
+        </Field>
+
+        <Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than what the investments can pay, the pile gets spent." more="trade" help="The exact amount, in dollars.">
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend} min={0} step={1} onChange={(e) => set('spend', +e.target.value || 0)} />
         </Field>
 
         <p className="rounded-md bg-secondary px-3 py-2 text-[13.5px] leading-relaxed">

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { QUIZ, QUIZ_NOW, profileFromAnswers, type GoalProfile } from '../lib/quiz';
-import { fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
+import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
 import { STATES } from '../lib/taxdata';
-import { buildBestPlans } from '../lib/plans';
+import { buildBestPlans, outcomesForQuestion } from '../lib/plans';
 import { Explainer, SectionTitle, Tip } from '../components/widgets';
 import { useExplain } from '../explainNav';
 
@@ -27,11 +27,6 @@ const PLAN_MORE: Record<string, string> = {
   simple: 'simple', move: 'move', pr: 'puerto-rico', house: 'house', business: 'business', oz: 'lockup',
 };
 const NOW = new Set<string>(QUIZ_NOW);
-const MORE: Record<string, string> = {
-  claim: 'assumptions', filing: 'assumptions', work: 'trade', debts: 'not-included', house: 'house',
-  spend: 'trade', horizon: 'trade', risk: 'stocks', move: 'move', pr: 'puerto-rico',
-  privacy: 'policy', lawsuit: 'policy', legacy: 'grow', charity: 'not-included', business: 'business', complexity: 'simple',
-};
 
 function Bars({ title, hint, tip, more, rows, tone }: {
   title: string;
@@ -77,8 +72,14 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
   const moveStates = STATES.filter((s) => s.noTax || s.code === inputs.target);
   const nowQs = QUIZ.filter((q) => NOW.has(q.id));
   const laterQs = QUIZ.filter((q) => !NOW.has(q.id));
+  const outcomes = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const q of QUIZ) map[q.id] = outcomesForQuestion(q.id, answers, inputs, asm);
+    return map;
+  }, [answers, inputs, asm]);
+  const preview = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
 
-  const setNum = (key: 'amount' | 'spend' | 'state' | 'target', value: number | string) => {
+  const setNum = (key: 'amount' | 'spend' | 'debt' | 'state' | 'target', value: number | string) => {
     setInputs((p) => ({ ...p, [key]: value }));
   };
 
@@ -131,13 +132,33 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
           </div>
         </div>
 
-        <QuestionGroup heading="Where you are now" start={1} questions={nowQs} answers={answers} setAnswers={setAnswers} />
+        <QuestionGroup heading="Where you are now" start={1} questions={nowQs} answers={answers} setAnswers={setAnswers} outcomes={outcomes} />
+        <label className="mt-8 block max-w-md">
+          <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">
+            <span className="font-mono text-sm text-muted-foreground">{String(nowQs.length + 1).padStart(2, '0')}</span>
+            How many dollars of debt should be paid before anything is invested?
+            <Explainer text="Debt paid first is cash that is not invested." more="not-included" />
+          </span>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={inputs.debt}
+            onChange={(e) => setNum('debt', +e.target.value || 0)}
+            className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num"
+          />
+          <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
+            {inputs.amount <= 0
+              ? 'Enter a cash amount. Until then this has no numbers to show.'
+              : `${fmtCompact(preview.debtPaid)} is paid from the cash after tax, before anything is invested.`}
+          </span>
+        </label>
         <div className="mt-8">
           <label className="mb-8 block max-w-md">
             <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">
-              <span className="font-mono text-sm text-muted-foreground">{String(nowQs.length + 1).padStart(2, '0')}</span>
+              <span className="font-mono text-sm text-muted-foreground">{String(nowQs.length + 2).padStart(2, '0')}</span>
               How much do you want to spend each year?
-              <Explainer text="Every plan uses this exact dollar amount from year 2. Type any amount. There is no list and no gap." more="trade" />
+              <Explainer text="This is the check you are asking the plans to pay." more="trade" />
             </span>
             <input
               type="number"
@@ -147,9 +168,13 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
               onChange={(e) => setNum('spend', +e.target.value || 0)}
               className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num"
             />
-            <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">The exact amount, in dollars. Year 1 is a reserve and pays you nothing from the investments.</span>
+            <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
+              {inputs.amount <= 0
+                ? 'Enter a cash amount. Until then this has no numbers to show.'
+                : `Year 2 is a draw of ${fmtCompact(preview.plannedDrawY2)}. The investments can pay ${fmtCompact(preview.capacity)} a year.`}
+            </span>
           </label>
-          <QuestionGroup heading="What you want later" start={nowQs.length + 2} questions={laterQs} answers={answers} setAnswers={setAnswers} />
+          <QuestionGroup heading="What you want later" start={nowQs.length + 3} questions={laterQs} answers={answers} setAnswers={setAnswers} outcomes={outcomes} />
         </div>
 
         {!ready && (
@@ -247,13 +272,14 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
 }
 
 function QuestionGroup({
-  heading, start, questions, answers, setAnswers,
+  heading, start, questions, answers, setAnswers, outcomes,
 }: {
   heading: string;
   start: number;
   questions: typeof QUIZ;
   answers: Record<string, number>;
   setAnswers: (fn: (a: Record<string, number>) => Record<string, number>) => void;
+  outcomes: Record<string, string[]>;
 }) {
   return (
     <div className="space-y-6">
@@ -264,21 +290,24 @@ function QuestionGroup({
             <span className="mr-2 font-mono text-sm text-muted-foreground">{String(start + qi).padStart(2, '0')}</span>
             {q.text}
           </legend>
-          <div className="flex flex-wrap gap-2">
+          <p className="mb-2 max-w-[70ch] text-[14px] leading-relaxed text-muted-foreground">{q.why}</p>
+          <div className="flex flex-col gap-2">
             {q.options.map((o, oi) => (
-              <Tip key={oi} text={o.hint || 'This answer changes which five plans you see, and why.'} more={MORE[q.id]}>
               <button
+                key={oi}
                 type="button"
                 onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
-                className={`rounded-full border px-4 py-2 text-left text-[14px] transition-all cursor-pointer ${
+                className={`rounded-lg border px-4 py-3 text-left transition-all cursor-pointer ${
                   answers[q.id] === oi
                     ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-input bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                    : 'border-input bg-card hover:border-primary/50'
                 }`}
               >
-                {o.label}
+                <span className="block text-[15px] font-medium">{o.label}</span>
+                <span className={`mt-1 block text-[13px] leading-snug ${answers[q.id] === oi ? 'text-primary-foreground/85' : 'text-muted-foreground'}`}>
+                  {outcomes[q.id]?.[oi]}
+                </span>
               </button>
-              </Tip>
             ))}
           </div>
         </fieldset>

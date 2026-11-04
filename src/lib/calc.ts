@@ -24,6 +24,7 @@ export interface Inputs {
   basis: Basis;
   amount: number;
   spend: number;
+  debt: number;         // paid from the after-tax cash before anything is invested
   entity4: number;
   setupCost: number;    // one-time legal/professional setup of the stack (year 1)
   annualAdmin: number;  // ongoing trustee, carrier, CPA, registered-agent fees
@@ -81,6 +82,7 @@ export const DEFAULT_INPUTS: Inputs = {
   basis: 'gross',
   amount: 0,
   spend: 400_000,
+  debt: 0,
   entity4: 0,
   setupCost: 75_000,
   annualAdmin: 25_000,
@@ -183,6 +185,7 @@ export interface StackResult {
   stateTax: number;
   withheld: number;
   net: number;
+  debtPaid: number;
   yr1Reserve: number;
   core: number;
   weights: Weights;
@@ -233,7 +236,8 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   }
 
   const yr1Reserve = inp.spend + inp.setupCost;
-  const core = Math.max(0, net - yr1Reserve - inp.entity4);
+  const debtPaid = Math.min(Math.max(0, net), Math.max(0, inp.debt || 0));
+  const core = Math.max(0, net - debtPaid - yr1Reserve - inp.entity4);
   const qpOk = core >= PPLI_QP_MIN;
   const w = resolveWeights(inp, core);
 
@@ -380,7 +384,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 
   return {
     prMode, prRate, preMoveGainsTax,
-    gross, fedTax: fed, stateTax: stx, withheld, net, yr1Reserve, core,
+    gross, fedTax: fed, stateTax: stx, withheld, net, debtPaid, yr1Reserve, core,
     weights: w, muni, ppli, equity, sleeveId: inp.sleeve ?? null, sleeveAmount,
     capacity, plannedDrawY2, reinvestY2, blendedDraw,
     futureStateRate: fsr, sustainable, requiredCore, qpOk,

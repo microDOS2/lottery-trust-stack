@@ -63,6 +63,7 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
   }
   if (inputs.sleeve === undefined) inputs.sleeve = null;
   if (typeof inputs.sleevePct !== 'number') inputs.sleevePct = DEFAULT_INPUTS.sleevePct;
+  if (typeof inputs.debt !== 'number') inputs.debt = 0;
   return inputs;
 }
 

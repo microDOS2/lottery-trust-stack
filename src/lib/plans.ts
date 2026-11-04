@@ -1,4 +1,4 @@
-import { computeStack, fmtCompact, type Assumptions, type Inputs, type StackResult } from './calc';
+import { computeStack, fmtCompact, pct, SLEEVE_MATH, type Assumptions, type Inputs, type StackResult } from './calc';
 import { stateByCode } from './taxdata';
 import { QUIZ, profileFromAnswers, scoreScenario, type GoalProfile } from './quiz';
 
@@ -23,9 +23,13 @@ function chose(answers: Record<string, number>, id: string): string {
   return q.options[i]?.label ?? '';
 }
 
+export const HOUSE_SHARE = 0.12;
+export const HOUSE_CAP = 2_000_000;
+export const HOUSE_FLOOR = 100_000;
+
 function houseCash(amount: number): number {
-  const n = Math.round(Math.min(amount * 0.12, 2_000_000));
-  return n >= 100_000 ? n : 0;
+  const n = Math.round(Math.min(amount * HOUSE_SHARE, HOUSE_CAP));
+  return n >= HOUSE_FLOOR ? n : 0;
 }
 
 function dialFrom(profile: GoalProfile): number {
@@ -58,7 +62,6 @@ function drafts(): Draft[] {
         ];
         if (a.move === 0) lines.push('You said you are not moving, so this plan does not depend on a new state.');
         if (a.pr === 0) lines.push('You said no to Puerto Rico, so this plan does not use it.');
-        if (a.debts === 2) lines.push('You said debts come first. This plan produces the most cash early, which is the pot a payoff would come from. The chart does not subtract a specific loan balance.');
         return lines;
       },
     },
@@ -104,8 +107,8 @@ function drafts(): Draft[] {
       patch: () => ({ residency: 'stay', dial: 100, mode: 'balanced', sleeve: null, entity4: 0 }),
       reasons: (a) => [
         a.risk === 0
-          ? `You said "${chose(a, 'risk')}" if the market drops, so this plan puts as much as it can into the bond ladder.`
-          : 'This is the steadiest paycheck of the five. More bonds, fewer stocks, and less left at year 25.',
+          ? `You said "${chose(a, 'risk')}", so this plan puts as much as it can into the bond ladder. Bonds pay 4% in this model. A stock drop is not simulated.`
+          : 'This is the steadiest paycheck of the five. More bonds, fewer stocks, and less left at year 25. A stock drop is not simulated.',
         a.privacy === 2 || a.lawsuit === 2
           ? 'You also said privacy or a lawsuit matters. The bond ladder sits in the trust either way. This plan does not add a house or a company on top of that.'
           : 'The trade is a calmer year and a smaller pile at year 25.',
@@ -228,6 +231,35 @@ function sig(inp: Inputs): string {
   return [inp.residency, inp.sleeve ?? '', inp.mode, Math.round(inp.dial / 20), inp.entity4 > 0 ? '1' : '0'].join('|');
 }
 
+function moneyGap(n: number): string {
+  if (Math.abs(n) < 1) return 'the same amount';
+  return n > 0 ? `${fmtCompact(n)} more` : `${fmtCompact(-n)} less`;
+}
+
+function explainPlan(
+  p: { name: string; inputs: Inputs; result: StackResult },
+  best?: { name: string; result: StackResult },
+): string[] {
+  const w = p.result.weights;
+  const lines = [
+    `This plan pays ${fmtCompact(p.result.capacity)} a year and is worth ${fmtCompact(p.result.stackEnd)} in 25 years.`,
+    `Of the money that is invested, ${pct(w.a, 0)} is in bonds, ${pct(w.b, 0)} is in the insurance policy, and ${pct(w.c, 0)} is in stocks.`,
+  ];
+  if (p.result.debtPaid > 0) lines.push(`${fmtCompact(p.result.debtPaid)} of debt is paid from the cash after tax, before anything is invested.`);
+  if (p.inputs.entity4 > 0) lines.push(`${fmtCompact(p.inputs.entity4)} is set aside for a home and is not invested.`);
+  if (p.inputs.residency === 'move') lines.push(`Future investment income is taxed as ${stateByCode(p.inputs.target).name}. The prize is taxed as ${stateByCode(p.inputs.state).name}.`);
+  if (p.inputs.residency === 'pr') lines.push(`Later investment gains are taxed as Puerto Rico. The prize is taxed as ${stateByCode(p.inputs.state).name}.`);
+  const sleeve = p.inputs.sleeve ? SLEEVE_MATH[p.inputs.sleeve] : undefined;
+  if (sleeve && p.result.sleeveAmount > 0) {
+    lines.push(`${fmtCompact(p.result.sleeveAmount)} is taken out of the stocks. In this plan that slice grows at ${pct(sleeve.growth)} a year and pays ${fmtCompact(p.result.sleeveAmount * sleeve.draw)} a year.`);
+  }
+  if (p.inputs.mode === 'manual' && p.inputs.manual.b === 0) lines.push('This plan has no insurance policy.');
+  if (best) {
+    lines.push(`Against ${best.name}, this pays ${moneyGap(p.result.capacity - best.result.capacity)} a year and leaves ${moneyGap(p.result.stackEnd - best.result.stackEnd)} in 25 years.`);
+  }
+  return lines;
+}
+
 export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, asm: Assumptions): PlanSet {
   const profile = profileFromAnswers(answers);
   const basis: Inputs['basis'] = answers.claim === 2 ? 'net' : 'gross';
@@ -295,23 +327,65 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
       : `The ${fmtCompact(inputs.amount)} you typed is treated as the cash option before tax, because you said "${chose(answers, 'claim')}". Federal and ${here.name} tax come off first.`,
     answers.filing === 1 ? 'The tax estimate uses married filing jointly.' : 'The tax estimate uses a single filer.',
   ];
-  if (answers.debts === 2) preface.push('You said a lot of debt comes before investing. None of the five plans subtracts a loan balance. Pay that from cash in the first year, then fund the plan.');
-  if ((answers.charity ?? 0) >= 2) preface.push('You said charity is a main goal. A gift in the prize year can lower that year’s tax. None of these five spends the pile on charity for you. Tell your preparer the amount before you file.');
-  if (answers.house === 2 && houseCash(inputs.amount) === 0) preface.push('You want to buy a home, but the cash amount is too small to set a house aside inside the model. The plans invest what is left.');
+  const debtPaid = ranked[0]?.result.debtPaid ?? 0;
+  if (inputs.debt > 0) {
+    preface.push(
+      debtPaid < inputs.debt
+        ? `${fmtCompact(debtPaid)} of the ${fmtCompact(inputs.debt)} you entered for debt is subtracted. That is all the cash left after tax. It comes out before anything is invested.`
+        : `${fmtCompact(debtPaid)} of debt is subtracted after tax, before anything is invested.`,
+    );
+  }
+  if (answers.house === 2 && houseCash(inputs.amount) === 0) {
+    const raw = Math.round(inputs.amount * HOUSE_SHARE);
+    preface.push(`${fmtCompact(raw)} is 12% of the cash you typed. A home is set aside only when that amount is at least ${fmtCompact(HOUSE_FLOOR)} and no more than ${fmtCompact(HOUSE_CAP)}. Nothing is set aside.`);
+  }
 
-  const plans: PlanOption[] = chosen.map((p, i) => {
-    const top = [...p.parts].sort((a, b) => b.weight - a.weight).slice(0, 2).map((x) => x.label.toLowerCase());
-    const whys = [...p.d.reasons(answers, inputs, p.result)];
-    if (i === 0) {
-      whys.unshift(top.length
-        ? `Best match. It scores ${p.score} out of 100 on what your answers weighted most: ${top.join(' and ')}.`
-        : `Best match. It scores ${p.score} out of 100 against your answers.`);
-    } else if (best) {
-      whys.unshift(`On the list because it is a different choice, not a copy of the best match. It scores ${p.score} out of 100.`);
-      whys.push(`Against the best match, this pays ${fmtCompact(p.result.capacity)} a year instead of ${fmtCompact(best.result.capacity)}, and is worth ${fmtCompact(p.result.stackEnd)} in 25 years instead of ${fmtCompact(best.result.stackEnd)}.`);
-    }
+  const plans: PlanOption[] = chosen.map((p) => {
+    const whys = explainPlan(
+      { name: p.d.name(inputs), inputs: p.planInputs, result: p.result },
+      best && best.d.id !== p.d.id ? { name: best.d.name(inputs), result: best.result } : undefined,
+    );
     return { id: p.d.id, name: p.d.name(inputs), whys, inputs: p.planInputs, result: p.result, score: p.score };
   });
 
   return { preface, plans };
+}
+
+function planKey(set: PlanSet): string {
+  return set.plans.map((p) => [
+    p.id,
+    Math.round(p.result.capacity),
+    Math.round(p.result.stackEnd),
+    Math.round(p.result.weights.a * 100),
+    Math.round(p.result.weights.b * 100),
+    Math.round(p.result.weights.c * 100),
+    p.inputs.residency,
+    p.inputs.sleeve ?? '',
+    Math.round(p.inputs.entity4),
+    Math.round(p.result.debtPaid),
+  ].join(':')).join('|');
+}
+
+/** What picking this answer does, read off the plans. Not a written claim. */
+export function outcomesForQuestion(
+  id: string,
+  answers: Record<string, number>,
+  inputs: Inputs,
+  asm: Assumptions,
+): string[] {
+  const q = QUIZ.find((item) => item.id === id);
+  if (!q) return [];
+  if (inputs.amount <= 0) {
+    return q.options.map(() => 'Enter a cash amount. Until then this choice has no numbers to show.');
+  }
+  const sets = q.options.map((_, i) => buildBestPlans({ ...answers, [id]: i }, inputs, asm));
+  const keys = sets.map(planKey);
+  const allSame = keys.every((k) => k === keys[0]);
+  return sets.map((set) => {
+    const best = set.plans[0];
+    const w = best.result.weights;
+    const head = `Best match: ${best.name}. ${fmtCompact(best.result.capacity)} a year. ${fmtCompact(best.result.stackEnd)} in 25 years. ${pct(w.a, 0)} bonds, ${pct(w.b, 0)} insurance, ${pct(w.c, 0)} stocks.`;
+    if (allSame) return `The five plans do not change. ${head}`;
+    return `${head} The five plans are: ${set.plans.map((p) => p.name).join('; ')}.`;
+  });
 }

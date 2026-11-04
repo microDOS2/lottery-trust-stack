@@ -13,20 +13,23 @@ export interface GoalProfile {
 export interface QuizQuestion {
   id: string;
   text: string;
-  options: Array<{ label: string; hint?: string; weights: Partial<GoalProfile> }>;
+  why: string;
+  options: Array<{ label: string; weights: Partial<GoalProfile> }>;
 }
 
 export const QUIZ: QuizQuestion[] = [
   {
-    id: 'claim', text: 'Where is the prize right now?',
+    id: 'claim', text: 'Has the tax on this cash already been paid?',
+    why: 'We ask because one number can mean two things: tax still to pay, or tax already paid.',
     options: [
-      { label: 'I have not claimed it yet', weights: {} },
-      { label: 'I will take the cash amount, and tax is not paid yet', weights: {} },
-      { label: 'The tax is already paid. This is what I have left', weights: {} },
+      { label: 'No. I have not claimed it yet', weights: {} },
+      { label: 'No. I will take the cash, and the tax is not paid', weights: {} },
+      { label: 'Yes. The number I typed is what I have left', weights: {} },
     ],
   },
   {
     id: 'filing', text: 'Who files the tax return?',
+    why: 'We ask because the tax on a prize is different if you file alone or with a spouse.',
     options: [
       { label: 'Just me', weights: {} },
       { label: 'Married, filing together', weights: {} },
@@ -34,62 +37,61 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'work', text: 'Will you keep earning a paycheck?',
+    why: 'We ask because money you need for living has a different job than money you can leave alone.',
     options: [
-      { label: 'I need this prize to live on', hint: 'The plans lean toward cash you can spend.', weights: { income: 1, growth: 0.1 } },
-      { label: 'I will keep working', hint: 'A middle answer. The prize does not have to pay all the bills.', weights: { income: 0.4, growth: 0.5 } },
-      { label: 'I have other income. This can sit', hint: 'The plans can leave more invested.', weights: { income: 0.1, growth: 1 } },
-    ],
-  },
-  {
-    id: 'debts', text: 'Do you have debts you would clear before investing?',
-    options: [
-      { label: 'No', hint: 'Nothing is set aside for a payoff.', weights: {} },
-      { label: 'Some. The first year can cover them', hint: 'A note only. The chart does not subtract a specific balance.', weights: { income: 0.2 } },
-      { label: 'A lot. Clearing them comes first', hint: 'The cash-now plan is there so a payoff has a source. The chart still does not subtract the balance.', weights: { income: 0.5, simplicity: 0.3 } },
+      { label: 'I need this prize to live on', weights: { income: 1, growth: 0.1 } },
+      { label: 'I will keep working', weights: { income: 0.4, growth: 0.5 } },
+      { label: 'I have other income. This can sit', weights: { income: 0.1, growth: 1 } },
     ],
   },
   {
     id: 'house', text: 'What about a home?',
+    why: 'We ask because a house is cash that does not stay invested.',
     options: [
-      { label: 'I have the home I want', hint: 'No cash is pulled out for a house.', weights: { simplicity: 0.2 } },
-      { label: 'I rent, or I will sell', hint: 'No house is added to the plan.', weights: {} },
-      { label: 'I want to buy a home with some of this', hint: 'One plan sets cash aside for a house, outside the investments.', weights: { protection: 0.3, simplicity: 0.2 } },
+      { label: 'I have the home I want', weights: { simplicity: 0.2 } },
+      { label: 'I rent, or I will sell', weights: {} },
+      { label: 'I want to buy a home with some of this', weights: { protection: 0.3, simplicity: 0.2 } },
     ],
   },
   {
-    id: 'horizon', text: 'When should this money work hardest?',
+    id: 'horizon', text: 'When do you need the money to pay you?',
+    why: 'We ask because money that has to pay you soon cannot also be the money left to grow for 25 years.',
     options: [
-      { label: 'This year — I need income', weights: { income: 1 } },
-      { label: 'Both income and growth', weights: { income: 0.5, growth: 0.5 } },
-      { label: 'In 20 or more years — let it grow', weights: { growth: 1 } },
+      { label: 'I need the check soon', weights: { income: 1 } },
+      { label: 'I want a check, and money left later', weights: { income: 0.5, growth: 0.5 } },
+      { label: 'I can wait. Leave more for year 25', weights: { growth: 1 } },
     ],
   },
   {
-    id: 'risk', text: 'The market drops 30% next year. What do you do?',
+    id: 'risk', text: 'If stocks fall, what should stay steady?',
+    why: 'We ask because bonds pay interest and do not jump with the stock market, and stocks are what can make a much bigger pile in 25 years and can fall. You are choosing which of those matters more.',
     options: [
-      { label: 'Sell', weights: { growth: 0.1, income: 0.5, simplicity: 0.8 } },
-      { label: 'Hold, but worry', weights: { growth: 0.5 } },
-      { label: 'Leave it alone', weights: { growth: 1 } },
+      { label: 'The yearly check', weights: { income: 1, growth: 0.1 } },
+      { label: 'Both, as much as one mix can', weights: { income: 0.5, growth: 0.5 } },
+      { label: 'The money left in 25 years', weights: { growth: 1, income: 0.1 } },
     ],
   },
   {
-    id: 'move', text: 'Would you move to a state with no income tax, such as Wyoming, Texas, or Florida?',
+    id: 'move', text: 'Would you move to a state with no income tax?',
+    why: 'We ask because moving can change the state tax on future investment income. It does not change the tax on the prize.',
     options: [
       { label: 'No. I am staying', weights: { mobility: 0 } },
-      { label: 'Maybe', weights: { mobility: 0.5 } },
-      { label: 'Yes', weights: { mobility: 1 } },
+      { label: 'Maybe. Show me the dollars', weights: { mobility: 0.5 } },
+      { label: 'Yes. I would move', weights: { mobility: 1 } },
     ],
   },
   {
-    id: 'pr', text: 'Would you live in Puerto Rico for more than half the year?',
+    id: 'pr', text: 'Would you live in Puerto Rico?',
+    why: 'We ask because Puerto Rico can change the tax on later investment gains, and only if you live there.',
     options: [
       { label: 'No', weights: { mobility: 0 } },
-      { label: 'I want to learn more, but not move yet', weights: { mobility: 0.35 } },
-      { label: 'Yes. I could live there', weights: { mobility: 1 } },
+      { label: 'Show me the dollars. I am not moving yet', weights: { mobility: 0.35 } },
+      { label: 'Yes. I could live there more than half the year', weights: { mobility: 1 } },
     ],
   },
   {
     id: 'privacy', text: 'How much does it matter that your name stays off public records?',
+    why: 'We ask because a trust can keep a name off a deed. It does not hide money from the tax office.',
     options: [
       { label: 'Not much', weights: { protection: 0.2, simplicity: 0.6 } },
       { label: 'Somewhat', weights: { protection: 0.6 } },
@@ -98,14 +100,16 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'lawsuit', text: 'Are you worried someone will sue you for the money?',
+    why: 'We ask because some plans put the investments inside a trust. That is a legal structure, not a promise that a lawsuit cannot reach the money.',
     options: [
       { label: 'No', weights: { protection: 0.2 } },
       { label: 'A little', weights: { protection: 0.6 } },
-      { label: 'Yes. Protect it', weights: { protection: 1 } },
+      { label: 'Yes. I want that considered', weights: { protection: 1 } },
     ],
   },
   {
     id: 'legacy', text: 'Do you want to leave this money to your family?',
+    why: 'We ask because leaving money to family is about what is left in 25 years. This does not write a will.',
     options: [
       { label: 'Not a priority', weights: { legacy: 0.1, income: 0.3 } },
       { label: 'Some of it', weights: { legacy: 0.5 } },
@@ -113,7 +117,8 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'charity', text: 'Do you plan to give a meaningful amount to charity?',
+    id: 'charity', text: 'Do you want to give money to charity in the year you claim the prize?',
+    why: 'We ask because a gift is a decision you make with your tax preparer. The numbers on each answer show whether that gift changes these plans.',
     options: [
       { label: 'No', weights: { legacy: 0 } },
       { label: 'Some', weights: { legacy: 0.4 } },
@@ -122,23 +127,25 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'business', text: 'Do you want to start or buy a business with some of this?',
+    why: 'We ask because money put into a business is money that is not paying you from the investments.',
     options: [
-      { label: 'No', hint: 'No business slice.', weights: { simplicity: 0.3 } },
-      { label: 'A small slice, not the main plan', hint: 'One plan may set aside a small piece. It pays you nothing in the model.', weights: { growth: 0.4, legacy: 0.2 } },
-      { label: 'Yes. That is a main goal', hint: 'A business plan stays on the list even if the score is lower.', weights: { growth: 0.7, legacy: 0.4, simplicity: 0 } },
+      { label: 'No', weights: { simplicity: 0.3 } },
+      { label: 'Yes, a slice. Not the whole plan', weights: { growth: 0.4, legacy: 0.2 } },
+      { label: 'Yes. That is a main goal', weights: { growth: 0.7, legacy: 0.4, simplicity: 0 } },
     ],
   },
   {
-    id: 'complexity', text: 'How do you feel about lawyers, trusts, and paperwork?',
+    id: 'complexity', text: 'How much paperwork will you accept?',
+    why: 'We ask because the insurance policy is extra paperwork, and it is only used when enough money is left to invest.',
     options: [
-      { label: 'Keep it as simple as possible', weights: { simplicity: 1, protection: 0.2 } },
-      { label: 'Fine, if it saves real money', weights: { simplicity: 0.45, protection: 0.55 } },
-      { label: 'I want the full setup', weights: { simplicity: 0, protection: 0.8 } },
+      { label: 'As little as possible', weights: { simplicity: 1, protection: 0.2 } },
+      { label: 'Some, if it pays me more', weights: { simplicity: 0.45, protection: 0.55 } },
+      { label: 'I will do the full setup', weights: { simplicity: 0, protection: 0.8 } },
     ],
   },
 ];
 
-export const QUIZ_NOW = ['claim', 'filing', 'work', 'debts', 'house'] as const;
+export const QUIZ_NOW = ['claim', 'filing', 'work', 'house'] as const;
 
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
   const acc: GoalProfile = { income: 0, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
