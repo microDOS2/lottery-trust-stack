@@ -126,7 +126,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
           className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
         >
           <Wand2 className="h-4 w-4" />
-          {answered < QUIZ.length ? `Answer ${QUIZ.length - answered} more` : 'Score my scenarios'}
+          {answered < QUIZ.length ? `Answer ${QUIZ.length - answered} more` : 'Show my starting point'}
         </button>
       </div>
 
