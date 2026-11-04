@@ -7,7 +7,7 @@ export function GuideView() {
   return (
     <div className="mx-auto max-w-4xl space-y-10">
       <SectionTitle
-        num="05"
+        num="04"
         title={<>The first year, <span className="sig-italic">step by step</span></>}
         blurb="From 'I won' to 'the stack pays me tax-free every month.' The sequence matters as much as the pieces."
       />
@@ -42,7 +42,7 @@ export function GlossaryView() {
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <SectionTitle
-        num="06"
+        num="07"
         title={<>Plain-English <span className="sig-italic">glossary</span></>}
         blurb="Every term on this site, translated. The longer why — the trade, the rates, what each plan gives up — is on Explanations."
       />
