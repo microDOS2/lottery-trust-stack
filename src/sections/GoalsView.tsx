@@ -38,7 +38,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
   const outcome = set?.plans[0];
   const span = stretches(age);
 
-  const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'venture' | 'state' | 'target', value: number | string) => {
+  const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'venture' | 'rental' | 'gift' | 'state' | 'target', value: number | string) => {
     setInputs((p) => ({ ...p, [key]: value }));
   };
 
@@ -106,9 +106,19 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
       </label>
 
       <label className="hairline-card block p-6">
-        <span className="mb-1.5 block text-[15px] font-medium">Dollars for a business, a rental, or a gift</span>
+        <span className="mb-1.5 block text-[15px] font-medium">Dollars for a business</span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
         <input type="number" min={0} step={1} value={inputs.venture || ''} onChange={(e) => setNum('venture', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-[15px] font-medium">Dollars for a rental</span>
+        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
+        <input type="number" min={0} step={1} value={inputs.rental || ''} onChange={(e) => setNum('rental', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-[15px] font-medium">Dollars for a gift</span>
+        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
+        <input type="number" min={0} step={1} value={inputs.gift || ''} onChange={(e) => setNum('gift', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
       <div className="space-y-4">
