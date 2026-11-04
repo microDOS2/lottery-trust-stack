@@ -1,5 +1,6 @@
-// Questions about the life, the worries, and the options. Now, soon, and later.
-// Each answer states the outcome of that choice. No plan names. No allocation splits.
+// Comprehensive questions for short, middle, and long term planning.
+// Age sets the stretches. Protection and estate are their own section.
+// Each answer states the outcome. No plan names. No allocation splits.
 import { computeStack, PPLI_QP_MIN, type Assumptions, type Inputs, type StackResult } from './calc';
 
 export interface GoalProfile {
@@ -11,7 +12,7 @@ export interface GoalProfile {
   simplicity: number;
 }
 
-export type TimeGroup = 'now' | 'soon' | 'later';
+export type TimeGroup = 'short' | 'middle' | 'long' | 'protect';
 
 export interface QuizQuestion {
   id: string;
@@ -23,7 +24,7 @@ export interface QuizQuestion {
 
 export const QUIZ: QuizQuestion[] = [
   {
-    id: 'claim', group: 'now',
+    id: 'claim', group: 'short',
     text: 'The amount you typed. Is that the lottery check before tax, or what is already left after tax?',
     why: 'The result cannot be calculated until this is known.',
     options: [
@@ -32,7 +33,7 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'filing', group: 'now',
+    id: 'filing', group: 'short',
     text: 'Who is on the tax return?',
     why: 'The tax estimate changes if another person is on it.',
     options: [
@@ -41,18 +42,39 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'worry', group: 'now',
-    text: 'What worries you about this money right now?',
-    why: 'The worry is part of the decision. The result has to answer it, not ignore it.',
+    id: 'worry', group: 'short',
+    text: 'What worries you about this money in the next few years?',
+    why: 'The worry is part of the decision. The result has to answer it.',
     options: [
       { label: 'That I will run out, or spend it faster than I mean to', note: 'The result checks whether the yearly amount you want can be paid without the money running out.', weights: { income: 1 } },
-      { label: 'That people will find out, ask, or target me', note: 'A trust can keep a name off a house, a car, or a court paper. It does not hide the money from the tax office.', weights: { protection: 1 } },
-      { label: 'The tax bill', note: 'The tax on the lottery check is calculated from the amount you typed and the state you live in. Moving later does not change that tax.', weights: {} },
+      { label: 'That people will find out, ask, or target me', note: 'Keeping your name off a house, a car, and accounts makes you harder to find. It does not stop a lawsuit. It does not hide money from the tax office.', weights: { protection: 1 } },
+      { label: 'The tax bill', note: 'The tax on the lottery check is set by the amount and the state you live in when you receive it. Moving later does not change that tax.', weights: {} },
+      { label: 'A health cost', note: 'The yearly amount has to cover care as well as the life. Type a yearly amount that includes it.', weights: {} },
       { label: 'Nothing in particular', note: 'No extra step is added by this answer.', weights: {} },
     ],
   },
   {
-    id: 'live', group: 'soon',
+    id: 'depend', group: 'short',
+    text: 'Does anyone depend on this money in the next few years?',
+    why: 'If someone else relies on it, the yearly amount has to cover them too. This does not assume who that is.',
+    options: [
+      { label: 'No', note: 'The yearly amount is only for you.', weights: {} },
+      { label: 'Yes', note: 'Include what they need in the yearly amount. The result uses that number.', weights: {} },
+      { label: 'I have not decided', note: 'You can change this later. Until you do, the result uses only the yearly amount you typed.', weights: {} },
+    ],
+  },
+  {
+    id: 'health', group: 'short',
+    text: 'Is there a health issue that changes what you need the money for in the next few years?',
+    why: 'Care costs change how much has to be available. You do not have to describe the issue.',
+    options: [
+      { label: 'No', note: 'No extra amount is added.', weights: {} },
+      { label: 'Yes', note: 'Put the care cost into the yearly amount. The result checks that number.', weights: {} },
+      { label: 'I would rather not say, but the money has to cover care', note: 'Same as yes. The yearly amount should include care. No detail is stored.', weights: {} },
+    ],
+  },
+  {
+    id: 'live', group: 'middle',
     text: 'Where do you want to live?',
     why: 'Where you live can change the tax on money you earn later. It does not change the tax on the lottery check.',
     options: [
@@ -61,20 +83,32 @@ export const QUIZ: QuizQuestion[] = [
       { label: 'Puerto Rico, and I would actually live there more than half the year', note: 'Later investment gains can be treated under the Puerto Rico rules. The lottery check is still taxed. A house you do not live in does not count.', weights: { mobility: 1 } },
       { label: 'A Puerto Rico address, but I would be traveling or on a boat most of the year', note: 'That does not qualify. Days on a boat or in other places do not count as days in Puerto Rico. The tax break does not apply. The lottery check is taxed the same either way.', weights: { mobility: 0.2 } },
       { label: 'Another country, and I would keep my US passport', note: 'You still pay US tax. The lottery money and later investment gains are not treated like wages from a job overseas. The state you leave can still tax you if you have not really moved your life.', weights: { mobility: 0.6 } },
+      { label: 'I do not want one home. I want to move around', note: 'No single place becomes your tax home. Puerto Rico treatment does not apply. US tax continues.', weights: { mobility: 0.4 } },
     ],
   },
   {
-    id: 'piece', group: 'soon',
-    text: 'Is there something you want to pay for from this money in the next stretch of time?',
-    why: 'A home, a boat, a business, or a rental is cash that is not invested. You type the dollars. Nothing moves until you do.',
+    id: 'time', group: 'middle',
+    text: 'How do you want to spend your time?',
+    why: 'The way you live is the thing the money has to pay for.',
     options: [
-      { label: 'No', note: 'Nothing extra is taken out.', weights: {} },
-      { label: 'A home', note: 'Type the dollars in the home box. That amount is not invested.', weights: {} },
-      { label: 'A business, a rental, or something else', note: 'Type the dollars in the box below. That amount is not invested.', weights: {} },
+      { label: 'Mostly in one place', note: 'The yearly amount is for a settled life.', weights: {} },
+      { label: 'Traveling for long stretches', note: 'The yearly amount should include travel. A mailing address somewhere does not change your tax by itself.', weights: {} },
+      { label: 'On a boat, or without one home, for most of the year', note: 'The yearly amount should include the boat and the travel. This does not create a Puerto Rico tax home.', weights: {} },
+      { label: 'I have not decided', note: 'You can change this. The result uses the yearly amount you typed.', weights: {} },
     ],
   },
   {
-    id: 'cbi', group: 'later',
+    id: 'market', group: 'middle',
+    text: 'If markets are bad for several years, what do you want to hold up?',
+    why: 'A bad stretch is when the worry of running out shows up.',
+    options: [
+      { label: 'The yearly amount I live on', note: 'The result favors keeping that amount available. It does not promise the markets will cooperate.', weights: { income: 1 } },
+      { label: 'I can accept a smaller year if the money is still there later', note: 'A smaller year is allowed. The money lasting is the priority.', weights: {} },
+      { label: 'I have not decided', note: 'The result still checks the yearly amount you typed.', weights: {} },
+    ],
+  },
+  {
+    id: 'cbi', group: 'middle',
     text: 'Do you want a passport from another country?',
     why: 'People want this for two different reasons. Only one of them is real.',
     options: [
@@ -84,7 +118,68 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'renounce', group: 'later',
+    id: 'give', group: 'middle',
+    text: 'Do you want to give some of the money away in the next 10 years?',
+    why: 'A gift is cash that is not invested. You type the amount. Nothing moves until you do.',
+    options: [
+      { label: 'No', note: 'Nothing is given.', weights: {} },
+      { label: 'Some. I will type the amount', note: 'Type it with the other dollar amounts. It comes out of what is invested.', weights: { legacy: 0.5 } },
+      { label: 'I have not decided', note: 'Nothing is given until you type an amount.', weights: {} },
+    ],
+  },
+  {
+    id: 'sue', group: 'protect',
+    text: 'Are you worried someone will sue you because of the lottery money?',
+    why: 'A lawsuit can still be filed. What changes is how hard it is to collect.',
+    options: [
+      { label: 'No', note: 'No protection step is added.', weights: { protection: 0 } },
+      { label: 'I want to know what can and cannot be done', note: 'Insurance protects you, the person. An irrevocable trust can protect assets moved into it before any claim, because you no longer own them. A revocable trust does not do that while you are alive. Neither hides money from the tax office.', weights: { protection: 0.6 } },
+      { label: 'Yes. I want the money harder for a lawsuit to reach', note: 'Insurance is what protects you. An irrevocable trust, funded before any claim, can make collection harder because you gave up ownership. A transfer after you know about a claim can be undone. Answering here does not create the trust.', weights: { protection: 1 } },
+    ],
+  },
+  {
+    id: 'stolen', group: 'protect',
+    text: 'Are you worried the money, a house, or other property could be stolen, or taken by someone who pressures you?',
+    why: 'Theft and pressure are not the same problem as a lawsuit.',
+    options: [
+      { label: 'No', note: 'No extra step is added.', weights: {} },
+      { label: 'Somewhat', note: 'Who can sign, who has access, and who knows are the practical controls. A trust does not stop someone you trust from pressuring you.', weights: { protection: 0.5 } },
+      { label: 'Yes', note: 'Limit who can sign and who knows. A trust can hold title so your name is not on the asset. It does not stop pressure from people close to you.', weights: { protection: 1 } },
+    ],
+  },
+  {
+    id: 'who', group: 'protect',
+    text: 'Who are you worried about?',
+    why: 'The answer changes what actually helps.',
+    options: [
+      { label: 'No one in particular', note: 'No named risk.', weights: {} },
+      { label: 'People I know', note: 'A trust does not stop pressure from people close to you. Who can sign and who knows matters more.', weights: { protection: 0.6 } },
+      { label: 'People I do not know', note: 'Keeping your name off public records and having insurance are the practical steps.', weights: { protection: 0.6 } },
+      { label: 'Both', note: 'Insurance and a name kept off records for strangers. Limits on access and signing for people you know.', weights: { protection: 1 } },
+    ],
+  },
+  {
+    id: 'hold', group: 'protect',
+    text: 'Do you want assets held so a lawsuit has a harder time reaching them?',
+    why: 'This is the irrevocable trust decision. It is not created by answering.',
+    options: [
+      { label: 'No', note: 'Assets stay in your name or in a revocable trust. A lawsuit can reach them while you are alive.', weights: {} },
+      { label: 'I want to see what that changes before I decide', note: 'An irrevocable trust means you cannot take it back and cannot change it on your own. Someone else is the trustee. You can still be allowed money under the rules. Because you no longer own the assets, a later lawsuit has a harder time taking them. It fails if you move the money after you know about a claim. A revocable trust does none of this while you are alive.', weights: { protection: 0.7 } },
+      { label: 'Yes', note: 'That means an irrevocable trust, funded before any claim, in a state that allows it. You give up control. Answering here does not set it up. It does not hide the money from the tax office. A foreign trust does not hide it either, and it can create extra reporting.', weights: { protection: 1 } },
+    ],
+  },
+  {
+    id: 'last', group: 'long',
+    text: 'How long does this money need to last?',
+    why: 'Your age sets what long term means. A fixed year 25 is not the finish line.',
+    options: [
+      { label: 'For the rest of my life', note: 'The result uses your age. It checks the short and middle stretches, not a fixed year 25.', weights: {} },
+      { label: 'Past my life, for someone else', note: 'What is left at the end of the middle stretch is what someone else could receive. Estate tax can apply above $15 million per person if it is still in your estate.', weights: { legacy: 1 } },
+      { label: 'I do not know yet', note: 'The result still shows the short and middle stretches for your age.', weights: {} },
+    ],
+  },
+  {
+    id: 'renounce', group: 'long',
     text: 'Do you want to give up US citizenship?',
     why: 'This is the step that ends US tax on money from anywhere. It has its own tax.',
     options: [
@@ -94,20 +189,44 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'gone', group: 'later',
-    text: 'If you were not here in 10 years, what do you want to be true about the money?',
-    why: 'You may not be alive in 10 years. A larger amount in 25 years is not the result that matters.',
+    id: 'gone', group: 'long',
+    text: 'If you died, what do you want to be true about the money?',
+    why: 'You may not live to the end of the long stretch. What is left, and who can reach it, is the question.',
     options: [
-      { label: 'I have not decided', note: 'The result still shows what would be left at 10 years. No further step is added.', weights: { legacy: 0.2 } },
+      { label: 'I have not decided', note: 'The result still shows what would be left. No further step is added.', weights: { legacy: 0.2 } },
       { label: 'Someone else should receive what is left', note: 'A trust can be written for that. Answering here does not write it. Amounts above $15 million per person can face estate tax if the money is still in your estate.', weights: { legacy: 1 } },
-      { label: 'I want it harder for a lawsuit, or for people asking, to reach what is left', note: 'A trust in the United States can slow a lawsuit and keep a name off a deed. It does not hide the money from the tax office. A foreign trust does not either.', weights: { protection: 1 } },
+      { label: 'I want the estate harder for a lawsuit or a claim to reach', note: 'An irrevocable trust funded during life can do this. A revocable trust does not protect assets from your own creditors while you are alive. Neither hides money from the tax office.', weights: { protection: 1 } },
+      { label: 'I want as much as possible already used on the life I chose', note: 'The priority is the life, not a pile left over. The result checks the yearly amount.', weights: { income: 1 } },
+    ],
+  },
+  {
+    id: 'aging', group: 'long',
+    text: 'Are you worried about the cost of aging, care, or a long illness?',
+    why: 'Care late in life can use the money the life was supposed to run on.',
+    options: [
+      { label: 'No', note: 'No extra reserve is added.', weights: {} },
+      { label: 'Yes', note: 'The yearly amount in later years should include care. The result uses the number you typed.', weights: {} },
+      { label: 'I have not thought about it', note: 'Nothing is added until you do.', weights: {} },
+    ],
+  },
+  {
+    id: 'never', group: 'long',
+    text: 'What will you not do, even if it would lower a future tax?',
+    why: 'A tax saving you will not actually do is not a plan.',
+    options: [
+      { label: 'I will not move', note: 'State tax on later income stays where you are. The lottery check is taxed there either way.', weights: { mobility: 0 } },
+      { label: 'I will not live in Puerto Rico', note: 'The Puerto Rico tax treatment is off the table.', weights: {} },
+      { label: 'I will not live in another country', note: 'Living abroad is off the table. US tax is unchanged by this.', weights: {} },
+      { label: 'I will not give up US citizenship', note: 'US tax on worldwide income continues.', weights: {} },
+      { label: 'None of these are off the table', note: 'All of the options above stay open.', weights: { mobility: 0.5 } },
     ],
   },
 ];
 
-export const QUIZ_NOW = ['claim', 'filing', 'worry'] as const;
-export const QUIZ_SOON = ['live', 'piece'] as const;
-export const QUIZ_LATER = ['cbi', 'renounce', 'gone'] as const;
+export const QUIZ_SHORT = ['claim', 'filing', 'worry', 'depend', 'health'] as const;
+export const QUIZ_MIDDLE = ['live', 'time', 'market', 'cbi', 'give'] as const;
+export const QUIZ_PROTECT = ['sue', 'stolen', 'who', 'hold'] as const;
+export const QUIZ_LONG = ['last', 'renounce', 'gone', 'aging', 'never'] as const;
 
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
   const acc: GoalProfile = { income: 1, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
@@ -163,7 +282,7 @@ export function scoreScenario(
   const dry = result.depletedYear !== null && result.depletedYear <= 10 ? 0 : 1;
   const dims: Array<{ label: string; score: number; weight: number }> = [
     { label: 'Pays for the life', score: sustainFit, weight: 1 },
-    { label: 'Still there if you die in 10 years', score: dry, weight: 0.6 },
+    { label: 'Still there through the middle stretch', score: dry, weight: 0.6 },
     { label: 'Matches where you said you would live', score: inputs.residency === 'stay' && profile.mobility < 0.3 ? 1 : 0.8, weight: 0.3 },
   ];
   const wSum = dims.reduce((s, d) => s + d.weight, 0) || 1;
