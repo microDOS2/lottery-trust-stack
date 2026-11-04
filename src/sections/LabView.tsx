@@ -39,7 +39,7 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <SectionTitle
-        num="02"
+        num="07"
         title={<>Spend more now, <span className="sig-italic">or grow more for later?</span></>}
         blurb="Every tax-free dollar you take out is a dollar that stops growing. There is no right answer — only the answer that fits your life. Slide and watch the trade."
       />
