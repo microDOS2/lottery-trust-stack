@@ -1,6 +1,6 @@
 import { computeStack, fmtCompact, type Assumptions, type Inputs, type StackResult } from './calc';
 import { stateByCode } from './taxdata';
-import { QUIZ, profileFromAnswers, scoreScenario, type GoalProfile } from './quiz';
+import { QUIZ, profileFromAnswers, scoreScenario } from './quiz';
 
 export interface PlanOption {
   id: string;
