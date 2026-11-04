@@ -45,15 +45,6 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'house', text: 'What about a home?',
-    why: 'We ask because a house is cash that does not stay invested.',
-    options: [
-      { label: 'I have the home I want', weights: { simplicity: 0.2 } },
-      { label: 'I rent, or I will sell', weights: {} },
-      { label: 'I want to buy a home with some of this', weights: { protection: 0.3, simplicity: 0.2 } },
-    ],
-  },
-  {
     id: 'horizon', text: 'When do you need the money to pay you?',
     why: 'We ask because money that has to pay you soon cannot also be the money left to grow for 25 years.',
     options: [
@@ -91,7 +82,7 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'privacy', text: 'How much does it matter that your name stays off public records?',
-    why: 'We ask because a trust can keep a name off a deed. It does not hide money from the tax office.',
+    why: 'We ask because a trust can keep a name off a deed. It does not hide money from the tax office. This answer does not add a trust by itself.',
     options: [
       { label: 'Not much', weights: { protection: 0.2, simplicity: 0.6 } },
       { label: 'Somewhat', weights: { protection: 0.6 } },
@@ -100,7 +91,7 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'lawsuit', text: 'Are you worried someone will sue you for the money?',
-    why: 'We ask because some plans put the investments inside a trust. That is a legal structure, not a promise that a lawsuit cannot reach the money.',
+    why: 'We ask because you may want the investments inside a trust. Answering here does not, by itself, put them there.',
     options: [
       { label: 'No', weights: { protection: 0.2 } },
       { label: 'A little', weights: { protection: 0.6 } },
@@ -118,20 +109,11 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'charity', text: 'Do you want to give money to charity in the year you claim the prize?',
-    why: 'We ask because a gift is a decision you make with your tax preparer. The numbers on each answer show whether that gift changes these plans.',
+    why: 'We ask so you do not forget to tell your tax preparer. A gift is not subtracted unless the numbers under the answers change.',
     options: [
       { label: 'No', weights: { legacy: 0 } },
       { label: 'Some', weights: { legacy: 0.4 } },
       { label: 'Yes. It is a main goal', weights: { legacy: 1 } },
-    ],
-  },
-  {
-    id: 'business', text: 'Do you want to start or buy a business with some of this?',
-    why: 'We ask because money put into a business is money that is not paying you from the investments.',
-    options: [
-      { label: 'No', weights: { simplicity: 0.3 } },
-      { label: 'Yes, a slice. Not the whole plan', weights: { growth: 0.4, legacy: 0.2 } },
-      { label: 'Yes. That is a main goal', weights: { growth: 0.7, legacy: 0.4, simplicity: 0 } },
     ],
   },
   {
@@ -145,7 +127,7 @@ export const QUIZ: QuizQuestion[] = [
   },
 ];
 
-export const QUIZ_NOW = ['claim', 'filing', 'work', 'house'] as const;
+export const QUIZ_NOW = ['claim', 'filing', 'work'] as const;
 
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
   const acc: GoalProfile = { income: 0, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };

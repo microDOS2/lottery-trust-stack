@@ -146,7 +146,7 @@ function drafts(): Draft[] {
       id: 'pr',
       name: () => 'Live in Puerto Rico',
       when: (a) => (a.pr ?? 0) >= 1,
-      patch: (_a, _i, profile) => ({ residency: 'pr' as const, dial: Math.min(dialFrom(profile), 35), mode: 'balanced' as const }),
+      patch: (_a, _i, profile) => ({ residency: 'pr' as const, dial: dialFrom(profile), mode: 'balanced' as const }),
       reasons: (a) => {
         const lines = [
           `You said "${chose(a, 'pr')}". This plan drops state tax on investment gains only if you actually live in Puerto Rico more than half the year.`,
@@ -179,7 +179,8 @@ function explainPlan(
     `Of the money that is invested, ${pct(w.a, 0)} is in bonds, ${pct(w.b, 0)} is in the insurance policy, and ${pct(w.c, 0)} is in stocks.`,
   ];
   if (p.result.debtPaid > 0) lines.push(`${fmtCompact(p.result.debtPaid)} of debt is paid from the cash after tax, before anything is invested.`);
-  if (p.inputs.entity4 > 0) lines.push(`${fmtCompact(p.inputs.entity4)} is set aside for a home and is not invested.`);
+  if (p.result.housePaid > 0) lines.push(`${fmtCompact(p.result.housePaid)} of the dollars you typed for a home is not invested.`);
+  if (p.result.venturePaid > 0) lines.push(`${fmtCompact(p.result.venturePaid)} of the dollars you typed for a business is not invested.`);
   if (p.inputs.residency === 'move') lines.push(`Future investment income is taxed as ${stateByCode(p.inputs.target).name}. The prize is taxed as ${stateByCode(p.inputs.state).name}.`);
   if (p.inputs.residency === 'pr') lines.push(`Later investment gains are taxed as Puerto Rico. The prize is taxed as ${stateByCode(p.inputs.state).name}.`);
   const sleeve = p.inputs.sleeve ? SLEEVE_MATH[p.inputs.sleeve] : undefined;
@@ -287,6 +288,7 @@ function planKey(set: PlanSet): string {
     p.inputs.residency,
     p.inputs.sleeve ?? '',
     Math.round(p.inputs.entity4),
+    Math.round(p.inputs.venture || 0),
     Math.round(p.result.debtPaid),
   ].join(':')).join('|');
 }

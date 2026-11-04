@@ -15,14 +15,14 @@ import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollTex
 type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 function schemaAllowsSaved(): boolean {
   try {
     const raw = localStorage.getItem('lotteryStack.schema');
     if (raw === null) return true;
     const n = Number(raw);
-    return n === 2 || n === 3 || n === 4 || n === SCHEMA_VERSION;
+    return n === 2 || n === 3 || n === 4 || n === 5 || n === SCHEMA_VERSION;
   } catch {
     return false;
   }
@@ -64,6 +64,7 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
   if (inputs.sleeve === undefined) inputs.sleeve = null;
   if (typeof inputs.sleevePct !== 'number') inputs.sleevePct = DEFAULT_INPUTS.sleevePct;
   if (typeof inputs.debt !== 'number') inputs.debt = 0;
+  if (typeof inputs.venture !== 'number') inputs.venture = 0;
   return inputs;
 }
 
@@ -101,6 +102,11 @@ function loadInputs(): Inputs {
       const inputs = normalizeInputs(parsed, migrate);
       const schemaN = Number(localStorage.getItem('lotteryStack.schema') ?? 0);
       if (schemaN < 4 && inputs.amount === 18_000_000) inputs.amount = 0;
+      if (schemaN < 6) {
+        if (inputs.spend === 400_000) inputs.spend = 0;
+        if (inputs.setupCost === 75_000) inputs.setupCost = 0;
+        if (inputs.annualAdmin === 25_000) inputs.annualAdmin = 0;
+      }
       return inputs;
     }
   } catch { /* ignore */ }

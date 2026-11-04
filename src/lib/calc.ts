@@ -25,7 +25,8 @@ export interface Inputs {
   amount: number;
   spend: number;
   debt: number;         // paid from the after-tax cash before anything is invested
-  entity4: number;
+  entity4: number;      // dollars you typed for a home; nothing is set aside if this is 0
+  venture: number;      // dollars you typed for a business; nothing is taken if this is 0
   setupCost: number;    // one-time legal/professional setup of the stack (year 1)
   annualAdmin: number;  // ongoing trustee, carrier, CPA, registered-agent fees
   mode: Mode;
@@ -81,11 +82,12 @@ export const DEFAULT_INPUTS: Inputs = {
   target: 'WY',
   basis: 'gross',
   amount: 0,
-  spend: 400_000,
+  spend: 0,
   debt: 0,
   entity4: 0,
-  setupCost: 75_000,
-  annualAdmin: 25_000,
+  venture: 0,
+  setupCost: 0,
+  annualAdmin: 0,
   mode: 'balanced',
   residency: 'stay',
   filing: 'single',
@@ -186,6 +188,8 @@ export interface StackResult {
   withheld: number;
   net: number;
   debtPaid: number;
+  housePaid: number;
+  venturePaid: number;
   yr1Reserve: number;
   core: number;
   weights: Weights;
@@ -237,7 +241,12 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 
   const yr1Reserve = inp.spend + inp.setupCost;
   const debtPaid = Math.min(Math.max(0, net), Math.max(0, inp.debt || 0));
-  const core = Math.max(0, net - debtPaid - yr1Reserve - inp.entity4);
+  let left = Math.max(0, net - debtPaid - yr1Reserve);
+  const housePaid = Math.min(left, Math.max(0, inp.entity4 || 0));
+  left -= housePaid;
+  const venturePaid = Math.min(left, Math.max(0, inp.venture || 0));
+  left -= venturePaid;
+  const core = left;
   const qpOk = core >= PPLI_QP_MIN;
   const w = resolveWeights(inp, core);
 
@@ -384,7 +393,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 
   return {
     prMode, prRate, preMoveGainsTax,
-    gross, fedTax: fed, stateTax: stx, withheld, net, debtPaid, yr1Reserve, core,
+    gross, fedTax: fed, stateTax: stx, withheld, net, debtPaid, housePaid, venturePaid, yr1Reserve, core,
     weights: w, muni, ppli, equity, sleeveId: inp.sleeve ?? null, sleeveAmount,
     capacity, plannedDrawY2, reinvestY2, blendedDraw,
     futureStateRate: fsr, sustainable, requiredCore, qpOk,
