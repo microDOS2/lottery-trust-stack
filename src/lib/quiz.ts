@@ -155,6 +155,7 @@ export const QUIZ: QuizQuestion[] = [
       { label: 'A stranger', note: 'Keeping your name off property and accounts makes you harder to find.', weights: { protection: 0.5 } },
       { label: 'A family member or friend', note: 'They may already know. A trust does not stop them from asking. It can make the assets harder to take if it is irrevocable and funded before any claim.', weights: { protection: 0.5 } },
       { label: 'A business partner or creditor', note: 'A trust funded after a claim, or to dodge a creditor, can be undone. Insurance protects you, the person.', weights: { protection: 1 } },
+      { label: 'All of the above', note: 'Insurance protects you. Keeping your name off property and accounts makes you harder to find. An irrevocable trust funded before any claim can make assets harder to reach.', weights: { protection: 1 } },
     ],
   },
   {
