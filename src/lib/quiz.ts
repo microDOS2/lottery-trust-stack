@@ -78,9 +78,9 @@ export const QUIZ: QuizQuestion[] = [
     why: 'State tax on money you earn later depends on where you actually live. The lottery check is taxed in the state you live in when you receive it. Moving later does not change that tax. Puerto Rico can change the tax on later investment gains if you are present there more than half the year. A mailing address does not count.',
     options: [
       { label: 'Where I am now', note: 'State tax on later income stays where you are. The lottery check is taxed there either way.', weights: { mobility: 0 } },
-      { label: 'A different US state', note: 'A state with no income tax changes the tax on later income. The lottery check is still taxed where you live now.', weights: { mobility: 0.5 } },
-      { label: 'Puerto Rico, and present there more than half the year', note: 'Later investment gains can use the Puerto Rico path. The lottery check is still taxed where you live now. You have to actually be there.', weights: { mobility: 1 } },
-      { label: 'Another country', note: 'Living abroad does not end US tax. US tax continues until you give up US citizenship. The lottery check is still taxed where you live now.', weights: { mobility: 0.7 } },
+      { label: 'A different US state', note: 'A state with no income tax changes the tax on later income.', weights: { mobility: 0.5 } },
+      { label: 'Puerto Rico, and present there more than half the year', note: 'Later investment gains can use the Puerto Rico path. You have to actually be there.', weights: { mobility: 1 } },
+      { label: 'Another country', note: 'Living abroad does not end US tax. US tax continues until you give up US citizenship.', weights: { mobility: 0.7 } },
     ],
   },
   {
