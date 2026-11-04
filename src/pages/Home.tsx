@@ -242,7 +242,7 @@ export default function Home() {
             <span className="hidden font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground md:inline">2026 ed.</span>
           </button>
           </Tip>
-          <nav className="flex gap-1 overflow-x-auto" aria-label="Sections">
+          <nav className="flex gap-1 flex-wrap" aria-label="Sections">
             {NAV.map(({ id, label, icon: Icon }) => (
               <Tip key={id} text={NAV_TIP[id]}>
               <button
