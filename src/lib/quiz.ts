@@ -203,12 +203,12 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'aging', group: 'long',
-    text: 'Is there a cost of aging, care, or a long illness that has to come out of the money later?',
-    why: 'Care late in life can use the money the life was supposed to run on. If it is not in the yearly amount for the later years, the result will show the money lasting longer than it actually will. You do not have to name the issue. If yes, the yearly amount in later years should include the care.',
+    text: 'Do you want money set aside for care later, even if you never need it?',
+    why: 'You cannot know if you will need care. Setting money aside means the yearly amount in later years is larger, so less is left to grow. Not setting it aside means the result assumes the yearly amount stays the same. You can change this later.',
     options: [
-      { label: 'No', note: 'No extra reserve is added.', weights: {} },
-      { label: 'Yes', note: 'The yearly amount in later years should include care. The result uses the number you typed.', weights: {} },
-      { label: 'I have not thought about it', note: 'Nothing is added until you do.', weights: {} },
+      { label: 'No. Do not set any aside', note: 'The yearly amount stays what you typed.', weights: {} },
+      { label: 'Yes. Set some aside for care', note: 'Include the care in the yearly amount for later years. The result uses that number.', weights: {} },
+      { label: 'I have not decided', note: 'Nothing is set aside until you do.', weights: {} },
     ],
   },
   {
