@@ -38,7 +38,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
   const outcome = set?.plans[0];
   const span = stretches(age);
 
-  const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'venture' | 'rental' | 'gift' | 'state' | 'target', value: number | string) => {
+  const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'venture' | 'rental' | 'gift' | 'setupCost' | 'annualAdmin' | 'state' | 'target', value: number | string) => {
     setInputs((p) => ({ ...p, [key]: value }));
   };
 
@@ -51,8 +51,8 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
       />
       <button
         type="button"
-        onClick={() => { setAnswers({}); setAge(0); setInputs(() => ({ ...inputs, amount: 0, spend: 0, debt: 0, entity4: 0, venture: 0, rental: 0, gift: 0 })); }}
-        className="rounded-md border border-input bg-card px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+        onClick={() => { setAnswers({}); setAge(0); setInputs(() => ({ ...inputs, amount: 0, spend: 0, debt: 0, entity4: 0, venture: 0, rental: 0, gift: 0, setupCost: 0, annualAdmin: 0 })); }}
+        className="mb-4 rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 cursor-pointer"
       >
         Clear and start over
       </button>
@@ -126,6 +126,16 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
         <span className="mb-1.5 block text-[15px] font-medium">Dollars for a gift</span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
         <input type="number" min={0} step={1} value={inputs.gift || ''} onChange={(e) => setNum('gift', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-[15px] font-medium">One-time setup cost</span>
+        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Legal, trustee, and professional fees to set up the trusts. Nothing is taken until you type it.</p>
+        <input type="number" min={0} step={1} value={inputs.setupCost || ''} onChange={(e) => setNum('setupCost', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+      </label>
+      <label className="block">
+        <span className="mb-1.5 block text-[15px] font-medium">Yearly fees to keep it running</span>
+        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Trustee, CPA, and carrier fees each year. Nothing is taken until you type it.</p>
+        <input type="number" min={0} step={1} value={inputs.annualAdmin || ''} onChange={(e) => setNum('annualAdmin', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
       <div className="space-y-4">
