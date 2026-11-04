@@ -23,11 +23,6 @@ function chose(answers: Record<string, number>, id: string): string {
   return q.options[i]?.label ?? '';
 }
 
-function dialFrom(profile: GoalProfile): number {
-  const total = profile.income + profile.growth || 1;
-  return Math.max(0, Math.min(100, Math.round((profile.income / total) * 100)));
-}
-
 interface Draft {
   id: string;
   name: (inputs: Inputs) => string;
@@ -39,171 +34,117 @@ interface Draft {
 function drafts(): Draft[] {
   return [
     {
-      id: 'stay-spend',
-      name: () => 'Stay and spend more now',
+      id: 'cover',
+      name: () => 'Pays for the life you described',
       when: () => true,
-      patch: () => ({ residency: 'stay', dial: 80, mode: 'balanced' }),
-      reasons: (a) => {
+      patch: () => ({ residency: 'stay', dial: 70, mode: 'balanced' }),
+      reasons: (a, inputs, result) => {
         const lines = [
-          a.work === 0
-            ? `You said "${chose(a, 'work')}", so this plan points the mix at cash you can spend each year.`
-            : a.horizon === 0
-              ? `You said "${chose(a, 'horizon')}", so this plan takes more now and leaves less to compound.`
-              : 'This is the most cash per year among the plans that keep you where you live.',
+          result.capacity >= inputs.spend
+            ? `This can pay the ${fmtCompact(inputs.spend)} a year you want. The money does not have to run out for that life.`
+            : `This can pay ${fmtCompact(result.capacity)} a year. That is short of the ${fmtCompact(inputs.spend)} you want. The life as described is not fully paid for.`,
         ];
-        if (a.move === 0) lines.push('You said you are not moving, so this plan does not depend on a new state.');
-        if (a.pr === 0) lines.push('You said no to Puerto Rico, so this plan does not use it.');
+        if (a.move === 0) lines.push('You said you are not moving. This does not depend on a new state.');
+        if (a.pr === 0) lines.push('You said no to Puerto Rico. This does not use it.');
         return lines;
       },
     },
     {
-      id: 'stay-mid',
-      name: () => 'Stay, with a middle mix',
-      when: () => true,
-      patch: (_a, _i, profile) => ({
-        residency: 'stay',
-        dial: Math.min(70, Math.max(30, dialFrom(profile))),
-        mode: 'balanced',
-      }),
-      reasons: (a) => [
-        a.horizon === 1 || a.work === 1
-          ? `You said "${a.horizon === 1 ? chose(a, 'horizon') : chose(a, 'work')}", so this plan does not swing all the way to spending or all the way to growth.`
-          : 'This is the middle if your answers did not pick a hard direction.',
-        'Some cash each year, and the rest stays invested. Pick it when you do not want to be wrong in either direction.',
-      ],
-    },
-    {
-      id: 'stay-grow',
-      name: () => 'Stay and let it grow',
-      when: () => true,
-      patch: () => ({ residency: 'stay', dial: 20, mode: 'balanced' }),
-      reasons: (a) => {
-        const lines = [
-          a.work === 2
-            ? `You said "${chose(a, 'work')}", so this plan takes less now and leaves more invested.`
-            : a.horizon === 2
-              ? `You said "${chose(a, 'horizon')}", so this plan favors the pile at year 25 over this year's cash.`
-              : 'This is the high end of what you would have in 25 years if you stay put and spend less now.',
-        ];
-        if (a.legacy === 2) lines.push(`You said "${chose(a, 'legacy')}". Leaving more invested is how this plan serves that.`);
-        return lines;
-      },
-    },
-    {
-      id: 'bonds',
-      name: () => 'Mostly bonds, so the cash is steadier',
+      id: 'steady',
+      name: () => 'Steadier cash, so the worry stays smaller',
       when: () => true,
       patch: () => ({ residency: 'stay', dial: 100, mode: 'balanced' }),
-      reasons: (a) => [
-        a.risk === 0
-          ? `You said "${chose(a, 'risk')}", so this plan puts as much as it can into the bond ladder. Bonds pay 4% in this model. A stock drop is not simulated.`
-          : 'This is the steadiest paycheck of the five. More bonds, fewer stocks, and less left at year 25. A stock drop is not simulated.',
-        a.privacy === 2 || a.lawsuit === 2
-          ? 'You also said privacy or a lawsuit matters. The bond ladder sits in the trust either way. This plan does not add a house or a company on top of that.'
-          : 'The trade is a calmer year and a smaller pile at year 25.',
+      reasons: () => [
+        'More of the money is in bonds, which pay interest and do not jump with the stock market. The yearly amount is steadier. A stock drop is not simulated.',
+        'A larger amount left in 25 years is not the point. The point is the life, paid for, without the worry of running out.',
       ],
     },
     {
       id: 'simple',
-      name: () => 'Skip the insurance policy',
+      name: () => 'No insurance policy',
       when: () => true,
       patch: () => ({
         residency: 'stay',
-        dial: 40,
+        dial: 50,
         mode: 'manual' as const,
         manual: { a: 0.5, b: 0, c: 0.5 },
       }),
-      reasons: (a, _i, result) => {
-        const lines = [
-          a.complexity === 0
-            ? `You said "${chose(a, 'complexity')}", so this plan uses bonds and stocks only and skips the insurance policy.`
-            : 'This is here so you can see the cost of skipping the insurance policy: less paperwork, and less tax-free cash.',
-        ];
-        if (!result.qpOk) lines.push('The insurance policy wants about $5 million left to invest. This prize is under that, so dropping it is the honest plan, not a compromise.');
-        else lines.push('You give up the policy’s tax-free borrowing. You also give up the setup, the carrier, and the $5 million minimum.');
+      reasons: (_a, _i, result) => {
+        const lines = ['Bonds and stocks only. No insurance policy, so less paperwork.'];
+        if (!result.qpOk) lines.push('The insurance policy is only used when about $5 million is left to invest. This amount is under that.');
+        else lines.push('You give up the policy. You also give up its setup and its minimum.');
         return lines;
       },
     },
     {
       id: 'move',
-      name: (inputs) => `Move to ${stateByCode(inputs.target).name}`,
+      name: (inputs) => `Live in ${stateByCode(inputs.target).name}`,
       when: (a) => (a.move ?? 0) >= 1,
-      patch: (_a, _i, profile) => ({ residency: 'move' as const, dial: dialFrom(profile), mode: 'balanced' as const }),
+      patch: () => ({ residency: 'move' as const, dial: 60, mode: 'balanced' as const }),
       reasons: (a, inputs) => {
         const here = stateByCode(inputs.state);
         const there = stateByCode(inputs.target);
-        const lines = [
-          `You said "${chose(a, 'move')}". Future investment income would be taxed in ${there.name}, not in ${here.name}.`,
-        ];
-        if (here.noTax) lines.push(`${here.name} already has no income tax, so moving does not cut a state tax on the investments. The prize tax does not change either.`);
-        else if (there.noTax) lines.push(`The tax on the prize itself does not change. You already live in ${here.name} when you claim it. Only income earned after a real move is affected.`);
-        else lines.push(`${there.name} still has an income tax, so this move is not a tax win.`);
-        if (a.move === 1) lines.push('You said maybe, not yes. This is a look at the trade, not a recommendation to pack.');
+        const lines = [`You said "${chose(a, 'move')}". Future investment income would be taxed in ${there.name}, not in ${here.name}.`];
+        if (here.noTax) lines.push(`${here.name} already has no income tax. Moving does not cut a state tax on the investments. The lottery check is taxed either way.`);
+        else if (there.noTax) lines.push(`The lottery check is taxed in ${here.name}. Only income after a real move is affected.`);
+        else lines.push(`${there.name} still has an income tax.`);
+        if (a.move === 1) lines.push('You said you might move. This is the difference, not a decision to go.');
         return lines;
       },
     },
     {
       id: 'pr',
       name: () => 'Live in Puerto Rico',
-      when: (a) => (a.pr ?? 0) >= 1,
-      patch: (_a, _i, profile) => ({ residency: 'pr' as const, dial: dialFrom(profile), mode: 'balanced' as const }),
-      reasons: (a) => {
-        const lines = [
-          `You said "${chose(a, 'pr')}". This plan drops state tax on investment gains only if you actually live in Puerto Rico more than half the year.`,
-          'The prize you already won is not untaxed by moving. A mailing address does not count.',
-        ];
-        if (a.pr === 1) lines.push('You asked to learn, not to move. It is on the list so you can see the dollars, and it should not outrank a plan you can use while you stay.');
-        if (a.pr === 2) lines.push('You said you could live there. Read the Act 60 note and the December 31, 2026 filing deadline before you treat this as the plan.');
-        return lines;
-      },
+      when: (a) => a.pr === 1,
+      patch: () => ({ residency: 'pr' as const, dial: 60, mode: 'balanced' as const }),
+      reasons: () => [
+        'Later investment gains use the Puerto Rico path only if you are actually there more than half the year, with your life based there.',
+        'The lottery check is taxed either way. A house you do not live in, a mailing address, or a boat does not qualify.',
+      ],
     },
   ];
 }
 
-function sig(inp: Inputs): string {
-  return [inp.residency, inp.sleeve ?? '', inp.mode, Math.round(inp.dial / 20), inp.entity4 > 0 ? '1' : '0'].join('|');
+function year10(result: StackResult): number {
+  return result.projection[9]?.end ?? 0;
 }
 
-function moneyGap(n: number): string {
-  if (Math.abs(n) < 1) return 'the same amount';
-  return n > 0 ? `${fmtCompact(n)} more` : `${fmtCompact(-n)} less`;
-}
-
-function explainPlan(
-  p: { name: string; inputs: Inputs; result: StackResult },
-  best?: { name: string; result: StackResult },
-): string[] {
+function explainPlan(p: { name: string; inputs: Inputs; result: StackResult }): string[] {
   const w = p.result.weights;
+  const y10 = year10(p.result);
+  const covers = p.result.capacity >= p.inputs.spend;
   const lines = [
-    `This plan pays ${fmtCompact(p.result.capacity)} a year and is worth ${fmtCompact(p.result.stackEnd)} in 25 years.`,
-    `Of the money that is invested, ${pct(w.a, 0)} is in bonds, ${pct(w.b, 0)} is in the insurance policy, and ${pct(w.c, 0)} is in stocks.`,
+    covers
+      ? `This can pay ${fmtCompact(p.result.capacity)} a year. That covers the ${fmtCompact(p.inputs.spend)} you want for the life.`
+      : `This can pay ${fmtCompact(p.result.capacity)} a year. That is short of the ${fmtCompact(p.inputs.spend)} you want.`,
+    `If you died in 10 years, about ${fmtCompact(y10)} would still be there. A larger amount in 25 years is not a win. You may not be alive then.`,
+    `Of the money invested, ${pct(w.a, 0)} is in bonds, ${pct(w.b, 0)} is in the insurance policy, and ${pct(w.c, 0)} is in stocks.`,
   ];
-  if (p.result.debtPaid > 0) lines.push(`${fmtCompact(p.result.debtPaid)} of debt is paid from the cash after tax, before anything is invested.`);
-  if (p.result.housePaid > 0) lines.push(`${fmtCompact(p.result.housePaid)} of the dollars you typed for a home is not invested.`);
-  if (p.result.venturePaid > 0) lines.push(`${fmtCompact(p.result.venturePaid)} of the dollars you typed for a business is not invested.`);
-  if (p.inputs.residency === 'move') lines.push(`Future investment income is taxed as ${stateByCode(p.inputs.target).name}. The prize is taxed as ${stateByCode(p.inputs.state).name}.`);
-  if (p.inputs.residency === 'pr') lines.push(`Later investment gains are taxed as Puerto Rico. The prize is taxed as ${stateByCode(p.inputs.state).name}.`);
+  if (p.result.debtPaid > 0) lines.push(`${fmtCompact(p.result.debtPaid)} of debt is paid before anything is invested.`);
+  if (p.result.housePaid > 0) lines.push(`${fmtCompact(p.result.housePaid)} for a home is not invested.`);
+  if (p.result.venturePaid > 0) lines.push(`${fmtCompact(p.result.venturePaid)} for a business is not invested.`);
+  if (p.inputs.residency === 'move') lines.push(`Future investment income is taxed as ${stateByCode(p.inputs.target).name}. The lottery check is taxed as ${stateByCode(p.inputs.state).name}.`);
+  if (p.inputs.residency === 'pr') lines.push(`Later investment gains are taxed as Puerto Rico only if you actually live there. The lottery check is taxed as ${stateByCode(p.inputs.state).name}.`);
   const sleeve = p.inputs.sleeve ? SLEEVE_MATH[p.inputs.sleeve] : undefined;
   if (sleeve && p.result.sleeveAmount > 0) {
-    lines.push(`${fmtCompact(p.result.sleeveAmount)} is taken out of the stocks. In this plan that slice grows at ${pct(sleeve.growth)} a year and pays ${fmtCompact(p.result.sleeveAmount * sleeve.draw)} a year.`);
+    lines.push(`${fmtCompact(p.result.sleeveAmount)} is taken out of the stocks.`);
   }
-  if (p.inputs.mode === 'manual' && p.inputs.manual.b === 0) lines.push('This plan has no insurance policy.');
-  if (best) {
-    lines.push(`Against ${best.name}, this pays ${moneyGap(p.result.capacity - best.result.capacity)} a year and leaves ${moneyGap(p.result.stackEnd - best.result.stackEnd)} in 25 years.`);
+  if (p.inputs.mode === 'manual' && p.inputs.manual.b === 0) lines.push('This approach has no insurance policy.');
+  if (p.result.depletedYear && p.result.depletedYear <= 10) {
+    lines.push(`At this spending, the money runs out around year ${p.result.depletedYear}. That is inside 10 years.`);
   }
   return lines;
 }
 
 export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, asm: Assumptions): PlanSet {
   const profile = profileFromAnswers(answers);
-  const basis: Inputs['basis'] = answers.claim === 2 ? 'net' : 'gross';
+  const basis: Inputs['basis'] = answers.claim === 1 ? 'net' : 'gross';
   const filing: Inputs['filing'] = answers.filing === 1 ? 'mfj' : 'single';
-  const spend = inputs.spend;
   const base: Inputs = {
     ...inputs,
     basis,
     filing,
-    spend,
+    spend: inputs.spend,
     residency: 'stay',
     mode: 'balanced',
     flatDraw: false,
@@ -226,93 +167,46 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
     })
     .sort((a, b) => b.score - a.score);
 
-  const forced = new Set<string>();
-  if (answers.complexity === 0) forced.add('simple');
-  if ((answers.pr ?? 0) >= 1) forced.add('pr');
-  if ((answers.move ?? 0) >= 1) forced.add('move');
-
-  const chosen: typeof ranked = [];
-  for (const id of forced) {
-    const hit = ranked.find((p) => p.d.id === id);
-    if (hit) chosen.push(hit);
-  }
-  for (const p of ranked) {
-    if (chosen.length >= 5) break;
-    if (chosen.some((c) => c.d.id === p.d.id)) continue;
-    const key = sig(p.planInputs);
-    if (chosen.some((c) => sig(c.planInputs) === key)) continue;
-    chosen.push(p);
-  }
-  for (const p of ranked) {
-    if (chosen.length >= 5) break;
-    if (!chosen.some((c) => c.d.id === p.d.id)) chosen.push(p);
-  }
-  chosen.sort((a, b) => b.score - a.score);
-  const best = chosen[0];
-
   const here = stateByCode(inputs.state);
   const preface: string[] = [
-    answers.claim === 2
-      ? `The ${fmtCompact(inputs.amount)} you typed is treated as money already after tax, because you said "${chose(answers, 'claim')}".`
-      : `The ${fmtCompact(inputs.amount)} you typed is treated as the cash option before tax, because you said "${chose(answers, 'claim')}". Federal and ${here.name} tax come off first.`,
-    answers.filing === 1 ? 'The tax estimate uses married filing jointly.' : 'The tax estimate uses a single filer.',
+    'The score is which approach best pays for the life you described, without the money running out. A larger amount left in 25 years is not a win. You may not be alive in 10 years.',
+    answers.claim === 1
+      ? `The ${fmtCompact(inputs.amount)} you typed is treated as money already after tax.`
+      : `The ${fmtCompact(inputs.amount)} you typed is treated as the lottery check before tax. Federal and ${here.name} tax come off first.`,
+    answers.filing === 1 ? 'The tax estimate uses a return with another person on it.' : 'The tax estimate uses a return that is yours alone.',
   ];
-  const debtPaid = ranked[0]?.result.debtPaid ?? 0;
-  if (inputs.debt > 0) {
-    preface.push(
-      debtPaid < inputs.debt
-        ? `${fmtCompact(debtPaid)} of the ${fmtCompact(inputs.debt)} you entered for debt is subtracted. That is all the cash left after tax. It comes out before anything is invested.`
-        : `${fmtCompact(debtPaid)} of debt is subtracted after tax, before anything is invested.`,
-    );
+  if (answers.pr === 2) {
+    preface.push('You said you would use a Puerto Rico address but travel or live on a boat most of the year. That does not qualify. The tax treatment requires you to actually be there more than half the year.');
+  }
+  if (answers.cbi === 2) {
+    preface.push('You said you want a passport from another country to pay less US tax. A new passport does not do that. US tax continues until you give up US citizenship.');
+  }
+  if (answers.renounce && answers.renounce > 0) {
+    preface.push('Giving up US citizenship has its own tax. Type what the assets would sell for and what you paid, on the strategy page, before that tax can be calculated.');
   }
 
-  const plans: PlanOption[] = chosen.map((p) => {
-    const whys = explainPlan(
-      { name: p.d.name(inputs), inputs: p.planInputs, result: p.result },
-      best && best.d.id !== p.d.id ? { name: best.d.name(inputs), result: best.result } : undefined,
-    );
-    return { id: p.d.id, name: p.d.name(inputs), whys, inputs: p.planInputs, result: p.result, score: p.score };
-  });
+  const plans: PlanOption[] = ranked.slice(0, 4).map((p) => ({
+    id: p.d.id,
+    name: p.d.name(inputs),
+    whys: [...p.d.reasons(answers, p.planInputs, p.result), ...explainPlan({ name: p.d.name(inputs), inputs: p.planInputs, result: p.result })],
+    inputs: p.planInputs,
+    result: p.result,
+    score: p.score,
+  }));
 
   return { preface, plans };
 }
 
-function planKey(set: PlanSet): string {
-  return set.plans.map((p) => [
-    p.id,
-    Math.round(p.result.capacity),
-    Math.round(p.result.stackEnd),
-    Math.round(p.result.weights.a * 100),
-    Math.round(p.result.weights.b * 100),
-    Math.round(p.result.weights.c * 100),
-    p.inputs.residency,
-    p.inputs.sleeve ?? '',
-    Math.round(p.inputs.entity4),
-    Math.round(p.inputs.venture || 0),
-    Math.round(p.result.debtPaid),
-  ].join(':')).join('|');
-}
-
-/** What picking this answer does, read off the plans. Not a written claim. */
 export function outcomesForQuestion(
   id: string,
-  answers: Record<string, number>,
+  _answers: Record<string, number>,
   inputs: Inputs,
-  asm: Assumptions,
+  _asm: Assumptions,
 ): string[] {
   const q = QUIZ.find((item) => item.id === id);
   if (!q) return [];
-  if (inputs.amount <= 0) {
+  if (inputs.amount <= 0 && (id === 'move' || id === 'pr')) {
     return q.options.map(() => 'Enter a cash amount. Until then this choice has no numbers to show.');
   }
-  const sets = q.options.map((_, i) => buildBestPlans({ ...answers, [id]: i }, inputs, asm));
-  const keys = sets.map(planKey);
-  const allSame = keys.every((k) => k === keys[0]);
-  return sets.map((set) => {
-    const best = set.plans[0];
-    const w = best.result.weights;
-    const head = `Best match: ${best.name}. ${fmtCompact(best.result.capacity)} a year. ${fmtCompact(best.result.stackEnd)} in 25 years. ${pct(w.a, 0)} bonds, ${pct(w.b, 0)} insurance, ${pct(w.c, 0)} stocks.`;
-    if (allSame) return `The five plans do not change. ${head}`;
-    return `${head} The five plans are: ${set.plans.map((p) => p.name).join('; ')}.`;
-  });
+  return q.options.map((o) => o.note);
 }
