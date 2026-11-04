@@ -61,7 +61,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
           </label>
           <label className="block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">Lottery cash amount <Explainer text="The check you could take, or what is left if the tax is already paid. Not the advertised jackpot." more="trade" /></span>
-            <input type="number" min={0} step={100000} value={inputs.amount} onChange={(e) => setNum('amount', +e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+            <input type="number" min={0} step={100000} value={inputs.amount || ''} onChange={(e) => setNum('amount', +e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
           </label>
           <label className="block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">State you live in now <Explainer text="This state taxes the lottery check. Moving later does not change that." more="move" /></span>
@@ -77,7 +77,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
       <label className="hairline-card block p-6">
         <span className="mb-1.5 block text-[15px] font-medium">How much do you want available each year to live the way you want?</span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">This is the amount that buys freedom from the worry. Include anyone who depends on you, and any care cost. The result checks whether the money can pay it without running out.</p>
-        <input type="number" min={0} step={1} value={inputs.spend} onChange={(e) => setNum('spend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+        <input type="number" min={0} step={1} value={inputs.spend || ''} onChange={(e) => setNum('spend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
         <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
           {inputs.amount <= 0 ? 'Enter a cash amount first.' : `As things stand, the money can pay ${fmtCompact(preview.capacity)} a year.`}
         </span>
@@ -86,13 +86,13 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
       <label className="hairline-card block p-6">
         <span className="mb-1.5 block text-[15px] font-medium">Debts to clear before anything else</span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the dollars. Nothing is paid until you do.</p>
-        <input type="number" min={0} step={1} value={inputs.debt} onChange={(e) => setNum('debt', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+        <input type="number" min={0} step={1} value={inputs.debt || ''} onChange={(e) => setNum('debt', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
       <label className="hairline-card block p-6">
         <span className="mb-1.5 block text-[15px] font-medium">Dollars for a home, a boat, or anything else you want to pay for soon</span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is set aside until you do. That cash is not invested.</p>
-        <input type="number" min={0} step={1} value={inputs.entity4} onChange={(e) => setNum('entity4', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+        <input type="number" min={0} step={1} value={inputs.entity4 || ''} onChange={(e) => setNum('entity4', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
       <Group heading={`Middle term — ${span.middle}`} questions={QUIZ.filter((q) => MIDDLE.has(q.id))} answers={answers} setAnswers={setAnswers} />
@@ -108,7 +108,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
       <label className="hairline-card block p-6">
         <span className="mb-1.5 block text-[15px] font-medium">Dollars for a business, a rental, or a gift</span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
-        <input type="number" min={0} step={1} value={inputs.venture} onChange={(e) => setNum('venture', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+        <input type="number" min={0} step={1} value={inputs.venture || ''} onChange={(e) => setNum('venture', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
       <div className="space-y-4">
