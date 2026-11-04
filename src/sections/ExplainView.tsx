@@ -35,11 +35,12 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
         <SectionTitle
           num="08"
           title={<>Your numbers, <span className="sig-italic">explained</span></>}
-          blurb="This page explains the cash amount you typed. There is nothing to explain until you enter one."
+          blurb="This page explains the cash amount you typed, and the protection choices. There is nothing in dollars until you enter a cash amount."
         />
         <p className="mt-6 text-[15px] leading-relaxed text-muted-foreground">
-          Go to Goals & Fit and type the winning cash amount. This page will then use that amount, your state, and the dollars you typed for spending, debt, a home, and a business. It will not invent a person or a prize.
+          Go to Goals & Fit and type the winning cash amount. This page will then use that amount. The protection and trust section below does not need a cash amount.
         </p>
+        <Protection />
       </div>
     );
   }
@@ -49,22 +50,24 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <SectionTitle
         num="08"
         title={<>Your numbers, <span className="sig-italic">explained</span></>}
-        blurb="Every dollar on this page comes from what you typed. Nothing else is added."
+        blurb="Every dollar on this page comes from what you typed. The protection section is about lawsuits and trusts, not about a bigger pile."
       />
+
+      <Protection />
 
       <section id="trade" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">The choice your cash has to make</h2>
         <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
           <p>You typed {fmt(inputs.amount)}{inputs.basis === 'net' ? ', and you said the tax is already paid' : ', before tax'}. After tax, that is {fmt(yours.net)}. You live in {here.name}. You asked for {fmt(inputs.spend)} a year.</p>
           <p>The first year holds back {fmt(yours.yr1Reserve)}. That is the spending you typed plus setup cost, and it is not invested. {fmt(yours.core)} is what gets invested. The check from the investments starts in year 2.</p>
-          <p>The same dollars can pay you more each year, or leave more in 25 years. A dollar you spend is a dollar that is no longer growing. You do not get the larger check and the larger pile. Below, your dollars are split two ways. Your debt, home, and business amounts are left as you typed them.</p>
+          <p>The same dollars can pay you more each year, or leave more later. A dollar you spend is a dollar that is no longer growing. You do not get the larger check and the larger pile. A larger amount left in 25 years is not a win. You may not be alive then. Below, your dollars are split two ways so you can see the trade. Your debt, home, and business amounts are left as you typed them.</p>
         </div>
         <div className="mt-4">
           <Row label="Steadier check" value={`${fmt(steady.capacity)} a year · ${fmt(steady.stackEnd)} in 25 years`} note={`${pct(steady.weights.a, 0)} bonds, ${pct(steady.weights.b, 0)} insurance, ${pct(steady.weights.c, 0)} stocks.`} />
           <Row label="Bigger pile later" value={`${fmt(growth.capacity)} a year · ${fmt(growth.stackEnd)} in 25 years`} note={`${pct(growth.weights.a, 0)} bonds, ${pct(growth.weights.b, 0)} insurance, ${pct(growth.weights.c, 0)} stocks.`} />
         </div>
         <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-          The steadier split pays {fmt(Math.abs(steady.capacity - growth.capacity))} {steady.capacity >= growth.capacity ? 'more' : 'less'} each year. The other is worth {fmt(Math.abs(growth.stackEnd - steady.stackEnd))} {growth.stackEnd >= steady.stackEnd ? 'more' : 'less'} in 25 years. If the check you asked for is larger than what the investments can pay, the pile is sold to make the check.
+          The steadier split pays {fmt(Math.abs(steady.capacity - growth.capacity))} {steady.capacity >= growth.capacity ? 'more' : 'less'} each year. The other is worth {fmt(Math.abs(growth.stackEnd - steady.stackEnd))} {growth.stackEnd >= steady.stackEnd ? 'more' : 'less'} in 25 years. If the check you asked for is larger than what the investments can pay, the pile is sold to make the check. Year 25 is shown only so the trade is visible. It is not the finish line.
         </p>
       </section>
 
@@ -137,7 +140,7 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <section id="puerto-rico" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">Puerto Rico</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          The same dollars, if you live in Puerto Rico more than half the year, are worth {fmt(inPr.stackEnd)} in 25 years. Staying in {here.name}, they are worth {fmt(stayed.stackEnd)}. The difference is {fmt(Math.abs(inPr.stackEnd - stayed.stackEnd))}. The prize stays taxed. A mailing address does not get this.
+          The same dollars, if you live in Puerto Rico more than half the year, are worth {fmt(inPr.stackEnd)} in 25 years. Staying in {here.name}, they are worth {fmt(stayed.stackEnd)}. The difference is {fmt(Math.abs(inPr.stackEnd - stayed.stackEnd))}. The prize stays taxed. A mailing address does not get this. Days on a boat or traveling do not count as days in Puerto Rico.
         </p>
       </section>
 
@@ -151,7 +154,7 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <section id="grow" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">More left in 25 years</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          The other split pays {fmt(growth.capacity)} a year and leaves {fmt(growth.stackEnd)}. The extra pile is only there if the money stays invested.
+          The other split pays {fmt(growth.capacity)} a year and leaves {fmt(growth.stackEnd)}. The extra pile is only there if the money stays invested. A larger pile is not a win if you are not alive to use it.
         </p>
       </section>
 
@@ -176,5 +179,22 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
         </p>
       </section>
     </div>
+  );
+}
+
+function Protection() {
+  return (
+    <section id="protection" className="hairline-card scroll-mt-24 p-6">
+      <h2 className="font-display text-2xl font-semibold">Protecting you and the estate</h2>
+      <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
+        <p>A trust does not stop you from being sued. You can still be sued. What reduces the damage is insurance and distance. Liability insurance and an umbrella policy pay claims up to their limits. That is what protects you, the person. Keeping your name off a house, a car, and a bank account does not stop the suit. It makes you harder to find and harder to collect from.</p>
+        <p>A revocable trust can be changed or cancelled by you. You still control it, so you still own what is in it. A lawsuit can reach it while you are alive. It is useful for who gets the money after you die, and for keeping a probate court out of it. It is not asset protection.</p>
+        <p>An irrevocable trust cannot be taken back, and you cannot change it on your own. Someone else is the trustee. You can still be allowed money from it, on the schedule or the conditions in the document. You no longer own what you put in. That is why a later lawsuit has a harder time taking those assets. It only works if the transfer happened before the claim, and not to dodge a creditor. A court can undo a transfer that was too late or made to hide assets.</p>
+        <p>A domestic asset protection trust is an irrevocable trust in a US state that allows you to be a beneficiary and still have some protection. Nevada, South Dakota, Delaware, and Alaska are the usual ones. Protection is not absolute. It fails if the transfer was too late or made to hide assets from a known creditor.</p>
+        <p>A foreign asset protection trust is the same idea, set up outside the United States. It can be harder for a US court to reach. It does not hide the money from the IRS. It can create extra reporting, and a court can jail you for refusing to bring the assets back.</p>
+        <p>A spendthrift provision limits a beneficiary’s creditors. It protects the beneficiary, not you, if you created the trust and still benefit from it. An irrevocable life insurance trust holds a policy so the payout is outside your estate. It is for estate tax, not for stopping a lawsuit against you.</p>
+        <p>Insurance protects you, the person. The irrevocable trust protects assets that were moved in time. A revocable trust protects neither from a lawsuit while you are alive. None of them hide money from the tax office. Answering a question does not create a trust. Theft and pressure from people close to you are not solved by a trust alone. That is who can sign, who has access, and who knows.</p>
+      </div>
+    </section>
   );
 }
