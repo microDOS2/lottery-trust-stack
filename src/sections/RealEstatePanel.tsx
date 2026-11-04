@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { fmt, fmtCompact, pct } from '../lib/calc';
+import { Explainer } from '../components/widgets';
 import { Slider } from '@/components/ui/slider';
 
 interface Props {
@@ -8,10 +9,10 @@ interface Props {
 }
 
 export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props) {
-  const [price, setPrice] = useState(Math.max(500_000, suggestedPrice || 500_000));
-  const [appreciation, setAppreciation] = useState(0.035);
-  const [rentYield, setRentYield] = useState(0.04);
-  const [costSeg, setCostSeg] = useState(true);
+  const [price, setPrice] = useState(0);
+  const [appreciation, setAppreciation] = useState(0);
+  const [rentYield, setRentYield] = useState(0);
+  const [costSeg, setCostSeg] = useState(false);
 
   const r = useMemo(() => {
     const building = price * 0.8;                       // land (~20%) never depreciates
@@ -40,7 +41,7 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
 
       <div className="mt-4 grid gap-x-8 gap-y-4 md:grid-cols-2">
         <div>
-          <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">Property price</span><span className="font-num text-muted-foreground">{fmtCompact(price)}</span></div>
+          <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium flex items-center gap-1">Property price <Explainer text="What you would pay for the property. Nothing is calculated until you type it." /></span><span className="font-num text-muted-foreground">{fmtCompact(price)}</span></div>
           <Slider value={[price]} min={250000} max={10000000} step={50000} onValueChange={([v]) => setPrice(v)} />
         </div>
         <div>
@@ -52,7 +53,7 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
           <Slider value={[rentYield * 100]} min={0} max={10} step={0.25} onValueChange={([v]) => setRentYield(v / 100)} />
         </div>
         <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
-          <span className="text-[14px]">Cost-segregation study</span>
+          <span className="text-[14px] flex items-center gap-1">Cost-segregation study <Explainer text="A study that splits the building into parts that depreciate faster. It pulls more of the deduction into year 1. It costs money to do. Off means the building depreciates evenly over 27.5 years." /></span>
           <button title={costSeg ? 'A cost-segregation study is on. It pulls more of the building’s depreciation into year 1. Click to turn it off.' : 'Straight-line depreciation. Click to turn on a cost-segregation study, which front-loads the deduction.'} onClick={() => setCostSeg(!costSeg)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${costSeg ? 'bg-primary text-primary-foreground' : 'bg-card border border-input text-muted-foreground hover:border-primary/50'}`}>
             {costSeg ? 'On' : 'Off'}
