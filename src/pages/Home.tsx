@@ -12,14 +12,14 @@ import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass } from 'lu
 type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function schemaAllowsSaved(): boolean {
   try {
     const raw = localStorage.getItem('lotteryStack.schema');
     if (raw === null) return true;
     const n = Number(raw);
-    return n === 2 || n === SCHEMA_VERSION;
+    return n === 2 || n === 3 || n === SCHEMA_VERSION;
   } catch {
     return false;
   }
@@ -64,12 +64,12 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
 }
 
 const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
-  { id: 'calc', label: 'Calculator', icon: Landmark },
-  { id: 'goals', label: 'Goals & Fit', icon: Compass },
-  { id: 'lab', label: 'Spend vs. Grow', icon: TrendingUp },
-  { id: 'library', label: 'Strategy Library', icon: Library },
   { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
+  { id: 'goals', label: 'Goals & Fit', icon: Compass },
+  { id: 'calc', label: 'Calculator', icon: Landmark },
   { id: 'guide', label: 'First-Year Guide', icon: Map },
+  { id: 'library', label: 'Strategy Library', icon: Library },
+  { id: 'lab', label: 'Spend vs. Grow', icon: TrendingUp },
   { id: 'glossary', label: 'Glossary', icon: BookOpen },
 ];
 
@@ -82,7 +82,9 @@ function loadInputs(): Inputs {
     if (saved) {
       const parsed = JSON.parse(saved);
       const migrate = localStorage.getItem('lotteryStack.schema') !== String(SCHEMA_VERSION);
-      return normalizeInputs(parsed, migrate);
+      const inputs = normalizeInputs(parsed, migrate);
+      if (localStorage.getItem('lotteryStack.schema') !== '4' && inputs.amount === 18_000_000) inputs.amount = 0;
+      return inputs;
     }
   } catch { /* ignore */ }
   return DEFAULT_INPUTS;
@@ -105,7 +107,7 @@ export interface EngineNotice {
 }
 
 export default function Home() {
-  const [view, setView] = useState<View>('calc');
+  const [view, setView] = useState<View>(() => (location.hash.startsWith('#s=') ? 'calc' : 'annuity'));
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
   const [scenarios, setScenarios] = useState<(ScenarioSlot | null)[]>(() => {
@@ -214,7 +216,7 @@ export default function Home() {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md no-print">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 md:px-6">
-          <button onClick={() => setView('calc')} className="flex items-baseline gap-2 cursor-pointer">
+          <button onClick={() => setView('annuity')} className="flex items-baseline gap-2 cursor-pointer">
             <span className="font-display text-xl font-bold tracking-tight">
               Lottery <span className="sig-italic">Trust Stack</span>
             </span>
@@ -272,7 +274,7 @@ export default function Home() {
         {view === 'library' && (
           <StrategyView sleeve={inputs.sleeve} onApplyEngine={applyEngine} onSetSleeve={setSleeve} />
         )}
-        {view === 'annuity' && <AnnuityView defaultState={inputs.state} filing={inputs.filing} />}
+        {view === 'annuity' && <AnnuityView defaultState={inputs.state} filing={inputs.filing} onNext={() => setView('goals')} />}
         {view === 'guide' && <GuideView />}
         {view === 'glossary' && <GlossaryView />}
       </main>

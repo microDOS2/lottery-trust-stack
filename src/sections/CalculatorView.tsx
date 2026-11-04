@@ -67,6 +67,7 @@ export default function CalculatorView(p: Props) {
   const [realDollars, setRealDollars] = useState(false);
   const [customizing, setCustomizing] = useState(false);
   const [layout, setLayoutRaw] = useState<Layout>(loadLayout);
+  const [more, setMore] = useState(false);
   const setLayout = (l: Layout) => {
     setLayoutRaw(l);
     try { localStorage.setItem('lotteryStack.layout', JSON.stringify(l)); } catch { /* ignore */ }
@@ -202,7 +203,7 @@ export default function CalculatorView(p: Props) {
       <div className="lg:hidden">{headline}</div>
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px]">
       {/* ---------- Controls ---------- */}
-      <div className="hairline-card h-fit p-5 lg:sticky lg:top-20 space-y-4 no-print">
+      <div className="hairline-card h-fit space-y-4 p-5 no-print lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-lg font-semibold">Your numbers</h3>
           <button onClick={p.resetAll} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer">
@@ -221,13 +222,7 @@ export default function CalculatorView(p: Props) {
           </p>
         )}
 
-        <Field label="State you might move to" help="Pick a 0% income-tax state (WY, NV, TX, FL…) if you plan to relocate.">
-          <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.target} onChange={(e) => set('target', e.target.value)}>
-            {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}{s.noTax ? ' — 0% tax' : ''}</option>)}
-          </select>
-        </Field>
-
-        <Field label="Prize amount ($)" help={inp.basis === 'gross' ? 'The advertised cash option, before taxes.' : 'Money actually in hand after taxes.'}>
+        <Field label="Prize amount ($)" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.amount} min={0} step={100000} onChange={(e) => set('amount', +e.target.value || 0)} />
         </Field>
 
@@ -235,13 +230,31 @@ export default function CalculatorView(p: Props) {
           {(['gross', 'net'] as const).map((b) => (
             <button key={b} onClick={() => set('basis', b)}
               className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors cursor-pointer ${inp.basis === b ? 'border-primary bg-accent text-accent-foreground font-medium' : 'border-input bg-card text-muted-foreground hover:border-primary/50'}`}>
-              {b === 'gross' ? 'Gross cash option' : 'Net after-tax'}
+              {b === 'gross' ? 'Before tax' : 'After tax'}
             </button>
           ))}
         </div>
 
-        <Field label="Target annual tax-free spending" help="What you want to spend each year after Year 1. Sizes the reserve and drives the sustainability check. Per-year control lives in the draw schedule below the charts.">
+        <Field label="How much you want to spend each year" help="What you want to spend each year after the first year. This sizes the reserve and checks whether the stack can pay it.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend} min={0} step={10000} onChange={(e) => set('spend', +e.target.value || 0)} />
+        </Field>
+
+        <p className="rounded-md bg-secondary px-3 py-2 text-[13.5px] leading-relaxed">
+          {inp.amount <= 0
+            ? 'Enter a prize amount. Everything on the right stays at zero until you do.'
+            : `You keep ${fmtCompact(r.net)} after tax. You could take about ${fmtCompact(r.capacity)} a year with no tax on that cash. In 25 years this setup would be about ${fmtCompact(r.stackEnd)}, versus ${fmtCompact(r.baselineEnd)} in a normal taxable account.`}
+        </p>
+
+        <button type="button" onClick={() => setMore((v) => !v)} className="text-left text-sm font-medium text-primary hover:underline cursor-pointer">
+          {more ? 'Hide extra inputs' : 'More inputs'}
+        </button>
+
+        {more && (
+        <>
+        <Field label="State you might move to" help="Pick a 0% income-tax state (WY, NV, TX, FL…) if you plan to relocate.">
+          <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.target} onChange={(e) => set('target', e.target.value)}>
+            {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}{s.noTax ? ' — 0% tax' : ''}</option>)}
+          </select>
         </Field>
 
         <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
@@ -349,6 +362,8 @@ export default function CalculatorView(p: Props) {
         <button onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 cursor-pointer">
           {copied ? <><Check className="h-4 w-4" /> Link copied</> : <><Link2 className="h-4 w-4" /> Copy shareable link</>}
         </button>
+        </>
+        )}
       </div>
 
       {/* ---------- Results ---------- */}
@@ -362,7 +377,7 @@ export default function CalculatorView(p: Props) {
           <Stat label="Tax-free cash capacity" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
         </div>
 
-        {!r.sustainable && (
+        {inp.amount > 0 && !r.sustainable && (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="text-sm">
@@ -371,7 +386,7 @@ export default function CalculatorView(p: Props) {
           </div>
         )}
 
-        {r.depletedYear && (
+        {inp.amount > 0 && r.depletedYear && (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="text-sm">

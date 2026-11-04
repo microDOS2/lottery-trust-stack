@@ -67,7 +67,7 @@ export const DEFAULT_INPUTS: Inputs = {
   state: 'CO',
   target: 'WY',
   basis: 'gross',
-  amount: 18_000_000,
+  amount: 0,
   spend: 400_000,
   entity4: 0,
   setupCost: 75_000,

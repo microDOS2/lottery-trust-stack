@@ -35,7 +35,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
 
   const answered = Object.keys(answers).length;
   const profile = useMemo(() => profileFromAnswers(answers), [answers]);
-  const rec = useMemo(() => recommend(profile), [profile]);
+  const rec = useMemo(() => recommend(profile, answers), [profile, answers]);
 
   const scored = useMemo(
     () => (done ? scoreAll(scenarios, profile, asm) : []),
@@ -56,7 +56,16 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
   const markedResults = withResults.map((s) => ({ ...s, best: !!best && best.letter === s.letter }));
 
   const apply = () => {
-    setInputs((p) => ({ ...p, dial: rec.dial, mode: 'balanced', residency: rec.residency }));
+    setInputs((p) => ({
+      ...p,
+      dial: rec.dial,
+      mode: 'balanced',
+      residency: rec.residency,
+      ...(rec.spend != null ? { spend: rec.spend } : {}),
+      ...(rec.filing != null ? { filing: rec.filing } : {}),
+      ...(rec.basis != null ? { basis: rec.basis } : {}),
+    }));
+    onApplyScenario();
   };
 
   const applyScenario = (s: SavedScenario) => {
@@ -72,7 +81,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
       <SectionTitle
         num="07"
         title={<>What kind of winner <span className="sig-italic">are you?</span></>}
-        blurb="Twelve questions, no wrong answers. Your replies build a goal profile, recommend a starting configuration, and score your saved scenarios 0–100 — the best fit gets the crown."
+        blurb="Twelve plain questions. Apply copies your spending, filing status, and whether you stay, move, or go to Puerto Rico into the calculator. It also sets how much cash you take versus how much you leave to grow."
       />
 
       {/* ---------- Questionnaire ---------- */}
@@ -144,8 +153,10 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
             <div className="hairline-card p-6">
               <h3 className="font-display text-xl font-semibold">Recommended starting point</h3>
               <div className="font-num mt-2 text-sm text-muted-foreground">
-                Dial <span className="font-semibold text-foreground">{rec.dial}</span> · Residency{' '}
-                <span className="font-semibold text-foreground">{rec.residency === 'pr' ? 'Puerto Rico (Act 60)' : rec.residency === 'move' ? 'Move to 0% state' : 'Stay put'}</span>
+                Spending <span className="font-semibold text-foreground">{rec.spend != null ? fmtCompact(rec.spend) : 'unchanged'}</span>
+                {' · '}Filing <span className="font-semibold text-foreground">{rec.filing === 'mfj' ? 'married filing jointly' : rec.filing === 'single' ? 'single' : 'unchanged'}</span>
+                {' · '}Home <span className="font-semibold text-foreground">{rec.residency === 'pr' ? 'Puerto Rico' : rec.residency === 'move' ? 'move to a no-tax state' : 'stay put'}</span>
+                {' · '}Dial <span className="font-semibold text-foreground">{rec.dial}</span>
               </div>
               <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[14px] text-muted-foreground">
                 {rec.notes.map((n, i) => <li key={i}>{n}</li>)}
@@ -162,7 +173,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, onApplySc
                 onClick={apply}
                 className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer"
               >
-                Apply to calculator
+                Apply and open calculator
               </button>
             </div>
           </div>

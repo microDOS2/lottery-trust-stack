@@ -6,9 +6,9 @@ import { AnnuityChart } from '../components/viz';
 import { SectionTitle, Stat, Field } from '../components/widgets';
 import { Slider } from '@/components/ui/slider';
 
-export default function AnnuityView({ defaultState, filing }: { defaultState: string; filing: Filing }) {
+export default function AnnuityView({ defaultState, filing, onNext }: { defaultState: string; filing: Filing; onNext?: () => void }) {
   const [a, setA] = useState({
-    advertised: 100_000_000,
+    advertised: 0,
     cashRatio: 0.47,
     years: 30,
     escalator: 0.05,
@@ -28,7 +28,7 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
       />
 
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <div className="hairline-card h-fit space-y-4 p-5 lg:sticky lg:top-20">
+        <div className="hairline-card h-fit space-y-4 p-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
           <Field label="Advertised jackpot">
             <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.advertised} min={0} step={1000000}
               onChange={(e) => setA({ ...a, advertised: +e.target.value || 0 })} />
@@ -78,6 +78,14 @@ export default function AnnuityView({ defaultState, filing }: { defaultState: st
               Each annuity check uses 2026 federal brackets. State tax is the top marginal rate on the payment above the federal standard deduction. In a graduated-bracket state that overstates tax on smaller checks.
             </p>
             <AnnuityChart yearly={r.yearly} />
+          {a.advertised <= 0 && (
+            <p className="mt-3 text-sm text-muted-foreground">Type the advertised jackpot. Both paths stay at zero until you do.</p>
+          )}
+          {onNext && (
+            <button type="button" onClick={onNext} className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground cursor-pointer">
+              Next: Goals & Fit
+            </button>
+          )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

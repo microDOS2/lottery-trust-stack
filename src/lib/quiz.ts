@@ -18,148 +18,163 @@ export interface QuizQuestion {
 
 export const QUIZ: QuizQuestion[] = [
   {
-    id: 'spend', text: 'How much yearly spending money do you want from the stack?',
+    id: 'claim', text: 'Where is the prize right now?',
     options: [
-      { label: 'Very little — I have other income', hint: 'Let it compound', weights: { income: 0.1, growth: 1 } },
-      { label: 'A comfortable salary', weights: { income: 0.5, growth: 0.7 } },
-      { label: 'A generous lifestyle', weights: { income: 0.85, growth: 0.4 } },
-      { label: 'As much as sustainably possible', weights: { income: 1, growth: 0.15 } },
+      { label: 'I have not claimed it yet', weights: {} },
+      { label: 'I will take the cash amount, and tax is not paid yet', weights: {} },
+      { label: 'The tax is already paid. This is what I have left', weights: {} },
     ],
   },
   {
-    id: 'horizon', text: 'When should the money work hardest?',
+    id: 'filing', text: 'Who files the tax return?',
     options: [
-      { label: 'Right now — income first', weights: { income: 1 } },
-      { label: 'Both, in balance', weights: { income: 0.6, growth: 0.6 } },
-      { label: 'In 20+ years — growth first', weights: { growth: 1 } },
+      { label: 'Just me', weights: {} },
+      { label: 'Married, filing together', weights: {} },
     ],
   },
   {
-    id: 'risk', text: 'Markets drop 30% next year. You…',
+    id: 'spend', text: 'How much of this money do you want to spend each year?',
     options: [
-      { label: 'Sell everything and hide', weights: { growth: 0.1, simplicity: 0.8, income: 0.6 } },
-      { label: 'Get nervous but hold on', weights: { growth: 0.5 } },
-      { label: 'Barely look at it', weights: { growth: 1 } },
+      { label: 'Under $150,000', hint: 'Sets spending to $100,000', weights: { income: 0.15, growth: 1 } },
+      { label: '$150,000 to $400,000', hint: 'Sets spending to $275,000', weights: { income: 0.5, growth: 0.6 } },
+      { label: '$400,000 to $800,000', hint: 'Sets spending to $600,000', weights: { income: 0.85, growth: 0.35 } },
+      { label: 'More than $800,000', hint: 'Sets spending to $1,000,000', weights: { income: 1, growth: 0.15 } },
     ],
   },
   {
-    id: 'move', text: 'Would you move to a 0% income-tax state (WY, TX, FL…)?',
+    id: 'horizon', text: 'When should this money work hardest?',
     options: [
-      { label: 'No — staying put', weights: { mobility: 0 } },
-      { label: 'Maybe, for the right savings', weights: { mobility: 0.5 } },
-      { label: 'Yes, happily', weights: { mobility: 1 } },
+      { label: 'This year — I need income', weights: { income: 1 } },
+      { label: 'Both income and growth', weights: { income: 0.5, growth: 0.5 } },
+      { label: 'In 20 or more years — let it grow', weights: { growth: 1 } },
     ],
   },
   {
-    id: 'pr', text: 'And Puerto Rico — real move, 183+ days a year?',
+    id: 'risk', text: 'The market drops 30% next year. What do you do?',
     options: [
-      { label: 'Not for me', weights: {} },
-      { label: 'Curious, tell me more', weights: { mobility: 0.75 } },
-      { label: 'I could genuinely live there', weights: { mobility: 1.2 } },
+      { label: 'Sell', weights: { growth: 0.1, income: 0.5, simplicity: 0.8 } },
+      { label: 'Hold, but worry', weights: { growth: 0.5 } },
+      { label: 'Leave it alone', weights: { growth: 1 } },
     ],
   },
   {
-    id: 'privacy', text: 'How much does keeping your name off public records matter?',
+    id: 'move', text: 'Would you move to a state with no income tax, such as Wyoming, Texas, or Florida?',
     options: [
-      { label: 'Not much', weights: { protection: 0.2, simplicity: 0.7 } },
+      { label: 'No. I am staying', weights: { mobility: 0 } },
+      { label: 'Maybe', weights: { mobility: 0.5 } },
+      { label: 'Yes', weights: { mobility: 1 } },
+    ],
+  },
+  {
+    id: 'pr', text: 'Would you live in Puerto Rico for more than half the year?',
+    options: [
+      { label: 'No', weights: { mobility: 0 } },
+      { label: 'I want to learn more, but not move yet', weights: { mobility: 0.35 } },
+      { label: 'Yes. I could live there', weights: { mobility: 1 } },
+    ],
+  },
+  {
+    id: 'privacy', text: 'How much does it matter that your name stays off public records?',
+    options: [
+      { label: 'Not much', weights: { protection: 0.2, simplicity: 0.6 } },
       { label: 'Somewhat', weights: { protection: 0.6 } },
-      { label: 'A lot — I want to be invisible', weights: { protection: 1 } },
+      { label: 'A lot', weights: { protection: 1 } },
     ],
   },
   {
-    id: 'lawsuit', text: 'Do you worry about lawsuits or people coming after the money?',
+    id: 'lawsuit', text: 'Are you worried someone will sue you for the money?',
     options: [
-      { label: 'Not really', weights: { protection: 0.2 } },
+      { label: 'No', weights: { protection: 0.2 } },
       { label: 'A little', weights: { protection: 0.6 } },
-      { label: 'Yes — protect everything', weights: { protection: 1 } },
+      { label: 'Yes. Protect it', weights: { protection: 1 } },
     ],
   },
   {
-    id: 'legacy', text: 'How important is leaving wealth to family or future generations?',
+    id: 'legacy', text: 'Do you want to leave this money to your family?',
     options: [
-      { label: 'Not a priority', weights: { legacy: 0.1, income: 0.4 } },
-      { label: 'Nice to have', weights: { legacy: 0.5 } },
-      { label: 'Very — think generations', weights: { legacy: 1, growth: 0.5 } },
+      { label: 'Not a priority', weights: { legacy: 0.1, income: 0.3 } },
+      { label: 'Some of it', weights: { legacy: 0.5 } },
+      { label: 'Yes, for the next generation', weights: { legacy: 1, growth: 0.4 } },
     ],
   },
   {
-    id: 'charity', text: 'Do you plan meaningful charitable giving?',
+    id: 'charity', text: 'Do you plan to give a meaningful amount to charity?',
     options: [
-      { label: 'No', weights: {} },
-      { label: 'Some, occasionally', weights: { legacy: 0.3 } },
-      { label: 'Yes — it is a core goal', weights: { legacy: 0.8 } },
+      { label: 'No', weights: { legacy: 0 } },
+      { label: 'Some', weights: { legacy: 0.4 } },
+      { label: 'Yes. It is a main goal', weights: { legacy: 1 } },
     ],
   },
   {
-    id: 'property', text: 'Planning to buy a home, land, or vehicles soon?',
+    id: 'complexity', text: 'How do you feel about lawyers, trusts, and paperwork?',
     options: [
-      { label: 'No', weights: { simplicity: 0.4 } },
-      { label: 'One primary home', weights: { protection: 0.4 } },
-      { label: 'Several properties / big toys', weights: { protection: 0.7, income: 0.2 } },
-    ],
-  },
-  {
-    id: 'complexity', text: 'How do you feel about lawyers, trustees, and paperwork?',
-    options: [
-      { label: 'Keep it as simple as possible', weights: { simplicity: 1, protection: 0.3 } },
-      { label: 'Fine, if it saves real money', weights: { simplicity: 0.4, protection: 0.6 } },
-      { label: 'Bring on the structures', weights: { simplicity: 0, protection: 0.8 } },
-    ],
-  },
-  {
-    id: 'discipline', text: 'Honest check: a windfall lands. Your spending discipline is…',
-    options: [
-      { label: 'A risk — guardrails, please', weights: { income: 0.3, simplicity: 0.6 } },
-      { label: 'Average', weights: { income: 0.5 } },
-      { label: 'Rock solid', weights: { income: 0.8, growth: 0.3 } },
+      { label: 'Keep it as simple as possible', weights: { simplicity: 1, protection: 0.2 } },
+      { label: 'Fine, if it saves real money', weights: { simplicity: 0.45, protection: 0.55 } },
+      { label: 'I want the full setup', weights: { simplicity: 0, protection: 0.8 } },
     ],
   },
 ];
 
+const SPEND_BY_ANSWER = [100_000, 275_000, 600_000, 1_000_000];
+
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
   const acc: GoalProfile = { income: 0, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
-  let n = 0;
+  const max: GoalProfile = { income: 0, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
   for (const q of QUIZ) {
     const idx = answers[q.id];
     if (idx === undefined) continue;
-    n++;
-    const w = q.options[idx].weights;
+    const chosen = q.options[idx]?.weights ?? {};
+    const peak: GoalProfile = { income: 0, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
+    for (const opt of q.options) {
+      for (const k of Object.keys(peak) as (keyof GoalProfile)[]) peak[k] = Math.max(peak[k], opt.weights[k] ?? 0);
+    }
     for (const k of Object.keys(acc) as (keyof GoalProfile)[]) {
-      acc[k] += w[k] ?? 0;
+      acc[k] += chosen[k] ?? 0;
+      max[k] += peak[k];
     }
   }
-  const div = Math.max(1, n);
-  for (const k of Object.keys(acc) as (keyof GoalProfile)[]) acc[k] = acc[k] / div;
+  for (const k of Object.keys(acc) as (keyof GoalProfile)[]) acc[k] = max[k] > 0 ? acc[k] / max[k] : 0;
   return acc;
 }
 
 export interface Recommendation {
   dial: number;
   residency: Inputs['residency'];
+  spend: number | null;
+  filing: Inputs['filing'] | null;
+  basis: Inputs['basis'] | null;
   notes: string[];
 }
 
-export function recommend(p: GoalProfile): Recommendation {
+export function recommend(p: GoalProfile, answers: Record<string, number> = {}): Recommendation {
   const total = p.income + p.growth || 1;
   let dial = Math.round((p.income / total) * 100);
   dial = Math.max(0, Math.min(100, dial));
-  let residency: Inputs['residency'] = 'stay';
-  if (p.mobility >= 0.9) residency = 'pr';
-  else if (p.mobility >= 0.45) residency = 'move';
+
+  const prYes = answers.pr === 2;
+  const moveYes = answers.move === 2;
+  const residency: Inputs['residency'] = prYes ? 'pr' : moveYes ? 'move' : 'stay';
+
+  const spend = answers.spend === undefined ? null : SPEND_BY_ANSWER[answers.spend] ?? null;
+  const filing: Inputs['filing'] | null = answers.filing === undefined ? null : answers.filing === 1 ? 'mfj' : 'single';
+  const basis: Inputs['basis'] | null = answers.claim === undefined ? null : answers.claim === 2 ? 'net' : 'gross';
+
   const notes: string[] = [];
   notes.push(
     dial > 66
-      ? 'Income-leaning dial: the engines are tuned to maximize tax-free cash now.'
+      ? 'The mix leans toward income: more cash each year, less left to grow.'
       : dial < 34
-        ? 'Growth-leaning dial: minimal draws, maximum 25-year compounding.'
-        : 'Balanced dial: steady tax-free income while the stack keeps compounding.'
+        ? 'The mix leans toward growth: take less now so more is left in 25 years.'
+        : 'The mix stays in the middle: some cash each year, and the rest keeps growing.'
   );
-  if (residency === 'pr') notes.push('Your answers point at Puerto Rico — check the Act 60 module and the Dec 31, 2026 filing deadline.');
-  else if (residency === 'move') notes.push('You seem open to relocating — a 0% income-tax state removes state drag on everything unshielded.');
-  if (p.protection >= 0.6) notes.push('Protection matters to you: keep the DAPT funded, use Entity #4 for property, and read the foreign-trust reality check before going offshore.');
-  if (p.legacy >= 0.6) notes.push('Legacy matters: once the stack exceeds the $15M federal exclusion, the dynasty-trust layer becomes the priority conversation with your attorney.');
-  if (p.simplicity >= 0.7) notes.push('You value simplicity: a leaner stack (Trust #1 + DAPT, skip PPLI) trades some tax-free capacity for far less paperwork.');
-  return { dial, residency, notes };
+  if (prYes) notes.push('You said you could live in Puerto Rico. That is a real move, not a mailing address. Read the Act 60 note and the December 31, 2026 filing deadline before you treat it as a plan.');
+  else if (answers.pr === 1) notes.push('You wanted to learn about Puerto Rico, so the calculator stays where you live. Open the library item when you are ready. It does not change the chart.');
+  else if (moveYes) notes.push('You said you would move to a no-income-tax state. The calculator uses that for tax on future investment income, not for the prize itself.');
+  else if (answers.move === 1) notes.push('You might move. The calculator leaves you where you live until you say yes.');
+  if (p.protection >= 0.6) notes.push('Privacy or lawsuits matter to you. The trust that holds the investments, and the company that holds a house or cars, are the pieces that keep your name off the records. A foreign trust does not hide the money from U.S. tax.');
+  if (p.legacy >= 0.6) notes.push('Leaving money to family or charity matters. Once the pile is past the $15 million federal estate exclusion, that is the conversation to have with your lawyer. Charity can also lower the tax in the year you claim the prize.');
+  if (p.simplicity >= 0.7) notes.push('You want this simple. Two trusts and no insurance policy means less paperwork and less tax-free cash. Apply does not remove the insurance sleeve. Turn that dial only if you and your lawyer agree.');
+  return { dial, residency, spend, filing, basis, notes };
 }
 
 export interface ScenarioScore {

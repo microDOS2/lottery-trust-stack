@@ -15,7 +15,7 @@ export default function StrategyView({ sleeve, onApplyEngine, onSetSleeve }: Pro
       <SectionTitle
         num="03"
         title={<>The strategy <span className="sig-italic">library</span></>}
-        blurb="Core engines set the calculator weights. One optional sleeve can be active at a time — choosing another replaces it. OZ, QSBS, and real estate carve cash out of Engine C and change the projection. Every other item is a label only."
+        blurb="Each row says whether it changes the chart. One sleeve at a time — choosing another replaces it. A note does not change the numbers."
       />
 
       <Accordion type="single" collapsible className="space-y-3">
@@ -38,6 +38,7 @@ export default function StrategyView({ sleeve, onApplyEngine, onSetSleeve }: Pro
                     <div>
                       <div className="font-mono text-[14px] uppercase tracking-wider text-muted-foreground">{s.tag}</div>
                       <div className="font-display text-lg font-semibold leading-tight">{s.name}</div>
+                      <div className="text-[12.5px] font-medium text-muted-foreground">{isEngine || changesMath ? 'Changes the chart' : 'Note only'}</div>
                     </div>
                   </div>
                 </AccordionTrigger>
