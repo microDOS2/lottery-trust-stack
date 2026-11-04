@@ -27,9 +27,9 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <SectionTitle
-        num="04"
+        num="02"
         title={<>Annuity or <span className="sig-italic">lump sum?</span></>}
-        blurb="Type the cash amount you would get now. Add the annuity total only if you want to compare it with 30 years of checks."
+        blurb="This is a comparison only. The cash amount is what you use. Add the annuity total if you want to see it next to 30 years of checks."
       />
 
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -113,7 +113,7 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
             {onNext && (
               <Tip text="Opens the questions. It does not change the numbers you just typed.">
               <button type="button" onClick={() => onNext(a.cash)} className="rounded-md border border-input px-4 py-2 text-sm font-semibold cursor-pointer">
-                Next: Goals & Fit
+                Back to Goals & Fit
               </button>
               </Tip>
             )}
