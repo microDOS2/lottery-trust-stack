@@ -274,9 +274,6 @@ export default function Home() {
             inputs={inputs}
             setInputs={setInputs}
             asm={asm}
-            scenarios={scenarios
-              .map((s, i) => (s ? { letter: 'ABCDE'[i], inputs: s.inputs } : null))
-              .filter((s): s is { letter: string; inputs: Inputs } => !!s)}
             onApplyScenario={() => setView('calc')}
           />
         )}

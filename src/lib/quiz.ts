@@ -33,6 +33,30 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
+    id: 'work', text: 'Will you keep earning a paycheck?',
+    options: [
+      { label: 'I need this prize to live on', hint: 'The plans lean toward cash you can spend.', weights: { income: 1, growth: 0.1 } },
+      { label: 'I will keep working', hint: 'A middle answer. The prize does not have to pay all the bills.', weights: { income: 0.4, growth: 0.5 } },
+      { label: 'I have other income. This can sit', hint: 'The plans can leave more invested.', weights: { income: 0.1, growth: 1 } },
+    ],
+  },
+  {
+    id: 'debts', text: 'Do you have debts you would clear before investing?',
+    options: [
+      { label: 'No', hint: 'Nothing is set aside for a payoff.', weights: {} },
+      { label: 'Some. The first year can cover them', hint: 'A note only. The chart does not subtract a specific balance.', weights: { income: 0.2 } },
+      { label: 'A lot. Clearing them comes first', hint: 'The cash-now plan is there so a payoff has a source. The chart still does not subtract the balance.', weights: { income: 0.5, simplicity: 0.3 } },
+    ],
+  },
+  {
+    id: 'house', text: 'What about a home?',
+    options: [
+      { label: 'I have the home I want', hint: 'No cash is pulled out for a house.', weights: { simplicity: 0.2 } },
+      { label: 'I rent, or I will sell', hint: 'No house is added to the plan.', weights: {} },
+      { label: 'I want to buy a home with some of this', hint: 'One plan sets cash aside for a house, outside the investments.', weights: { protection: 0.3, simplicity: 0.2 } },
+    ],
+  },
+  {
     id: 'spend', text: 'How much of this money do you want to spend each year?',
     options: [
       { label: 'Under $150,000', hint: 'Sets spending to $100,000', weights: { income: 0.15, growth: 1 } },
@@ -106,6 +130,14 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
+    id: 'business', text: 'Do you want to start or buy a business with some of this?',
+    options: [
+      { label: 'No', hint: 'No business slice.', weights: { simplicity: 0.3 } },
+      { label: 'A small slice, not the main plan', hint: 'One plan may set aside a small piece. It pays you nothing in the model.', weights: { growth: 0.4, legacy: 0.2 } },
+      { label: 'Yes. That is a main goal', hint: 'A business plan stays on the list even if the score is lower.', weights: { growth: 0.7, legacy: 0.4, simplicity: 0 } },
+    ],
+  },
+  {
     id: 'complexity', text: 'How do you feel about lawyers, trusts, and paperwork?',
     options: [
       { label: 'Keep it as simple as possible', weights: { simplicity: 1, protection: 0.2 } },
@@ -115,7 +147,9 @@ export const QUIZ: QuizQuestion[] = [
   },
 ];
 
-const SPEND_BY_ANSWER = [100_000, 275_000, 600_000, 1_000_000];
+export const SPEND_BY_ANSWER = [100_000, 275_000, 600_000, 1_000_000];
+
+export const QUIZ_NOW = ['claim', 'filing', 'work', 'debts', 'house'] as const;
 
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
   const acc: GoalProfile = { income: 0, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
