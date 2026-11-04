@@ -133,15 +133,22 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
       <section className="hairline-card p-6">
         <h2 className="font-display text-xl font-semibold">What this combination does</h2>
         {view.conflicts.length > 0 && (
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-4">
             {view.conflicts.map((c) => (
               <p key={c} className="text-[14.5px] leading-relaxed text-destructive">{c}</p>
             ))}
           </div>
         )}
-        <div className="mt-4 space-y-3">
-          {view.lines.map((line) => (
-            <p key={line.slice(0, 80)} className="text-[15px] leading-relaxed text-muted-foreground">{line}</p>
+        <div className="mt-5 space-y-6">
+          {view.sections.map((sec) => (
+            <div key={sec.heading}>
+              <h3 className="font-display text-lg font-semibold">{sec.heading}</h3>
+              <div className="mt-2 space-y-2">
+                {sec.lines.map((line) => (
+                  <p key={line.slice(0, 60)} className="text-[15px] leading-relaxed text-muted-foreground">{line}</p>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         <button type="button" onClick={apply} className="mt-6 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground cursor-pointer">
