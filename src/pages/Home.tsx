@@ -210,6 +210,11 @@ export default function Home() {
     setScenarios((prev) => prev.map((s, j) => (j === i ? slot : s)));
   };
 
+  const loadScenario = (i: number) => {
+    const slot = scenarios[i];
+    if (slot) setInputsRaw(slot.inputs);
+  };
+
   const resetAll = () => {
     setInputsRaw(DEFAULT_INPUTS);
     setAsm(DEFAULT_ASSUMPTIONS);
@@ -275,6 +280,7 @@ export default function Home() {
             result={result}
             scenarios={scenarios}
             saveScenario={saveScenario}
+            loadScenario={loadScenario}
             clearScenarios={() => setScenarios([null, null, null, null, null])}
             resetAll={resetAll}
             notice={notice}
@@ -289,6 +295,9 @@ export default function Home() {
             inputs={inputs}
             setInputs={setInputs}
             asm={asm}
+            scenarios={scenarios}
+            saveScenario={saveScenario}
+            loadScenario={loadScenario}
             onApplyScenario={() => setView('calc')}
           />
         )}

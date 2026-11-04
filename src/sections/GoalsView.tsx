@@ -3,12 +3,17 @@ import { QUIZ, QUIZ_LONG, QUIZ_MIDDLE, QUIZ_PROTECT, QUIZ_SHORT, type QuizQuesti
 import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
 import { STATES } from '../lib/taxdata';
 import { buildBestPlans } from '../lib/plans';
-import { Explainer, SectionTitle } from '../components/widgets';
+import { Explainer, SectionTitle, Tip } from '../components/widgets';
+import { downloadPlan } from '../lib/download';
+import type { ScenarioSlot } from './CalculatorView';
 
 interface Props {
   inputs: Inputs;
   setInputs: (fn: (p: Inputs) => Inputs) => void;
   asm: Assumptions;
+  scenarios: (ScenarioSlot | null)[];
+  saveScenario: (i: number) => void;
+  loadScenario: (i: number) => void;
   onApplyScenario: () => void;
 }
 
@@ -24,7 +29,7 @@ function stretches(age: number): { short: string; middle: string; long: string }
   return { short: 'about the next 3 years', middle: 'about the next 10 years', long: 'the decades after that' };
 }
 
-export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: Props) {
+export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScenario, loadScenario, onApplyScenario }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [age, setAge] = useState(0);
   const answered = Object.keys(answers).length;
@@ -56,6 +61,34 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
       >
         Clear and start over
       </button>
+
+      <div className="hairline-card space-y-3 p-4">
+        <span className="flex items-center gap-1 text-[15px] font-medium">
+          Save or download
+          <Explainer text="Save keeps this setup in this browser as A, B, C, D, or E. Open puts a saved setup back on the page. Download writes a spreadsheet of the numbers on screen and every saved setup." />
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Tip key={i} text={scenarios[i] ? `Replace saved setup ${'ABCDE'[i]} with the numbers on this page.` : `Save the numbers on this page as setup ${'ABCDE'[i]}.`}>
+              <button type="button" onClick={() => saveScenario(i)} className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
+                {scenarios[i] ? 'Overwrite ' : 'Save as '}{'ABCDE'[i]}
+              </button>
+            </Tip>
+          ))}
+          {scenarios.map((s, i) => s ? (
+            <Tip key={`open-${i}`} text={`Put saved setup ${'ABCDE'[i]} back on the page.`}>
+              <button type="button" onClick={() => loadScenario(i)} className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary cursor-pointer">
+                Open {'ABCDE'[i]}
+              </button>
+            </Tip>
+          ) : null)}
+          <Tip text="Downloads a spreadsheet of the numbers on this page, the fees, the 25-year line, and any setups you saved.">
+            <button type="button" onClick={() => downloadPlan(inputs, asm, preview, scenarios)} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">
+              Download plan
+            </button>
+          </Tip>
+        </div>
+      </div>
 
       <div className="hairline-card p-6 md:p-8">
         <div className="grid gap-4 md:grid-cols-2">

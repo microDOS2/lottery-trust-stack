@@ -4,7 +4,8 @@ import {
   fmt, fmtCompact, pct, PPLI_QP_MIN, SLEEVE_MATH, SLEEVE_PCT_MAX,
   type Inputs, type Assumptions, type StackResult,
 } from '../lib/calc';
-import { Stat, Field, SectionTitle, Tip } from '../components/widgets';
+import { Stat, Field, SectionTitle, Tip, Explainer } from '../components/widgets';
+import { downloadPlan } from '../lib/download';
 import { useExplain } from '../explainNav';
 import { AllocationDonut, ProjectionChart, FlowDiagram } from '../components/viz';
 import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/CompareCharts';
@@ -27,6 +28,7 @@ interface Props {
   result: StackResult;
   scenarios: (ScenarioSlot | null)[];
   saveScenario: (i: number) => void;
+  loadScenario: (i: number) => void;
   clearScenarios: () => void;
   resetAll: () => void;
   notice: { text: string; undo?: () => void } | null;
@@ -159,14 +161,37 @@ export default function CalculatorView(p: Props) {
   };
 
   const scenarioButtons = (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="w-full text-[12.5px] text-muted-foreground">Save up to five snapshots to compare. Overwrite replaces that slot.</span>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <button key={i} title={p.scenarios[i] ? `Replace saved setup ${LETTERS[i]} with the numbers on screen.` : `Save the numbers on screen as setup ${LETTERS[i]}.`} onClick={() => p.saveScenario(i)}
-          className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
-          {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
-        </button>
-      ))}
+    <div className="hairline-card space-y-3 p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1 text-[15px] font-medium">
+          Save or download
+          <Explainer text="Save keeps this setup in this browser as A, B, C, D, or E. Open puts a saved setup back on the page. Download writes a spreadsheet of the numbers on screen and every saved setup." />
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Tip key={i} text={p.scenarios[i] ? `Replace saved setup ${LETTERS[i]} with the numbers on screen.` : `Save the numbers on screen as setup ${LETTERS[i]}.`}>
+            <button type="button" onClick={() => p.saveScenario(i)}
+              className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
+              {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
+            </button>
+          </Tip>
+        ))}
+        {p.scenarios.some(Boolean) && p.scenarios.map((s, i) => s ? (
+          <Tip key={`open-${i}`} text={`Put saved setup ${LETTERS[i]} back on the page.`}>
+            <button type="button" onClick={() => p.loadScenario(i)}
+              className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary cursor-pointer">
+              Open {LETTERS[i]}
+            </button>
+          </Tip>
+        ) : null)}
+        <Tip text="Downloads a spreadsheet of the numbers on screen, the 25-year line, the fees, and any setups you saved.">
+          <button type="button" onClick={() => downloadPlan(inp, asm, r, p.scenarios)}
+            className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">
+            Download plan
+          </button>
+        </Tip>
+      </div>
     </div>
   );
 
@@ -185,12 +210,12 @@ export default function CalculatorView(p: Props) {
           <Stat label="Investable core" tip="The pool minus the year-1 reserve and any cash set aside for a house. This is what the three engines share." more="trade" value={fmtCompact(r.core)} sub={r.qpOk ? 'Qualified Purchaser ✓' : `PPLI needs ${fmtCompact(PPLI_QP_MIN)}+ core`} />
         </div>
       </div>
-      {scenarioButtons}
     </div>
   );
 
   return (
     <div className="space-y-6">
+      {scenarioButtons}
       {p.notice && (
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-primary/40 bg-accent px-4 py-3 text-sm">
           <p>{p.notice.text}</p>
@@ -502,56 +527,6 @@ function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['
   );
 }
 
-function csvCell(v: string | number) {
-  const s = String(v);
-  return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
-}
-
-function exportPlan(inp: Inputs, asm: Assumptions, r: StackResult, scenarios: (ScenarioSlot | null)[]) {
-  const lines: string[] = ['record,c1,c2,c3,c4,c5,c6,c7'];
-  const meta = (k: string, v: string | number) => lines.push(['meta', csvCell(k), csvCell(v), '', '', '', '', ''].join(','));
-  meta('state', inp.state);
-  meta('target', inp.target);
-  meta('basis', inp.basis);
-  meta('amount', inp.amount);
-  meta('spend', inp.spend);
-  meta('residency', inp.residency);
-  meta('filing', inp.filing);
-  meta('mode', inp.mode);
-  meta('federal_tax', Math.round(r.fedTax));
-  meta('state_tax', Math.round(r.stateTax));
-  meta('net', Math.round(r.net));
-  meta('core', Math.round(r.core));
-  meta('muni', Math.round(r.muni));
-  meta('ppli', Math.round(r.ppli));
-  meta('equity_after_carve', Math.round(r.equity));
-  meta('sleeve', r.sleeveId ?? '');
-  meta('sleeve_amount', Math.round(r.sleeveAmount));
-  meta('weights_abc', `${Math.round(r.weights.a * 100)}/${Math.round(r.weights.b * 100)}/${Math.round(r.weights.c * 100)}`);
-  meta('muni_yield', asm.muniYield);
-  meta('ppli_growth', asm.ppliGrowth);
-  meta('ppli_draw', asm.ppliDraw);
-  meta('equity_growth', asm.eqGrowth);
-  meta('equity_draw', asm.eqDraw);
-  meta('inflation', asm.inflation);
-  scenarios.forEach((s, i) => {
-    if (!s?.result) return;
-    lines.push(['scenario', LETTERS[i], csvCell(s.name), Math.round(s.result.net), Math.round(s.result.core), csvCell(s.result.alloc), Math.round(s.result.capacity), Math.round(s.result.stackEnd)].join(','));
-  });
-  lines.push('year,stack_begin,cash_to_you,reinvested,fees,growth,stack_end,baseline_end');
-  r.projection.forEach((row, i) => {
-    const base = r.baseline[i];
-    lines.push([row.year, Math.round(row.begin), Math.round(row.cash), Math.round(row.reinvested), Math.round(row.fees), Math.round(row.growth), Math.round(row.end), Math.round(base?.end ?? 0)].join(','));
-  });
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'lottery-trust-stack-plan.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 function SleeveCard({ inp, setInputs, amount }: { inp: Inputs; setInputs: Props['setInputs']; amount: number }) {
   const spec = inp.sleeve ? SLEEVE_MATH[inp.sleeve] : undefined;
   const name = STRATEGIES.find((s) => s.id === inp.sleeve)?.name ?? inp.sleeve;
@@ -589,7 +564,7 @@ function ProjectionTable({ r, inp, asm, scenarios }: { r: StackResult; inp: Inpu
           Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
           (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
         </p>
-        <button type="button" title="Downloads a spreadsheet of these inputs and the 25-year line." onClick={() => exportPlan(inp, asm, r, scenarios)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
+        <button type="button" title="Downloads a spreadsheet of these inputs, the fees, and the 25-year line." onClick={() => downloadPlan(inp, asm, r, scenarios)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
           Download plan
         </button>
       </div>
