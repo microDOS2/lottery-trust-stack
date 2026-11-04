@@ -335,7 +335,7 @@ export default function Home() {
         )}
         {view === 'guide' && <GuideView />}
         {view === 'glossary' && <GlossaryView />}
-        {view === 'explain' && <ExplainView />}
+        {view === 'explain' && <ExplainView inputs={inputs} asm={asm} />}
       </main>
 
       <footer className="border-t border-border">

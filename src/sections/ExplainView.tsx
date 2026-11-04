@@ -1,39 +1,6 @@
 import { SectionTitle } from '../components/widgets';
-import { computeStack, DEFAULT_ASSUMPTIONS, DEFAULT_INPUTS, fmt, pct, PPLI_QP_MIN, type Inputs } from '../lib/calc';
-
-const rates = DEFAULT_ASSUMPTIONS;
-
-function run(over: Partial<Inputs>) {
-  return computeStack({
-    ...DEFAULT_INPUTS,
-    basis: 'net',
-    state: 'CO',
-    target: 'WY',
-    filing: 'single',
-    residency: 'stay',
-    amount: 2_000_000,
-    spend: 80_000,
-    debt: 0,
-    entity4: 0,
-    venture: 0,
-    setupCost: 0,
-    annualAdmin: 0,
-    sleeve: null,
-    sleevePct: 0,
-    mode: 'balanced',
-    ...over,
-  }, rates);
-}
-
-const steady = run({ dial: 100 });
-const growth = run({ dial: 0 });
-const withHouse = run({ dial: 100, entity4: 300_000 });
-const withDebt = run({ dial: 100, debt: 40_000 });
-const withBusiness = run({ dial: 100, venture: 100_000 });
-const bigSteady = run({ amount: 8_000_000, spend: 200_000, dial: 100 });
-const stayed = run({ dial: 50 });
-const moved = run({ dial: 50, residency: 'move', target: 'WY' });
-const inPr = run({ dial: 50, residency: 'pr' });
+import { computeStack, fmt, pct, PPLI_QP_MIN, type Assumptions, type Inputs } from '../lib/calc';
+import { stateByCode } from '../lib/taxdata';
 
 function Row({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
@@ -47,127 +14,165 @@ function Row({ label, value, note }: { label: string; value: string; note?: stri
   );
 }
 
-export default function ExplainView() {
+export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assumptions }) {
+  const yours = computeStack(inputs, asm);
+  const steady = computeStack({ ...inputs, mode: 'balanced', dial: 100 }, asm);
+  const growth = computeStack({ ...inputs, mode: 'balanced', dial: 0 }, asm);
+  const middle = computeStack({ ...inputs, mode: 'balanced', dial: 50 }, asm);
+  const noPolicy = computeStack({ ...inputs, mode: 'manual', manual: { a: 0.5, b: 0, c: 0.5 } }, asm);
+  const stayed = computeStack({ ...inputs, residency: 'stay' }, asm);
+  const moved = computeStack({ ...inputs, residency: 'move' }, asm);
+  const inPr = computeStack({ ...inputs, residency: 'pr' }, asm);
+  const noHouse = computeStack({ ...inputs, entity4: 0 }, asm);
+  const noDebt = computeStack({ ...inputs, debt: 0 }, asm);
+  const noVenture = computeStack({ ...inputs, venture: 0 }, asm);
+  const here = stateByCode(inputs.state);
+  const there = stateByCode(inputs.target);
+
+  if (inputs.amount <= 0) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <SectionTitle
+          num="08"
+          title={<>Your numbers, <span className="sig-italic">explained</span></>}
+          blurb="This page explains the cash amount you typed. There is nothing to explain until you enter one."
+        />
+        <p className="mt-6 text-[15px] leading-relaxed text-muted-foreground">
+          Go to Goals & Fit and type the winning cash amount. This page will then use that amount, your state, and the dollars you typed for spending, debt, a home, and a business. It will not invent a person or a prize.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <SectionTitle
         num="08"
-        title={<>What the money <span className="sig-italic">actually does</span></>}
-        blurb="This page is one made-up winner, followed all the way through. It is not your prize, and none of these amounts are applied to you."
+        title={<>Your numbers, <span className="sig-italic">explained</span></>}
+        blurb="Every dollar on this page comes from what you typed. Nothing else is added."
       />
 
       <section id="trade" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">The decision, in one story</h2>
+        <h2 className="font-display text-2xl font-semibold">The choice your cash has to make</h2>
         <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
-          <p>You take the cash instead of a check every year for 30 years. Tax comes out first. What is left has two jobs that fight each other. It can pay you each year, or it can still be there in 25 years. A dollar you spend is a dollar that is no longer growing. You do not get the larger check and the larger pile.</p>
-          <p>The person in this example is named Alex. Alex lives in Colorado and files taxes alone. After tax, Alex has {fmt(2_000_000)}. Alex types {fmt(80_000)} a year to live on. Alex types {fmt(0)} for debt, {fmt(0)} for a house, and {fmt(0)} for a business. The first year, {fmt(steady.yr1Reserve)} is held back and not invested. {fmt(steady.core)} is what actually gets invested. The check from the investments starts in year 2.</p>
-          <p>Same person, same {fmt(2_000_000)}, two ways to invest it. The rates are the ones on the calculator right now: bonds {pct(rates.muniYield)}, stocks growing at {pct(rates.eqGrowth)}.</p>
+          <p>You typed {fmt(inputs.amount)}{inputs.basis === 'net' ? ', and you said the tax is already paid' : ', before tax'}. After tax, that is {fmt(yours.net)}. You live in {here.name}. You asked for {fmt(inputs.spend)} a year.</p>
+          <p>The first year holds back {fmt(yours.yr1Reserve)}. That is the spending you typed plus setup cost, and it is not invested. {fmt(yours.core)} is what gets invested. The check from the investments starts in year 2.</p>
+          <p>The same dollars can pay you more each year, or leave more in 25 years. A dollar you spend is a dollar that is no longer growing. You do not get the larger check and the larger pile. Below, your dollars are split two ways. Your debt, home, and business amounts are left as you typed them.</p>
         </div>
         <div className="mt-4">
           <Row label="Steadier check" value={`${fmt(steady.capacity)} a year · ${fmt(steady.stackEnd)} in 25 years`} note={`${pct(steady.weights.a, 0)} bonds, ${pct(steady.weights.b, 0)} insurance, ${pct(steady.weights.c, 0)} stocks.`} />
           <Row label="Bigger pile later" value={`${fmt(growth.capacity)} a year · ${fmt(growth.stackEnd)} in 25 years`} note={`${pct(growth.weights.a, 0)} bonds, ${pct(growth.weights.b, 0)} insurance, ${pct(growth.weights.c, 0)} stocks.`} />
         </div>
         <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-          The steadier mix pays {fmt(steady.capacity - growth.capacity)} more each year. The other mix is worth {fmt(growth.stackEnd - steady.stackEnd)} more in 25 years. That gap is the cost of the larger check. If Alex spends more than the investments can pay, the pile is sold to make the check, and the year-25 number falls further.
+          The steadier split pays {fmt(Math.abs(steady.capacity - growth.capacity))} {steady.capacity >= growth.capacity ? 'more' : 'less'} each year. The other is worth {fmt(Math.abs(growth.stackEnd - steady.stackEnd))} {growth.stackEnd >= steady.stackEnd ? 'more' : 'less'} in 25 years. If the check you asked for is larger than what the investments can pay, the pile is sold to make the check.
         </p>
       </section>
 
       <section id="bonds" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">Bonds, in Alex’s steadier mix</h2>
+        <h2 className="font-display text-2xl font-semibold">Bonds</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          {fmt(steady.muni)} of Alex’s invested money is in bonds. At {pct(rates.muniYield)}, that pays {fmt(steady.muni * rates.muniYield)} a year. The interest does not depend on the stock market. The bonds themselves do not grow, so this is the mix with the smaller pile in 25 years: {fmt(steady.stackEnd)}.
+          On the steadier split, {fmt(steady.muni)} of your invested money is in bonds. At the rate on the calculator, {pct(asm.muniYield)}, that pays {fmt(steady.muni * asm.muniYield)} a year. The interest does not depend on the stock market. The bonds themselves do not grow, which is why that split has the smaller pile in 25 years: {fmt(steady.stackEnd)}.
         </p>
       </section>
 
       <section id="stocks" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">Stocks, in the bigger-pile mix</h2>
+        <h2 className="font-display text-2xl font-semibold">Stocks</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          {fmt(growth.equity)} is in stocks. These rates grow that money at {pct(rates.eqGrowth)} a year and spend {pct(rates.eqDraw)} of it a year, which is {fmt(growth.equity * rates.eqDraw)}. That is why this mix pays less now ({fmt(growth.capacity)} a year) and is worth more later ({fmt(growth.stackEnd)}). If stocks do worse than {pct(rates.eqGrowth)}, this is the mix that loses more, because more of Alex’s money was sitting there. This example does not add a crash on top of that rate.
+          On the bigger-pile split, {fmt(growth.equity)} is in stocks. The calculator grows that at {pct(asm.eqGrowth)} a year and spends {pct(asm.eqDraw)} of it a year, which is {fmt(growth.equity * asm.eqDraw)}. That split pays {fmt(growth.capacity)} a year and is worth {fmt(growth.stackEnd)} in 25 years. If stocks do worse than {pct(asm.eqGrowth)}, this is the split that loses more, because more of your money is there.
         </p>
       </section>
 
       <section id="policy" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">The insurance policy, and why Alex does not have one</h2>
-        <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
-          <p>The policy is extra paperwork. It is only used when at least {fmt(PPLI_QP_MIN)} is left to invest. Alex has {fmt(steady.core)} invested, which is under that, so the policy is {fmt(steady.ppli)}. Nothing was removed to make that happen. The amount was too small.</p>
-          <p>Same life, but {fmt(8_000_000)} left after tax, and {fmt(200_000)} a year to spend. Now {fmt(bigSteady.ppli)} goes into the policy. At the calculator’s rates it can pay {fmt(bigSteady.ppli * rates.ppliDraw)} a year from that piece, and what stays inside grows at {pct(rates.ppliGrowth)}. Skip the policy and that paycheck and that growth are both gone. You keep the bonds and the stocks.</p>
-        </div>
+        <h2 className="font-display text-2xl font-semibold">The insurance policy</h2>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+          {yours.core < PPLI_QP_MIN
+            ? `The policy is ${fmt(yours.ppli)}. Your invested amount is ${fmt(yours.core)}, and the policy is only used when at least ${fmt(PPLI_QP_MIN)} is left to invest. Nothing was removed to make that happen. The amount is too small.`
+            : `${fmt(yours.ppli)} of your invested money is in the policy. At the calculator’s rate it can pay ${fmt(yours.ppli * asm.ppliDraw)} a year from that piece, and what stays inside grows at ${pct(asm.ppliGrowth)}. It is extra paperwork. Without it, the same dollars are worth ${fmt(noPolicy.stackEnd)} in 25 years instead of ${fmt(yours.stackEnd)}, and the yearly check is ${fmt(noPolicy.capacity)} instead of ${fmt(yours.capacity)}.`}
+        </p>
       </section>
 
       <section id="house" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">A house, only if Alex types it</h2>
+        <h2 className="font-display text-2xl font-semibold">A home</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Alex types {fmt(300_000)} for a house. {fmt(withHouse.housePaid)} is not invested. There is no percentage and no cap. The steadier mix, which was worth {fmt(steady.stackEnd)} in 25 years, is worth {fmt(withHouse.stackEnd)} instead. The difference, {fmt(steady.stackEnd - withHouse.stackEnd)}, is the growth Alex gave up. The house itself is not given a price here. You only see the smaller pile. Type {fmt(0)} and nothing is set aside.
+          {inputs.entity4 <= 0
+            ? `You typed ${fmt(0)}. Nothing is set aside for a home.`
+            : `You typed ${fmt(inputs.entity4)}. ${fmt(yours.housePaid)} of that is not invested. With it, the pile in 25 years is ${fmt(yours.stackEnd)}. Without that home amount, the same other numbers leave ${fmt(noHouse.stackEnd)}. The difference is ${fmt(Math.abs(noHouse.stackEnd - yours.stackEnd))}. The house itself is not given a price here.`}
         </p>
       </section>
 
       <section id="not-included" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">A debt, only if Alex types it</h2>
+        <h2 className="font-display text-2xl font-semibold">Debt</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Alex types {fmt(40_000)} of debt. {fmt(withDebt.debtPaid)} is paid from the cash after tax, before anything is invested. It does not change the tax. The year-25 pile goes from {fmt(steady.stackEnd)} to {fmt(withDebt.stackEnd)}. A gift to charity is not in these numbers at all. Nothing is subtracted for one unless you are looking at a line that names the dollars.
+          {inputs.debt <= 0
+            ? `You typed ${fmt(0)}. Nothing is paid off before investing.`
+            : `You typed ${fmt(inputs.debt)}. ${fmt(yours.debtPaid)} is paid from the cash after tax, before anything is invested. It does not change the tax. With that payment, the pile in 25 years is ${fmt(yours.stackEnd)}. Without it, ${fmt(noDebt.stackEnd)}. A gift to charity is not subtracted.`}
         </p>
       </section>
 
       <section id="business" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">A business, only if Alex types it</h2>
+        <h2 className="font-display text-2xl font-semibold">A business</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Alex types {fmt(100_000)} for a business. {fmt(withBusiness.venturePaid)} is not invested. The year-25 pile is {fmt(withBusiness.stackEnd)} instead of {fmt(steady.stackEnd)}. No slice is taken on its own. A real business can also lose the money. That loss is not added on top of this number.
+          {inputs.venture <= 0
+            ? `You typed ${fmt(0)}. Nothing is taken out for a business.`
+            : `You typed ${fmt(inputs.venture)}. ${fmt(yours.venturePaid)} of that is not invested. With it, the pile in 25 years is ${fmt(yours.stackEnd)}. Without it, ${fmt(noVenture.stackEnd)}. A real business can also lose the money. That loss is not added on top of this number.`}
         </p>
       </section>
 
       <section id="lockup" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">A slice locked for ten years</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Alex’s example does not lock anything away. These questions do not create one. A library item does that only if you turn it on and set the percent yourself. That percent starts at zero, so leaving it alone takes {fmt(0)}.
+          {yours.sleeveAmount <= 0
+            ? `Nothing is locked away. Your library percent is ${pct(inputs.sleevePct, 0)}, so the amount taken out of the stocks is ${fmt(0)} until you set that percent yourself.`
+            : `${fmt(yours.sleeveAmount)} is taken out of the stocks because you set the library percent to ${pct(inputs.sleevePct, 0)}. That is the only lockup in your numbers.`}
         </p>
       </section>
 
       <section id="move" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">Moving, with the same {fmt(2_000_000)}</h2>
+        <h2 className="font-display text-2xl font-semibold">Moving</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Alex’s prize was already taxed in Colorado. Moving does not change that. What can change is state tax on later investment income that is not already sheltered. Staying, the pile in 25 years is {fmt(stayed.stackEnd)}. Moving to Wyoming, it is {fmt(moved.stackEnd)}. The difference is {fmt(Math.abs(moved.stackEnd - stayed.stackEnd))}. It is small here because most of the yearly cash in this setup is already treated as tax-free. Moving does more for an ordinary taxable account than it does inside this one.
+          The tax on the prize stays {here.name}’s. Moving does not change it. If you stay, the pile in 25 years is {fmt(stayed.stackEnd)}. If the later investment income is taxed in {there.name} instead, it is {fmt(moved.stackEnd)}. The difference is {fmt(Math.abs(moved.stackEnd - stayed.stackEnd))}.
         </p>
       </section>
 
       <section id="puerto-rico" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">Puerto Rico, same person, same dollars</h2>
+        <h2 className="font-display text-2xl font-semibold">Puerto Rico</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          If Alex actually lives in Puerto Rico more than half the year, the same {fmt(2_000_000)} is worth {fmt(inPr.stackEnd)} in 25 years, against {fmt(stayed.stackEnd)} for staying in Colorado. The prize itself stays taxed. A mailing address does not get this. The difference is {fmt(Math.abs(inPr.stackEnd - stayed.stackEnd))}.
+          The same dollars, if you live in Puerto Rico more than half the year, are worth {fmt(inPr.stackEnd)} in 25 years. Staying in {here.name}, they are worth {fmt(stayed.stackEnd)}. The difference is {fmt(Math.abs(inPr.stackEnd - stayed.stackEnd))}. The prize stays taxed. A mailing address does not get this.
         </p>
       </section>
 
       <section id="spend-now" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">What “a larger check now” costs Alex</h2>
+        <h2 className="font-display text-2xl font-semibold">A larger check now</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Alex gets {fmt(steady.capacity)} a year instead of {fmt(growth.capacity)}. In 25 years Alex has {fmt(steady.stackEnd)} instead of {fmt(growth.stackEnd)}. That is the whole trade. More cash in hand. Less left to leave to anyone.
+          On your dollars, the steadier split pays {fmt(steady.capacity)} a year and leaves {fmt(steady.stackEnd)} in 25 years. That is more cash in hand and less left later than the other split.
         </p>
       </section>
 
       <section id="grow" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">What “leave more for later” costs Alex</h2>
+        <h2 className="font-display text-2xl font-semibold">More left in 25 years</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Alex gets {fmt(growth.stackEnd)} in 25 years instead of {fmt(steady.stackEnd)}, and gives up {fmt(steady.capacity - growth.capacity)} of check each year to do it. The extra pile only shows up if the money is left invested.
+          The other split pays {fmt(growth.capacity)} a year and leaves {fmt(growth.stackEnd)}. The extra pile is only there if the money stays invested.
         </p>
       </section>
 
       <section id="middle" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">The middle, on the same {fmt(2_000_000)}</h2>
+        <h2 className="font-display text-2xl font-semibold">The middle split</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          A middle mix pays {fmt(stayed.capacity)} a year and is worth {fmt(stayed.stackEnd)} in 25 years. The check is {fmt(Math.abs(steady.capacity - stayed.capacity))} {steady.capacity >= stayed.capacity ? 'smaller' : 'larger'} than the steadier mix. The pile is {fmt(Math.abs(growth.stackEnd - stayed.stackEnd))} {growth.stackEnd >= stayed.stackEnd ? 'smaller' : 'larger'} than the growth mix. Alex is refusing to bet the whole thing on one.
+          A middle split of your dollars pays {fmt(middle.capacity)} a year and is worth {fmt(middle.stackEnd)} in 25 years. The check is smaller than the steadier split. The pile is smaller than the growth split.
         </p>
       </section>
 
       <section id="simple" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">Skipping the policy</h2>
+        <h2 className="font-display text-2xl font-semibold">No insurance policy</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          On Alex’s {fmt(2_000_000)}, the policy was already {fmt(0)}, because {fmt(steady.core)} is under {fmt(PPLI_QP_MIN)}. Skipping it changes nothing at this size. On the {fmt(8_000_000)} example, the policy holds {fmt(bigSteady.ppli)}. Dropping it means that money goes back to bonds and stocks, and the {fmt(bigSteady.ppli * rates.ppliDraw)} a year from the policy goes with it.
+          With the policy removed and the money split half bonds and half stocks, the yearly check is {fmt(noPolicy.capacity)} and the pile in 25 years is {fmt(noPolicy.stackEnd)}. Your current numbers pay {fmt(yours.capacity)} a year and leave {fmt(yours.stackEnd)}.
         </p>
       </section>
 
       <section id="assumptions" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">The rates behind every number on this page</h2>
+        <h2 className="font-display text-2xl font-semibold">The rates on your numbers</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Bonds {pct(rates.muniYield)}. Stocks, growth {pct(rates.eqGrowth)}. Stocks, the amount spent {pct(rates.eqDraw)}. Policy growth {pct(rates.ppliGrowth)}. Policy paycheck {pct(rates.ppliDraw)}. Inflation, which raises the check you asked for, {pct(rates.inflation)}. These are the rates on the calculator. Change them there and this example changes with them. They are not a promise that the next 25 years will look like this.
+          Bonds {pct(asm.muniYield)}. Stocks, growth {pct(asm.eqGrowth)}. Stocks, the amount spent {pct(asm.eqDraw)}. Policy growth {pct(asm.ppliGrowth)}. Policy paycheck {pct(asm.ppliDraw)}. Inflation {pct(asm.inflation)}. These are the rates on the calculator. Change them there and every figure on this page changes with them. They are not a promise about the next 25 years.
         </p>
       </section>
     </div>
