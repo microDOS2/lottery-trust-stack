@@ -227,7 +227,7 @@ export default function CalculatorView(p: Props) {
         )}
 
         <Field label="Prize amount ($)" tip="The cash option, or what is left if tax is already paid. Not the advertised jackpot." more="assumptions" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.amount} min={0} step={100000} onChange={(e) => set('amount', +e.target.value || 0)} />
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.amount || ''} min={0} step={100000} onChange={(e) => set('amount', +e.target.value || 0)} />
         </Field>
 
         <div className="flex gap-2">
@@ -242,11 +242,11 @@ export default function CalculatorView(p: Props) {
         </div>
 
         <Field label="Debt to pay before investing ($)" tip="Subtracted after tax and before anything is invested. Zero subtracts nothing. It does not change the tax." more="not-included" help="The exact amount. If it is larger than the cash left after tax, only the cash left is subtracted.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.debt} min={0} step={1} onChange={(e) => set('debt', +e.target.value || 0)} />
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.debt || ''} min={0} step={1} onChange={(e) => set('debt', +e.target.value || 0)} />
         </Field>
 
         <Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than what the investments can pay, the pile gets spent." more="trade" help="The exact amount, in dollars.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend} min={0} step={1} onChange={(e) => set('spend', +e.target.value || 0)} />
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend || ''} min={0} step={1} onChange={(e) => set('spend', +e.target.value || 0)} />
         </Field>
 
         <p className="rounded-md bg-secondary px-3 py-2 text-[13.5px] leading-relaxed">
@@ -278,15 +278,15 @@ export default function CalculatorView(p: Props) {
         </div>
 
         <Field label="Entity #4 property / vehicle reserve" help={inp.residency === 'pr' ? "LLC can hold investment property — but not your PR primary residence (2026 rules require direct/trust ownership)." : "Cash carved out for the anonymous LLC to buy a home or vehicles. $0 if none."}>
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.entity4} min={0} step={50000} onChange={(e) => set('entity4', +e.target.value || 0)} />
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.entity4 || ''} min={0} step={50000} onChange={(e) => set('entity4', +e.target.value || 0)} />
         </Field>
 
         <Field label="Structure setup costs ($)" help="One-time year-1 legal and professional work: trusts drafted, PPLI placed, LLC formed, custody opened. Realistic range $50–150K.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.setupCost} min={0} step={5000} onChange={(e) => set('setupCost', +e.target.value || 0)} />
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.setupCost || ''} min={0} step={5000} onChange={(e) => set('setupCost', +e.target.value || 0)} />
         </Field>
 
         <Field label="Annual admin & professional fees ($)" help="Trustee fees, PPLI carrier charges, CPA for trust returns, registered agent. Realistic range $15–50K/yr, grows with inflation. Drags the stack — the taxable baseline pays none of this.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.annualAdmin} min={0} step={1000} onChange={(e) => set('annualAdmin', +e.target.value || 0)} />
+          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.annualAdmin || ''} min={0} step={1000} onChange={(e) => set('annualAdmin', +e.target.value || 0)} />
         </Field>
 
         <div>
