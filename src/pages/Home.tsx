@@ -299,7 +299,7 @@ export default function Home() {
           <AnnuityView
             defaultState={inputs.state}
             filing={inputs.filing}
-            onNext={() => setView('goals')}
+            onNext={(cash) => { if (cash > 0) setInputsRaw((p) => ({ ...p, amount: cash, basis: 'gross' })); setView('goals'); }}
             onUseCash={(cash) => {
               setInputsRaw((p) => ({ ...p, amount: cash, basis: 'gross' }));
               setView('calc');
