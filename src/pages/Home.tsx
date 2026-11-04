@@ -242,7 +242,7 @@ export default function Home() {
             <span className="hidden font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground md:inline">2026 ed.</span>
           </button>
           </Tip>
-          <nav className="flex flex-wrap gap-1" aria-label="Sections">
+          <nav className="flex flex-nowrap gap-0.5 overflow-x-auto" aria-label="Sections">
             {NAV.map(({ id, label, icon: Icon }) => (
               <Tip key={id} text={NAV_TIP[id]}>
               <button
@@ -250,7 +250,7 @@ export default function Home() {
                   if (id === 'explain') { openExplainTab(); return; }
                   setView(id);
                 }}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] transition-colors cursor-pointer ${
+                className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[13px] transition-colors cursor-pointer ${
                   view === id
                     ? 'bg-primary text-primary-foreground font-medium'
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
