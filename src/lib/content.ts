@@ -3,25 +3,23 @@
 
 export interface Strategy {
   id: string;
-  tag: string;          // short category label
+  tag: string;
   name: string;
-  oneLiner: string;     // plain-English summary
-  taxMagic: string;     // the mechanism that makes it tax-free / tax-deferred
-  qualifies: string;    // eligibility & thresholds
-  watchOut: string;     // risks and caveats
-  plugsIn: string;      // where it fits in the 4-entity stack
-  stat?: string;        // key 2026 figure
+  oneLiner: string;
+  taxMagic: string;
+  qualifies: string;
+  watchOut: string;
+  plugsIn: string;
+  stat?: string;
   statLabel?: string;
 }
 
-/** Core engines that map onto the calculator's A / B / C weights. Everything else is a listed module. */
 export const ENGINE_PRESETS: Record<string, { a: number; b: number; c: number }> = {
   'engine-a': { a: 0.5, b: 0.2, c: 0.3 },
   'engine-b': { a: 0.2, b: 0.45, c: 0.35 },
   'engine-c': { a: 0.2, b: 0.2, c: 0.6 },
 };
 
-/** Dense statutory claims. Shown on the card; they do not change the calculator math. */
 export const COUNSEL_NOTES: Record<string, string> = {
   oz: 'Statutory summary as of November 2026 (OZ changes in the 2025 tax act). Confirm the investment year, rural step-up, and 10-year exclusion with counsel before relying on these figures.',
   qsbs: 'Statutory summary as of November 2026 (IRC §1202 as amended in 2025). The $15M per-issuer cap, holding-period schedule, and state conformity — California does not conform — are fact-specific. Confirm with counsel.',
@@ -35,16 +33,11 @@ export const STRATEGIES: Strategy[] = [
     id: 'engine-a',
     tag: 'Core engine',
     name: 'Municipal Bond Ladder',
-    oneLiner:
-      'A staircase of high-grade city and state bonds that pays you interest the IRS cannot touch. Rungs mature every year, so cash keeps coming back to you on schedule.',
-    taxMagic:
-      'Interest on state and local bonds is excluded from federal income tax under IRC §103. Buy bonds issued in your home state and most states exempt the interest there too — making the income fully tax-free.',
-    qualifies:
-      'Anyone. No minimums beyond bond lot sizes (typically $5,000 per bond). Stick to AAA/AA general-obligation and essential-service revenue bonds.',
-    watchOut:
-      'Yields are modest (~4%+), and some "private activity" bonds trigger the AMT. Out-of-state bonds can be taxed by your home state. Interest rate rises push existing bond prices down.',
-    plugsIn:
-      'Lives inside Trust #2 (the DAPT). It is the reliable floor of your tax-free income — the annuity you build yourself.',
+    oneLiner: 'A staircase of high-grade city and state bonds that pays you interest the IRS cannot touch. Rungs mature every year, so cash keeps coming back to you on schedule.',
+    taxMagic: 'Interest on state and local bonds is excluded from federal income tax under IRC §103. Buy bonds issued in your home state and most states exempt the interest there too — making the income fully tax-free. This is federal. It does not depend on Puerto Rico or any particular state.',
+    qualifies: 'Anyone. No minimums beyond bond lot sizes (typically $5,000 per bond). Stick to AAA/AA general-obligation and essential-service revenue bonds.',
+    watchOut: 'Yields are modest (~4%+), and some "private activity" bonds trigger the AMT. Out-of-state bonds can be taxed by your home state. Interest rate rises push existing bond prices down.',
+    plugsIn: 'Lives inside Trust #2 (the DAPT). It is the reliable floor of your tax-free income.',
     stat: '~4%',
     statLabel: 'model yield, mixed ladder',
   },
@@ -52,16 +45,11 @@ export const STRATEGIES: Strategy[] = [
     id: 'engine-b',
     tag: 'Core engine',
     name: 'Private Placement Life Insurance (PPLI)',
-    oneLiner:
-      'A hedge-fund-style portfolio wrapped inside an institutional life insurance policy. The IRS treats the growth as insurance, not investments — so it compounds untaxed and comes out tax-free.',
-    taxMagic:
-      'Inside a non-MEC policy, growth is not taxed as it compounds (IRC §7702). You take money out tax-free by withdrawing up to your cost basis, then switching to policy loans (IRC §72(e)). At death it all passes income-tax-free.',
-    qualifies:
-      'Typically requires Qualified Purchaser status — $5M+ in investments — and carrier minimum premiums around $2.5M. This is an institutional product, not retail insurance.',
-    watchOut:
-      'Must respect IRS diversification rules (IRC §817(h)) and investor-control doctrine — you cannot pick the stocks yourself. Fees matter; only large premiums make the math beat a taxable account. Never let it lapse with loans outstanding.',
-    plugsIn:
-      'Trust #3 owns the policy. The model takes about 4.5% a year tax-free, under the policy’s assumed growth, so one bad stretch does not empty it on the chart.',
+    oneLiner: 'A hedge-fund-style portfolio wrapped inside an institutional life insurance policy. The IRS treats the growth as insurance, not investments — so it compounds untaxed and comes out tax-free.',
+    taxMagic: 'Inside a non-MEC policy, growth is not taxed as it compounds (IRC §7702). You take money out tax-free by withdrawing up to your cost basis, then switching to policy loans (IRC §72(e)). At death it all passes income-tax-free. This is federal. Puerto Rico does not add to it.',
+    qualifies: 'Typically requires Qualified Purchaser status — $5M+ in investments — and carrier minimum premiums around $2.5M. This is an institutional product, not retail insurance.',
+    watchOut: 'Must respect IRS diversification rules (IRC §817(h)) and investor-control doctrine — you cannot pick the stocks yourself. Fees matter; only large premiums make the math beat a taxable account. Never let it lapse with loans outstanding.',
+    plugsIn: 'Trust #3 owns the policy. The model takes about 4.5% a year tax-free, under the policy’s assumed growth.',
     stat: '$5M',
     statLabel: 'Qualified Purchaser minimum',
   },
@@ -69,16 +57,11 @@ export const STRATEGIES: Strategy[] = [
     id: 'engine-c',
     tag: 'Core engine',
     name: 'Direct-Indexed Equities + Box Spreads',
-    oneLiner:
-      'Instead of an index fund, you own the hundreds of individual stocks. Every day, software sells the losers to harvest tax losses while your winners keep compounding.',
-    taxMagic:
-      'Harvested losses offset gains (IRC §1211). When you need cash, you can borrow against the portfolio (a box-spread loan priced near Treasury rates) instead of selling — borrowing is not a taxable event, and Section 1256 box-spread financing keeps it cheap.',
-    qualifies:
-      'Direct indexing is practical from roughly $500K–$1M up; the bigger the account, the more losses it can harvest.',
-    watchOut:
-      'Markets fall — harvesting softens but does not erase drawdowns. Leverage must stay conservative (keep loan-to-value low) or a downturn can force sales at the worst time.',
-    plugsIn:
-      'Lives in Trust #2 next to the muni ladder. This is your primary growth engine — the part of the stack built to compound for 25 years.',
+    oneLiner: 'Instead of an index fund, you own the hundreds of individual stocks. Shares that have fallen can be sold to lock in a loss. Those losses offset gains.',
+    taxMagic: 'Harvested losses offset gains (IRC §1211). You do not buy stocks intending them to lose. You use declines that happen. If you sell a stock at a loss and buy the same stock within 30 days before or after, the loss is disallowed. Buy a different similar stock, or wait until day 31 to buy the same one. When you need cash, you can borrow against the portfolio instead of selling. A loan is not income.',
+    qualifies: 'Direct indexing is practical from roughly $500K–$1M up; the bigger the account, the more losses it can harvest.',
+    watchOut: 'Markets fall — harvesting softens but does not erase drawdowns. If the stocks are sold to pay a loan, the sale is taxed. Paying the loan does not erase the gain. Leverage must stay conservative or a downturn can force sales.',
+    plugsIn: 'Lives in Trust #2 next to the muni ladder. This is the growth engine. Puerto Rico can exclude gains from these stocks only in a year you qualify as a bona fide resident and the stocks are sold that year.',
     stat: '~7%',
     statLabel: 'model long-run growth',
   },
@@ -86,16 +69,11 @@ export const STRATEGIES: Strategy[] = [
     id: 'leverage',
     tag: 'New module',
     name: 'Buy · Borrow · Die (Portfolio Lending)',
-    oneLiner:
-      'The classic billionaire move: never sell. Pledge your portfolio for a credit line, spend the loan proceeds tax-free, and let the assets keep compounding. At death, heirs get a stepped-up basis and the gains vanish for tax purposes.',
-    taxMagic:
-      'Loans are not income, so borrowing against securities triggers zero tax. Interest on a box-spread or securities-based line of credit runs near benchmark rates — far below the 23.8% + state you would pay to sell. The §1014 basis step-up at death erases the embedded gain.',
-    qualifies:
-      'Any large brokerage or trust account. Lenders typically advance 50–70% against a diversified stock portfolio, less against concentrated positions.',
-    watchOut:
-      'This is leverage. If markets drop and your loan-to-value climbs too high, the lender sells your assets (a margin call). Keep LTV under ~25–30% and you have an enormous safety buffer. Rates float — a spike raises your carry cost.',
-    plugsIn:
-      'The credit line attaches to Trust #2’s equity portfolio. It is the pressure valve: big one-off purchases (a house, a car, a business) without ever interrupting compounding.',
+    oneLiner: 'Pledge the stocks, take a loan, and spend the loan. The stocks stay in place. You do not sell.',
+    taxMagic: 'Loans are not income, so borrowing against securities triggers zero tax. At death, the stocks get a new cost basis equal to their value then. The gain that built up is not taxed as income to the heirs. The loan is still a debt of the estate.',
+    qualifies: 'Any large brokerage or trust account. Lenders typically advance 50–70% against a diversified stock portfolio.',
+    watchOut: 'If the stocks drop and the loan is too large relative to them, the lender can force a sale. A loan above about 30% of the stocks is the point where that risk gets real. If the stocks are sold to pay the loan, the sale is taxed. Paying the loan does not erase the gain. Interest is still owed.',
+    plugsIn: 'The credit line attaches to the equity portfolio. It is how you spend without selling. If you never sell, Puerto Rico adds nothing to this piece.',
     stat: '0%',
     statLabel: 'tax on loan proceeds',
   },
@@ -103,33 +81,23 @@ export const STRATEGIES: Strategy[] = [
     id: 'oz',
     tag: 'New module',
     name: 'Opportunity Zone Funds (OZ 2.0)',
-    oneLiner:
-      'Roll investment gains into a fund that builds businesses and property in designated zones. Hold 10 years and every dollar of new appreciation is permanently tax-free.',
-    taxMagic:
-      'Under the 2025 tax law’s permanent OZ regime (investments from 2027 onward): gains you invest are deferred on a rolling 5-year basis, you get a 10% basis step-up (30% in rural zones) at year five, and after a 10-year hold the fund’s appreciation is excluded from tax entirely.',
-    qualifies:
-      'You need eligible capital gains to roll in (e.g., from selling stock, a business, or property) within 180 days. Funds must hold qualified zone property.',
-    watchOut:
-      'Ten years is a long lockup, fund quality varies wildly, and you are betting on specific neighborhoods. Fees can be heavy. This is real investing risk, not a bond substitute.',
-    plugsIn:
-      'An optional satellite holding of Trust #2 — carve out a slice (say 5–10% of the equity sleeve) for OZ funds when you have gains to shelter.',
+    oneLiner: 'Roll investment gains into a fund that builds businesses and property in designated zones. Hold 10 years and the new appreciation can be excluded from federal tax.',
+    taxMagic: 'Under the 2025 tax law’s permanent OZ regime (investments from 2027 onward): gains you invest are deferred on a rolling 5-year basis, you get a 10% basis step-up (30% in rural zones) at year five, and after a 10-year hold the fund’s appreciation is excluded from tax. This is federal. Puerto Rico does not add to it.',
+    qualifies: 'You need eligible capital gains to roll in within 180 days. Funds must hold qualified zone property.',
+    watchOut: 'Ten years is a long lockup, fund quality varies, and you are betting on specific neighborhoods. Fees can be heavy.',
+    plugsIn: 'An optional slice of the equity sleeve. You still type the dollars.',
     stat: '10 yrs',
-    statLabel: 'hold for tax-free appreciation',
+    statLabel: 'hold for the exclusion',
   },
   {
     id: 'qsbs',
     tag: 'New module',
     name: 'QSBS — Startup Stock Exclusion',
-    oneLiner:
-      'Invest in an early-stage C-corporation, hold the stock 5+ years, and federal tax on the gain can be 100% excluded — up to $15 million per company (or 10× your basis, if higher).',
-    taxMagic:
-      'IRC §1202. For stock issued after July 4, 2025: 50% excluded at 3 years, 75% at 4 years, 100% at 5 years, with the per-issuer cap raised from $10M to $15M (inflation-indexed from 2027). Each trust in your stack can hold its own $15M exclusion.',
-    qualifies:
-      'Stock must be issued by a U.S. C-corp with under $75M in gross assets, in an eligible operating business (not finance, hospitality, or professional services), acquired at original issuance.',
-    watchOut:
-      'Startups fail — most go to zero. State conformity varies (California does not conform). The 5-year clock and corporate-form rules are strict; get the paperwork right at issuance.',
-    plugsIn:
-      'A small venture sleeve inside Trust #2 or a dedicated non-grantor trust. Size it as money you can fully lose — but each winner can exit tax-free.',
+    oneLiner: 'Invest in an early-stage C-corporation, hold the stock 5+ years, and federal tax on the gain can be excluded — up to $15 million per company (or 10× your basis, if higher).',
+    taxMagic: 'IRC §1202. For stock issued after July 4, 2025: 50% excluded at 3 years, 75% at 4 years, 100% at 5 years, with the per-issuer cap at $15M (inflation-indexed from 2027). This is federal. Puerto Rico does not add to it.',
+    qualifies: 'Stock must be issued by a U.S. C-corp with under $75M in gross assets, in an eligible operating business, acquired at original issuance.',
+    watchOut: 'Startups fail — most go to zero. State conformity varies (California does not conform).',
+    plugsIn: 'A small venture sleeve. Size it as money you can fully lose.',
     stat: '$15M',
     statLabel: 'per-issuer federal exclusion cap',
   },
@@ -137,16 +105,11 @@ export const STRATEGIES: Strategy[] = [
     id: 'legacy',
     tag: 'New module',
     name: 'Dynasty Trust & the $15M Exemption',
-    oneLiner:
-      'The 25-year threat to your compounding is not income tax — it is the 40% federal estate tax. Move growth assets into a dynasty trust early, and decades of appreciation skip estate tax for generations.',
-    taxMagic:
-      'The 2026 federal estate/gift/GST exclusion is $15M per person ($30M per couple), now permanent and inflation-indexed. Gift assets into a properly drafted irrevocable trust (IDGT, GRAT, or SLAT) now; everything they grow into sits outside your taxable estate forever.',
-    qualifies:
-      'Anyone with assets above the exclusion — a $20M+ jackpot winner is a candidate on day one. Requires an estate attorney; situs states like Wyoming, South Dakota, and Nevada allow perpetual trusts.',
-    watchOut:
-      'Irrevocable means irrevocable — you give up direct control. Gifts above the exclusion trigger 40% gift tax. Rules on basis step-up vs. estate inclusion involve real tradeoffs; this needs professional drafting.',
-    plugsIn:
-      'Layered above Trusts #1–3. The trusts you already built for income become the funding source for the dynasty layer — compounding shifts from "your lifetime" to "your family’s century."',
+    oneLiner: 'The federal estate tax exclusion is $15 million per person. A trust changes estate tax only if a lawyer drafts it and you actually give the money away.',
+    taxMagic: 'The 2026 federal estate/gift/GST exclusion is $15M per person ($30M per couple), now permanent and inflation-indexed. This is estate tax at death, not income tax while you are alive. A trust does not make investment income tax-free.',
+    qualifies: 'Anyone with assets above the exclusion. Requires an estate attorney.',
+    watchOut: 'Irrevocable means you give up direct control. Gifts above the exclusion trigger 40% gift tax.',
+    plugsIn: 'It does not move money in the calculator. The exclusion figure is shown so you can see the size.',
     stat: '$15M',
     statLabel: '2026 federal exclusion per person',
   },
@@ -154,16 +117,11 @@ export const STRATEGIES: Strategy[] = [
     id: 'charitable',
     tag: 'New module',
     name: 'Charitable Remainder Trusts & DAFs',
-    oneLiner:
-      'Give appreciated assets to a charitable trust, sell them inside it with zero immediate tax, keep an income stream for life, and take a large deduction this year. Generosity and income are not either/or.',
-    taxMagic:
-      'A CRT is tax-exempt: it sells appreciated assets without paying capital gains, reinvests the full amount, and pays you an annuity or unitrust percentage for life or a term (IRC §664). You also get an upfront charitable deduction. A donor-advised fund is the simpler cousin — bunch several years of gifts into one high-income year for a big deduction.',
-    qualifies:
-      'Best when you have genuine charitable intent plus a high-tax year — like the year you claim the prize.',
-    watchOut:
-      'At least 10% of the CRT’s value must be destined for charity, and the assets truly leave your estate. Payout rates are regulated. Not an income maximizer — a tax-efficient way to combine giving and income.',
-    plugsIn:
-      'Sits beside the stack. In the win year, a DAF or CRT contribution can offset a slice of the prize tax while the rest flows into Trusts #1–3.',
+    oneLiner: 'Give appreciated assets to a charitable trust. The trust can sell them without immediate capital-gains tax. You keep an income stream. You type the amount.',
+    taxMagic: 'A CRT is tax-exempt: it sells appreciated assets without paying capital gains, and pays you an annuity or unitrust percentage. You also get an upfront charitable deduction. At least 10% must go to charity.',
+    qualifies: 'Best when you have charitable intent and a high-tax year.',
+    watchOut: 'The assets leave your estate. This is not an income maximizer.',
+    plugsIn: 'You type the dollars. Nothing is given until you do.',
     stat: '0%',
     statLabel: 'capital gains tax inside a CRT',
   },
@@ -171,33 +129,23 @@ export const STRATEGIES: Strategy[] = [
     id: 'pr-act60',
     tag: 'New module · Global',
     name: 'Puerto Rico Act 60',
-    oneLiner:
-      'The only way to keep US citizenship and legally cut federal tax on investment gains to near zero: become a genuine resident of Puerto Rico, which the tax code treats as outside the US for income earned after the move.',
-    taxMagic:
-      'IRC §933 excludes Puerto-Rico-source income from US federal tax for bona fide PR residents — and capital gains on personal property are sourced by residence. The Act 60 decree then sets the local rate: 0% for applications filed by December 31, 2026 (locked through 2035), or a flat 4% for filings from 2027 onward (through 2055). Gains you already had before moving stay taxable — federal up to 23.8% if sold within 10 years, 5% to PR after.',
-    qualifies:
-      'You must actually move: 183+ days a year, your primary home in PR (bought within 2 years — and under the 2026 rules owned directly or by a trust, not an LLC), a six-year residency lookback, $15,000/year to PR charities, and a formal decree application with fees.',
-    watchOut:
-      'This is a lifestyle move with a tax benefit, not a mailbox. PR and the IRS both police it, and Congress rewrites the deal periodically — 2026 was the second tightening. US-source dividends and interest remain federally taxable, so portfolios get restructured toward growth. And the prize itself, if claimed before the move, is already taxed.',
-    plugsIn:
-      'A residency option in the calculator. The whole trust stack still applies — Trust #2 and #3 work the same — but the taxable-baseline comparison drops to the PR rate, and Entity #4 cannot hold the PR home.',
+    oneLiner: 'Can exclude stock gains from US federal tax in a year you qualify as a bona fide resident. It does not change the prize tax. It does not add to the tax-free pieces of the stack.',
+    taxMagic: 'Bona fide residency is decided one tax year at a time. You must meet the presence test, the tax-home test, and the closer-connection test for that year. The usual presence test is 183 days in Puerto Rico. Days outside Puerto Rico do not count. A mailing address, bills, and a license do not replace the days. In a year you qualify, stock gains sold that year can be Puerto Rico-source and excluded from US federal tax. In a year you do not qualify, those gains are taxed under the ordinary US rules. Living there one year does not carry the status into the next.',
+    qualifies: 'You must be in Puerto Rico for the required days in the year, and meet the tax-home and closer-connection tests. A decree and the local charity contribution are separate requirements for the local rate.',
+    watchOut: 'Compared with Nevada: Nevada has no state income tax, and traveling does not turn that off, because there is no day-count test. You still pay US federal tax on stock gains every year. Puerto Rico can remove that federal tax on qualifying gains, but only in the years you qualify. If you never sell the stocks and only borrow against them, Puerto Rico adds nothing to the stack. The prize is taxed in the state you live in when you receive it. Moving does not change that.',
+    plugsIn: 'A residency option. It matters only if stocks are sold in a qualifying year. The bond interest, the policy withdrawals, qualifying startup-stock gains, and opportunity-zone appreciation after ten years are already federal exclusions. Puerto Rico does not add to them.',
     stat: '0% / 4%',
-    statLabel: 'decree rate: filed 2026 vs 2027+',
+    statLabel: 'decree rate if you qualify that year',
   },
   {
     id: 'real-estate',
     tag: 'New module',
     name: 'Investment Real Estate in the LLC',
-    oneLiner:
-      'Entity #4 can do more than hold your house anonymously — put income property in it and three quiet tax engines compound wealth: depreciation, 1031 exchanges, and the step-up at death.',
-    taxMagic:
-      'Depreciation creates a paper loss that shelters the rent; a cost-segregation study front-loads ~20–30% of the building into 100% bonus depreciation in year one. When you sell, a 1031 exchange rolls the entire gain into the next property, deferred indefinitely. Hold until death and the §1014 step-up erases the deferred gain for your heirs.',
-    qualifies:
-      'Anyone. 1031 requires like-kind real estate, a qualified intermediary, and strict 45-day identification / 180-day closing windows. Depreciation shields only passive income unless you qualify as a real-estate professional.',
-    watchOut:
-      'Depreciation recapture (25%) and deferred gains come due if you ever sell without exchanging. Real estate is illiquid, management-intensive, and local — a bad market can idle capital for years. Land never depreciates; only the building does.',
-    plugsIn:
-      'Lives in Entity #4. The LLC owns the properties (privacy + liability), rents cover carrying costs, and equity compounds tax-deferred alongside the securities engines in Trusts #2 and #3.',
+    oneLiner: 'Income property can use depreciation, a 1031 exchange, and a step-up at death. You type the dollars.',
+    taxMagic: 'Depreciation shelters rent. A 1031 exchange rolls a gain into the next property. Hold until death and the step-up erases the deferred gain for heirs.',
+    qualifies: 'Anyone. 1031 requires like-kind real estate and strict timing.',
+    watchOut: 'Depreciation recapture and deferred gains come due if you sell without exchanging. A real building can sit empty.',
+    plugsIn: 'You type the dollars. Nothing is taken until you do.',
     stat: '0%',
     statLabel: 'tax on gains via 1031 chain',
   },
@@ -205,16 +153,11 @@ export const STRATEGIES: Strategy[] = [
     id: 'foreign-trust',
     tag: 'Reality check · Global',
     name: 'Foreign Trusts (Cook Islands, St. Kitts)',
-    oneLiner:
-      'The gold standard of asset protection — and a total dud for income tax. When a US citizen funds a foreign trust and stays a beneficiary, the IRS taxes every gain inside it back to you personally.',
-    taxMagic:
-      'There is none for taxes, and that is the point. IRC §679 makes any foreign trust funded by a US person with US beneficiaries a grantor trust: every dollar of income and capital gain is yours personally, as if the trust never existed. St. Kitts or the Cook Islands not taxing the trust is irrelevant — the US taxes its citizens on worldwide income wherever the trustee sits. The throwback rules punish accumulated distributions, and Forms 3520/3520-A/8938 carry penalties up to 35% of transfers.',
-    qualifies:
-      'Legitimate for protection, not taxes: assets beyond the practical reach of US courts (no recognition of foreign judgments, short fraudulent-transfer windows). Also legitimate for non-US persons, or in pre-immigration planning before someone becomes a US tax resident.',
-    watchOut:
-      'FTC v. Affordable Media put a Cook Islands settlor in jail for contempt when he could not repatriate assets on court order. Setup runs $20–50K plus $5–15K a year. And treat any "offshore trust = tax-free gains" pitch aimed at a US citizen — including dramatized YouTube stories — as fiction until a tax attorney confirms otherwise in writing.',
-    plugsIn:
-      'Nowhere in the tax math — deliberately. If your threat model someday justifies it, a foreign APT can sit above Trust #2 as a pure asset-protection wrapper at added cost and zero tax change. The DAPT already covers most protection needs domestically.',
+    oneLiner: 'Can make assets harder for a US court to reach. Does not lower US income tax for a US person.',
+    taxMagic: 'There is none for taxes. IRC §679 makes a foreign trust funded by a US person with US beneficiaries a grantor trust: the income and gains are yours, as if the trust were not there. The US taxes its citizens on worldwide income.',
+    qualifies: 'Legitimate for protection, not taxes.',
+    watchOut: 'A court can jail you for refusing to bring the assets back. Extra reporting applies. It does not hide money from the IRS.',
+    plugsIn: 'Not in the tax math. The US tax saved in these numbers is $0.',
     stat: '$0',
     statLabel: 'US tax saved for a US grantor',
   },
@@ -222,100 +165,22 @@ export const STRATEGIES: Strategy[] = [
     id: 'expatriation',
     tag: 'Reality check · Global',
     name: 'Expatriation: Why It Rarely Wins',
-    oneLiner:
-      'Renouncing US citizenship is the only true escape from US worldwide taxation — and for anyone wealthy enough to consider it, the exit toll is designed to make leaving cost about the same as staying.',
-    taxMagic:
-      'There is no magic — that is the point. With a net worth of $2M+ you are a "covered expatriate": the IRS deems your worldwide assets sold the day before you leave, taxing gains above a $910,000 exclusion (2026) at up to 23.8%. A deferred-compensation and trust regime follows, and under §2801, future gifts or bequests to US persons can face a 40% tax — for the rest of your life.',
-    qualifies:
-      'Anyone can renounce (the fee is $450). The question is whether you want a new home country, a second passport first, and permanent distance from US family and markets — not whether the math works.',
-    watchOut:
-      'It is irrevocable in practice, can complicate US visas and banking forever, and does not unwind prior-year liabilities. Every offshore "tax freedom" pitch aimed at a US citizen that skips the exit tax is incomplete or dishonest.',
-    plugsIn:
-      'Nowhere in the stack — that is the answer. Puerto Rico captures most of the benefit at a fraction of the cost. Model PR first; treat expatriation as a life decision, never a tax play.',
+    oneLiner: 'Giving up US citizenship is the step that ends US tax on money from anywhere. It has its own tax.',
+    taxMagic: 'With a net worth of $2M+ you are a covered expatriate: the IRS deems your worldwide assets sold the day before you leave, taxing gains above a $910,000 exclusion (2026) at up to 23.8%. Future gifts to US persons can face a 40% tax.',
+    qualifies: 'Anyone can renounce. The question is whether you want a new home country.',
+    watchOut: 'It is irrevocable in practice. It does not unwind prior-year liabilities. The exit tax is separate from the yearly check and the pile.',
+    plugsIn: 'Type what the assets would sell for and what you paid. The tax is calculated from those numbers.',
     stat: '23.8%',
-    statLabel: 'deemed-sale toll on the way out',
+    statLabel: 'deemed-sale rate on the gain above the exclusion',
   },
 ];
 
 export interface GlossaryTerm { term: string; def: string }
 
 export const GLOSSARY: GlossaryTerm[] = [
-  { term: 'Trust #1 — Master Trust', def: 'The revocable trust that receives the lottery wire. It holds your April 15 tax-reconciliation reserve (T-Bills) and your Year-1 living reserve in tax-exempt money market funds.' },
-  { term: 'Trust #2 — DAPT', def: 'A domestic asset-protection trust (Nevada or Wyoming situs). Self-settled, so you can be a beneficiary while it shields assets. Holds the muni ladder and direct-indexed equities.' },
-  { term: 'Trust #3 — PPLI Trust', def: 'An irrevocable insurance trust that owns the private placement life insurance policy, keeping the death benefit and cash value outside your estate.' },
-  { term: 'Entity #4 — Anonymous LLC', def: 'A Wyoming (or similar) holding LLC that owns real estate and vehicles in its own name, keeping your personal name off public property and title records.' },
-  { term: 'Non-MEC', def: 'A life insurance policy funded within IRS limits so it is not a "modified endowment contract." Non-MEC status is what allows tax-free withdrawals to basis and tax-free policy loans.' },
-  { term: 'Qualified Purchaser', def: 'Under Investment Company Act §2(a)(51), generally a person with $5M+ in investments. Required for most PPLI and many private funds.' },
-  { term: 'WING / NING trust', def: 'An incomplete-gift non-grantor trust sited in a no-income-tax state (Wyoming/Nevada). Properly drafted, it can shift state income tax on retained portfolio income to the 0% state.' },
-  { term: 'Box spread', def: 'An options construction that behaves like a fixed-rate loan against your portfolio, priced near Treasury rates and generally eligible for Section 1256 tax treatment. A cheap way to borrow without selling.' },
-  { term: 'SBLOC', def: 'Securities-based line of credit. A bank lends you cash against your brokerage or trust portfolio; the securities stay invested and keep compounding.' },
-  { term: 'Step-up in basis', def: 'IRC §1014: at death, your heirs’ cost basis resets to current market value. A lifetime of unrealized gains disappears for income-tax purposes. The reason "buy, borrow, die" works.' },
-  { term: 'NIIT', def: 'Net Investment Income Tax — an extra 3.8% federal tax on investment income above $200K (single) / $250K (MFJ). On top of the 20% top capital-gains rate, it makes 23.8% the real top federal rate on gains.' },
-  { term: 'Tax-loss harvesting', def: 'Selling positions that are down to realize losses that offset gains elsewhere, then immediately reinvesting in similar (not identical) holdings to stay on track. Direct indexing does this daily.' },
-  { term: 'Opportunity Zone', def: 'A federally designated community where investing gains through a Qualified Opportunity Fund earns deferral, a partial basis step-up, and — after 10 years — tax-free appreciation.' },
-  { term: 'QSBS', def: 'Qualified Small Business Stock (IRC §1202). Stock in an eligible C-corp held 5+ years can be sold with up to $15M of gain excluded from federal tax (for stock issued after July 4, 2025).' },
-  { term: 'CRT', def: 'Charitable Remainder Trust. You donate appreciated assets, the trust sells them tax-free, pays you income for life or a term, and the remainder goes to charity. You get a deduction up front.' },
-  { term: 'DAF', def: 'Donor-Advised Fund. A charitable account you fund now (deduction now) and grant from over time. Ideal for bunching deductions into your high-income prize year.' },
-  { term: 'IDGT / GRAT / SLAT', def: 'Estate-planning trust flavors: Intentionally Defective Grantor Trust (freeze estate value, you pay the income tax), Grantor Retained Annuity Trust (pass appreciation above a hurdle rate gift-tax-free), Spousal Lifetime Access Trust (remove assets from the estate while your spouse keeps access).' },
-  { term: 'Domicile vs. residency', def: 'Domicile is your true legal home (intent + ties: license, voter registration, primary home). Statutory residency is a day-count test (often ~183 days plus a permanent abode). High-tax states audit both aggressively — track your days.' },
-  { term: 'Act 60 / IRC §933', def: 'Puerto Rico\'s tax-incentive decree combined with the federal code section that excludes Puerto-Rico-source income from US tax for bona fide PR residents. The legal basis for the 0%/4% rates on post-move investment gains.' },
-  { term: '1031 exchange', def: 'IRC §1031: sell investment real estate and roll the entire proceeds into a like-kind property within strict deadlines (45-day identification, 180-day close) and the capital gain is deferred, not taxed. Can be chained forever.' },
-  { term: 'Cost segregation', def: 'An engineering study that reclassifies parts of a building (fixtures, flooring, landscaping) into 5/7/15-year property so they depreciate in year one via 100% bonus depreciation, instead of over 27.5 years.' },
-  { term: 'Covered expatriate', def: 'A US citizen or long-term resident who renounces with $2M+ net worth (or high average tax liability). Triggers the exit tax: a deemed sale of worldwide assets above a $910,000 exclusion (2026).' },
-  { term: 'Grantor trust rules (§§671–679)', def: 'If you fund a trust and keep benefit or control, the IRS taxes all its income to you personally. This is why offshore trusts cannot shelter a US citizen\'s gains — and why the stack uses tax-free engines instead of hiding income in entities.' },
-  { term: 'IRC §2801', def: 'The parting gift of expatriation: a 40% tax on gifts or bequests a covered expatriate later makes to US citizens or residents — paid by the recipient, for the rest of the expatriate\'s life.' },
-];
-
-export interface GuideStep {
-  phase: string;
-  title: string;
-  body: string;
-}
-
-export const GUIDE_STEPS: GuideStep[] = [
-  {
-    phase: 'Before you claim',
-    title: 'Sign the ticket, say nothing, hire three people',
-    body: 'Sign the back of the ticket and secure it. Tell no one beyond your household. Hire a fee-only fiduciary advisor, a tax attorney, and a CPA — in that order — before you contact the lottery. If your state allows it, plan to claim through a trust or LLC to keep your name out of press releases.',
-  },
-  {
-    phase: 'Claim week',
-    title: 'Lump sum or annuity — decide with the model, not your gut',
-    body: 'Use the Annuity vs. Lump Sum tab. The lump sum is smaller but gives you control, the full trust stack, and a step-up at death. The annuity is a forced-savings plan with a 5% raise every year — and a guardrail against blowing it. There is no universally right answer; there is a right answer for your discipline and your state.',
-  },
-  {
-    phase: 'Week 1–4',
-    title: 'Wire into Trust #1 and park the tax money first',
-    body: 'The lottery withholds 24% federal (plus state withholding), but a giant prize is really taxed at 37% federal. The gap is due April 15. Park the difference in Treasury bills inside Trust #1 immediately — this money was never yours. Your Year-1 living reserve goes into tax-exempt money market funds next.',
-  },
-  {
-    phase: 'Month 1–3',
-    title: 'Stand up the stack',
-    body: 'Your attorney drafts Trust #2 (DAPT) and Trust #3 (PPLI trust); the insurance trust applies for the policy. Open institutional custody accounts with possession-and-control protection (SEC Rule 15c3-3). Form Entity #4, the anonymous LLC, if you plan property or vehicle purchases. Note who holds the power: you are the beneficiary of Trusts #2 and #3, not the trustee — an independent trustee controls distributions, and that separation is exactly what creates the asset protection and keeps growth outside your estate.',
-  },
-  {
-    phase: 'Month 1–12',
-    title: 'The seasoning year — let the engines warm up',
-    body: 'Fund the engines: muni ladder and direct-indexed equities into Trust #2, premium into Trust #3’s policy. Live off the Year-1 reserve. Do not touch the engines — the PPLI needs its seasoning period and the loss-harvesting needs time to accumulate losses. Boring is the whole point.',
-  },
-  {
-    phase: 'If you are moving',
-    title: 'Change domicile like you mean it',
-    body: 'Driver’s license, voter registration, primary home, doctors, clubs, Declaration of Domicile — move your whole life to the 0% state, not just your mailbox. If you keep a home in the old state, stay under its day-count threshold (often ~183 days) and keep a contemporaneous day log. High-tax states audit departing lottery winners as a matter of policy.',
-  },
-  {
-    phase: 'Month 13+',
-    title: 'Turn on the tax-free tap',
-    body: 'Automate the draws: muni interest from the ladder, basis withdrawals then loans from the PPLI, harvested-basis and box-spread draws from equities. The Spend vs. Grow tab shows how much you can take while the stack still compounds. Take only what you plan to spend — the surplus sweeps back into the growth engine. Recheck the dial once a year, not once a week.',
-  },
-  {
-    phase: 'Every December',
-    title: 'The year-end sweep — deal with unspent drawn cash',
-    body: 'If you drew more than you spent, that cash is now sitting personally: taxed on its interest, counted in your estate, reachable by creditors. Before December 31, give it a job. Best first stop is back into the stack: pay down PPLI loan balances (restores next year\'s tax-free capacity), reinvest into Engine C\'s loss-harvesting portfolio, or buy more muni ladder so next year\'s coupons are tax-free. If you\'d rather keep it outside for a planned venture, park it in Treasuries or a tax-exempt money market — not a 0% checking account — and aim bigger surpluses at destinations with their own shelter: QSBS startup stock, an Opportunity Zone fund, or property through Entity #4. The one bad option is letting it idle.',
-  },
-  {
-    phase: 'Every year after',
-    title: 'Review, rebalance, and mind the estate',
-    body: 'Annual review: yields, policy performance, LTV on any credit lines, day counts, and law changes. As the stack compounds past the $15M-per-person estate exclusion, talk to your attorney about the dynasty layer — the best time to move growth assets out of your estate is while they are still (relatively) small.',
-  },
+  { term: 'Trust #1 — Master Trust', def: 'The revocable trust that receives the lottery wire. It holds the tax reserve and the first-year living reserve.' },
+  { term: 'Trust #2 — DAPT', def: 'A domestic asset-protection trust. You can be a beneficiary while it shields assets, if funded before a claim. Holds the muni ladder and the stocks.' },
+  { term: 'Trust #3 — PPLI Trust', def: 'An irrevocable trust that owns the insurance policy.' },
+  { term: 'Wash sale', def: 'If you sell a stock at a loss and buy the same stock within 30 days before or after, the loss is disallowed. Buy a different similar stock, or wait until day 31.' },
+  { term: 'Bona fide resident', def: 'For Puerto Rico, decided one tax year at a time. Requires the presence test, tax home, and closer connection for that year. The usual presence test is 183 days in Puerto Rico. A mailing address does not replace the days.' },
 ];
