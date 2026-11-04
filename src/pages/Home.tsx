@@ -72,8 +72,8 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
 }
 
 const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
-  { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
   { id: 'goals', label: 'Goals & Fit', icon: Compass },
+  { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
   { id: 'calc', label: 'Calculator', icon: Landmark },
   { id: 'guide', label: 'First-Year Guide', icon: Map },
   { id: 'library', label: 'Strategy Library', icon: Library },
@@ -141,7 +141,7 @@ export interface EngineNotice {
 }
 
 export default function Home() {
-  const [view, setView] = useState<View>(() => (explainSectionFromHash() !== null ? 'explain' : location.hash.startsWith('#s=') ? 'calc' : 'annuity'));
+  const [view, setView] = useState<View>(() => (explainSectionFromHash() !== null ? 'explain' : location.hash.startsWith('#s=') ? 'calc' : 'goals'));
   const [explainAt] = useState<string | null>(() => explainSectionFromHash() || null);
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
@@ -234,15 +234,15 @@ export default function Home() {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md no-print">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 md:px-6">
-          <Tip text="Back to the first step: cash now, or 30 years of checks.">
-          <button onClick={() => setView('annuity')} className="flex items-baseline gap-2 cursor-pointer">
+          <Tip text="Back to Goals & Fit.">
+          <button onClick={() => setView('goals')} className="flex items-baseline gap-2 cursor-pointer">
             <span className="font-display text-xl font-bold tracking-tight">
               Lottery <span className="sig-italic">Trust Stack</span>
             </span>
             <span className="hidden font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground md:inline">2026 ed.</span>
           </button>
           </Tip>
-          <nav className="flex flex-wrap gap-1" aria-label="Sections">
+          <nav className="flex gap-1 overflow-x-auto" aria-label="Sections">
             {NAV.map(({ id, label, icon: Icon }) => (
               <Tip key={id} text={NAV_TIP[id]}>
               <button
@@ -250,7 +250,7 @@ export default function Home() {
                   if (id === 'explain') { openExplainTab(); return; }
                   setView(id);
                 }}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[14px] transition-colors cursor-pointer ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] transition-colors cursor-pointer ${
                   view === id
                     ? 'bg-primary text-primary-foreground font-medium'
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
