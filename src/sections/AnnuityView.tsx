@@ -6,7 +6,7 @@ import { AnnuityChart } from '../components/viz';
 import { SectionTitle, Stat, Field, Tip } from '../components/widgets';
 import { Slider } from '@/components/ui/slider';
 
-export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing; onNext?: () => void; onUseCash?: (cash: number) => void }) {
+export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing; onNext?: (cash: number) => void; onUseCash?: (cash: number) => void }) {
   const [more, setMore] = useState(false);
   const [a, setA] = useState({
     advertised: 0,
@@ -112,7 +112,7 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
             )}
             {onNext && (
               <Tip text="Opens the questions. It does not change the numbers you just typed.">
-              <button type="button" onClick={onNext} className="rounded-md border border-input px-4 py-2 text-sm font-semibold cursor-pointer">
+              <button type="button" onClick={() => onNext(a.cash)} className="rounded-md border border-input px-4 py-2 text-sm font-semibold cursor-pointer">
                 Next: Goals & Fit
               </button>
               </Tip>
