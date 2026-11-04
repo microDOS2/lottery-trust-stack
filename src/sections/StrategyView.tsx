@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { STRATEGIES } from '../lib/content';
+import { STRATEGIES, COUNSEL_NOTES } from '../lib/content';
 import { fmt, type Assumptions, type Inputs } from '../lib/calc';
 import { COMBOS, describeCombo, needsDollars, previewInputs, suggestion } from '../lib/combine';
 import { SectionTitle } from '../components/widgets';
@@ -71,10 +71,11 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
         </div>
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-4">
         {STRATEGIES.map((s) => {
           const on = chosen.includes(s.id);
           const sug = suggestion(s.id, core);
+          const counsel = COUNSEL_NOTES[s.id];
           return (
             <article key={s.id} className="hairline-card p-5">
               <div className="flex items-start justify-between gap-3">
@@ -91,6 +92,15 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                   {on ? 'On' : 'Off'}
                 </button>
               </div>
+
+              <div className="mt-4 space-y-3 text-[14.5px] leading-relaxed text-muted-foreground">
+                <p><span className="font-medium text-foreground">How the tax works. </span>{s.taxMagic}</p>
+                <p><span className="font-medium text-foreground">Who it is for. </span>{s.qualifies}</p>
+                <p><span className="font-medium text-foreground">What can go wrong. </span>{s.watchOut}</p>
+                <p><span className="font-medium text-foreground">Where it sits. </span>{s.plugsIn}</p>
+                {counsel && <p className="text-[13px] leading-snug">{counsel}</p>}
+              </div>
+
               {on && needsDollars(s.id) && (
                 <label className="mt-4 block max-w-sm">
                   <span className="mb-1 block text-sm font-medium">Dollars for this strategy</span>
