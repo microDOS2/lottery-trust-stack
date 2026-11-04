@@ -1,5 +1,6 @@
 import { COUNSEL_NOTES, ENGINE_PRESETS, STRATEGIES } from '../lib/content';
 import { SLEEVE_MATH } from '../lib/calc';
+import { Tip } from '../components/widgets';
 import { SectionTitle } from '../components/widgets';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -42,6 +43,7 @@ export default function StrategyView({ sleeve, onApplyEngine, onSetSleeve }: Pro
                     </div>
                   </div>
                 </AccordionTrigger>
+                <Tip text={isEngine ? 'Sets the calculator mix of bonds, insurance, and stocks. This changes the chart.' : changesMath ? (selected ? 'Removes this idea and puts the money back into stocks.' : 'Uses this idea in the chart. It takes cash out of the stock engine. Only one at a time.') : (selected ? 'Removes this note. It was not changing the numbers.' : 'Saves this as a note for your lawyer. It does not change the chart.')} more={changesMath ? 'business' : 'trade'}>
                 <button
                   type="button"
                   onClick={() => (isEngine ? onApplyEngine(s.id) : onSetSleeve(selected ? null : s.id))}
@@ -51,6 +53,7 @@ export default function StrategyView({ sleeve, onApplyEngine, onSetSleeve }: Pro
                 >
                   {label}
                 </button>
+                </Tip>
               </div>
               <AccordionContent className="pb-6">
                 <p className="max-w-[70ch] text-[15px] leading-relaxed">{s.oneLiner}</p>

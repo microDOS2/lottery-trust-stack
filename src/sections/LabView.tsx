@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { computeStack, fmt, fmtCompact, type Inputs, type Assumptions } from '../lib/calc';
-import { SectionTitle } from '../components/widgets';
+import { SectionTitle, Explainer } from '../components/widgets';
 import { Slider } from '@/components/ui/slider';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
 import { HandCoins, Sprout } from 'lucide-react';
@@ -65,15 +65,15 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
 
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-accent p-4 text-center">
-            <div className="text-[13.5px] font-medium text-accent-foreground/80">You can spend, tax-free</div>
+            <div className="text-[13.5px] font-medium text-accent-foreground/80">You can spend, tax-free <Explainer text="The most this mix can pay each year without selling the pile." more="trade" /></div>
             <div className="font-num mt-1 text-2xl font-semibold text-accent-foreground">{fmt(current.capacity)}<span className="text-sm font-normal">/yr</span></div>
           </div>
           <div className="rounded-lg bg-[hsl(var(--success-tint))] p-4 text-center">
-            <div className="text-[13.5px] font-medium text-success/80">You'd have in 25 years</div>
+            <div className="text-[13.5px] font-medium text-success/80">You'd have in 25 years <Explainer text="What is left if the middle rates hold and you only take the yearly amount." more="grow" /></div>
             <div className="font-num mt-1 text-2xl font-semibold stat-good">{fmt(current.stackEnd)}</div>
           </div>
           <div className="rounded-lg bg-secondary p-4 text-center">
-            <div className="text-[13.5px] font-medium text-muted-foreground">Your money is split</div>
+            <div className="text-[13.5px] font-medium text-muted-foreground">Your money is split <Explainer text="Bonds pay cash and do not grow. The policy and the stocks are what compound." more="trade" /></div>
             <div className="font-num mt-1 text-lg font-semibold">
               {Math.round(current.weights.a * 100)}% munis · {Math.round(current.weights.b * 100)}% insurance · {Math.round(current.weights.c * 100)}% stocks
             </div>

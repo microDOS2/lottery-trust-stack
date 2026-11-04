@@ -3,7 +3,7 @@ import { STATES } from '../lib/taxdata';
 import { computeAnnuity, fmtCompact, pct } from '../lib/calc';
 import type { Filing } from '../lib/taxdata';
 import { AnnuityChart } from '../components/viz';
-import { SectionTitle, Stat, Field } from '../components/widgets';
+import { SectionTitle, Stat, Field, Tip } from '../components/widgets';
 import { Slider } from '@/components/ui/slider';
 
 export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing; onNext?: () => void; onUseCash?: (cash: number) => void }) {
@@ -34,22 +34,24 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
 
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="hairline-card h-fit space-y-4 p-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
-          <Field label="Cash amount, before tax" help="The cash option on the lottery site. The check you could take now, before tax. Not the advertised jackpot.">
+          <Field label="Cash amount, before tax" tip="The check you could take now, before tax. Not the advertised jackpot." more="trade" help="The cash option on the lottery site. The check you could take now, before tax. Not the advertised jackpot.">
             <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.cash} min={0} step={100000}
               onChange={(e) => setA({ ...a, cash: +e.target.value || 0 })} />
           </Field>
-          <Field label="Annuity total" help="All the checks added together. Usually 30 payments, each 5% larger than the last. Leave at 0 if you only want the cash math.">
+          <Field label="Annuity total" tip="Every annuity check added together. Leave at 0 if you only want the cash math." more="trade" help="All the checks added together. Usually 30 payments, each 5% larger than the last. Leave at 0 if you only want the cash math.">
             <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.advertised} min={0} step={1000000}
               onChange={(e) => setA({ ...a, advertised: +e.target.value || 0 })} />
           </Field>
-          <Field label="State where you'd claim">
+          <Field label="State where you'd claim" tip="The state that taxes the prize. A California lottery prize bought in California is not taxed by the state." more="move">
             <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={a.state} onChange={(e) => setA({ ...a, state: e.target.value })}>
               {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
             </select>
           </Field>
+          <Tip text="Opens the jackpot percentage and the earnings guess. You can ignore both if you typed the cash amount." more="trade">
           <button type="button" onClick={() => setMore((v) => !v)} className="text-left text-sm font-medium text-primary hover:underline cursor-pointer">
             {more ? 'Hide extra inputs' : 'More inputs'}
           </button>
+          </Tip>
           {more && (
             <>
               <div>
@@ -84,10 +86,10 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
           </div>
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="Lump: cash option" value={fmtCompact(r.lumpGross)} sub={`${fmtCompact(r.lumpTaxes)} total tax`} />
-            <Stat label="Lump: net invested" value={fmtCompact(r.lumpNet)} sub="day one, into the stack" tone="good" />
-            <Stat label="Annuity: first check" value={fmtCompact(r.firstPayment)} sub={`rising ${pct(a.escalator, 0)}/yr for ${a.years} yrs`} />
-            <Stat label="Annuity: total tax" value={fmtCompact(r.annuityTaxes)} sub={`on ${fmtCompact(r.totalPayments)} paid · 2026 brackets`} />
+            <Stat label="Lump: cash option" tip="The check you could take now, before tax. Not the advertised jackpot." more="trade" value={fmtCompact(r.lumpGross)} sub={`${fmtCompact(r.lumpTaxes)} total tax`} />
+            <Stat label="Lump: net invested" tip="What is left after tax if you take the cash. This is what would go into the plan." more="trade" value={fmtCompact(r.lumpNet)} sub="day one, into the stack" tone="good" />
+            <Stat label="Annuity: first check" tip="The first of the 30 annual checks. Each one is larger than the last." more="trade" value={fmtCompact(r.firstPayment)} sub={`rising ${pct(a.escalator, 0)}/yr for ${a.years} yrs`} />
+            <Stat label="Annuity: total tax" tip="Tax on every annuity check added up, in today’s brackets. Later checks can be taxed more." more="assumptions" value={fmtCompact(r.annuityTaxes)} sub={`on ${fmtCompact(r.totalPayments)} paid · 2026 brackets`} />
           </div>
 
           <div className="hairline-card p-5">
@@ -102,14 +104,18 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
           )}
           <div className="mt-4 flex flex-wrap gap-2">
             {onUseCash && hasCash && (
+              <Tip text="Copies this cash amount into the calculator as the prize, before tax, and opens the calculator." more="trade">
               <button type="button" onClick={() => onUseCash(a.cash)} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground cursor-pointer">
                 Use this cash in the calculator
               </button>
+              </Tip>
             )}
             {onNext && (
+              <Tip text="Opens the questions. It does not change the numbers you just typed.">
               <button type="button" onClick={onNext} className="rounded-md border border-input px-4 py-2 text-sm font-semibold cursor-pointer">
                 Next: Goals & Fit
               </button>
+              </Tip>
             )}
           </div>
           </div>

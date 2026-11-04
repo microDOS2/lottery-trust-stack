@@ -1,47 +1,75 @@
-import type { ReactNode } from 'react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { ReactElement, ReactNode } from 'react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { useExplain } from '../explainNav';
+
+function MoreLink({ more }: { more?: string }) {
+  const open = useExplain();
+  if (!more) return null;
+  return (
+    <button type="button" onClick={() => open(more)} className="mt-2 block text-left text-[13px] font-medium text-primary underline cursor-pointer">
+      Open the explanation
+    </button>
+  );
+}
+
+export function Tip({ text, more, children }: { text: string; more?: string; children: ReactElement }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent className="max-w-[260px] text-left text-[13px] leading-relaxed" side="top">
+        {text}
+        <MoreLink more={more} />
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function Stat({
-  label, value, sub, tone = 'default',
-}: { label: string; value: string; sub?: string; tone?: 'default' | 'good' | 'warm' }) {
+  label, value, sub, tone = 'default', tip, more,
+}: { label: string; value: string; sub?: string; tone?: 'default' | 'good' | 'warm'; tip?: string; more?: string }) {
   const toneCls = tone === 'good' ? 'stat-good' : tone === 'warm' ? 'stat-warm' : '';
   return (
     <div className="hairline-card p-4 md:p-5 transition-transform duration-150 hover:-translate-y-0.5">
-      <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
+        {tip && <Explainer text={tip} more={more} />}
+      </div>
       <div className={`font-num mt-1.5 text-xl md:text-2xl font-semibold ${toneCls}`}>{value}</div>
       {sub && <div className="mt-1 text-sm text-muted-foreground leading-snug">{sub}</div>}
     </div>
   );
 }
 
-export function Explainer({ text }: { text: string }) {
+export function Explainer({ text, more }: { text: string; more?: string }) {
   return (
-    <TooltipProvider delayDuration={150}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            aria-label="What does this mean?"
-            className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground/70 hover:text-primary transition-colors cursor-help"
-          >
-            <Info className="h-3.5 w-3.5" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-[280px] text-sm leading-relaxed" side="top">
-          {text}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="What does this mean?"
+          className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 hover:text-primary transition-colors cursor-help"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[280px] text-sm leading-relaxed" side="top">
+        {text}
+        <MoreLink more={more} />
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
 export function Field({
-  label, help, children,
-}: { label: string; help?: string; children: ReactNode }) {
+  label, help, tip, more, children,
+}: { label: string; help?: string; tip?: string; more?: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[14px] font-medium text-foreground/90">{label}</span>
+      <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium text-foreground/90">
+        {label}
+        {tip && <Explainer text={tip} more={more} />}
+      </span>
       {children}
       {help && <span className="mt-1 block text-[14px] leading-snug text-muted-foreground">{help}</span>}
     </label>

@@ -4,7 +4,8 @@ import {
   fmt, fmtCompact, pct, PPLI_QP_MIN, SLEEVE_MATH, SLEEVE_PCT_MAX,
   type Inputs, type Assumptions, type StackResult,
 } from '../lib/calc';
-import { Stat, Field, SectionTitle } from '../components/widgets';
+import { Stat, Field, SectionTitle, Tip } from '../components/widgets';
+import { useExplain } from '../explainNav';
 import { AllocationDonut, ProjectionChart, FlowDiagram } from '../components/viz';
 import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/CompareCharts';
 import { STRATEGIES } from '../lib/content';
@@ -62,6 +63,7 @@ function loadLayout(): Layout {
 }
 
 export default function CalculatorView(p: Props) {
+  const openExplain = useExplain();
   const { inputs: inp, result: r, asm } = p;
   const [copied, setCopied] = useState(false);
   const [realDollars, setRealDollars] = useState(false);
@@ -126,7 +128,7 @@ export default function CalculatorView(p: Props) {
                     Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
                   </p>
                 </div>
-                <button onClick={() => setRealDollars(!realDollars)}
+                <button title={realDollars ? 'Showing later years in today’s dollars. Click for the raw future amounts.' : 'Showing raw future dollars. Click to shrink later years for inflation.'} onClick={() => setRealDollars(!realDollars)}
                   className={`shrink-0 rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
                   {realDollars ? "Today's $" : 'Nominal $'}
                 </button>
@@ -160,7 +162,7 @@ export default function CalculatorView(p: Props) {
     <div className="flex flex-wrap items-center gap-2">
       <span className="w-full text-[12.5px] text-muted-foreground">Save up to five snapshots to compare. Overwrite replaces that slot.</span>
       {[0, 1, 2, 3, 4].map((i) => (
-        <button key={i} onClick={() => p.saveScenario(i)}
+        <button key={i} title={p.scenarios[i] ? `Replace saved setup ${LETTERS[i]} with the numbers on screen.` : `Save the numbers on screen as setup ${LETTERS[i]}.`} onClick={() => p.saveScenario(i)}
           className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
           {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
         </button>
@@ -177,10 +179,10 @@ export default function CalculatorView(p: Props) {
           blurb={`${st.name} prize, ${inp.basis === 'gross' ? 'starting from the gross cash option' : 'starting from money already after tax'}, ${inp.filing === 'mfj' ? 'married filing jointly' : 'single'} — 2026 rates.`}
         />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Federal tax on prize" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
-          <Stat label="Net after-tax pool" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
-          <Stat label="Year-1 reserve" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
-          <Stat label="Investable core" value={fmtCompact(r.core)} sub={r.qpOk ? 'Qualified Purchaser ✓' : `PPLI needs ${fmtCompact(PPLI_QP_MIN)}+ core`} />
+          <Stat label="Federal tax on prize" tip="Federal income tax on the cash option, at 2026 rates. The line under it is the state tax." more="assumptions" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
+          <Stat label="Net after-tax pool" tip="What is left after federal and state tax. This is the money the rest of the page invests." more="trade" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
+          <Stat label="Year-1 reserve" tip="The first year of spending, plus setup cost, held back. The investments are not touched in year 1." more="trade" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
+          <Stat label="Investable core" tip="The pool minus the year-1 reserve and any cash set aside for a house. This is what the three engines share." more="trade" value={fmtCompact(r.core)} sub={r.qpOk ? 'Qualified Purchaser ✓' : `PPLI needs ${fmtCompact(PPLI_QP_MIN)}+ core`} />
         </div>
       </div>
       {scenarioButtons}
@@ -194,9 +196,9 @@ export default function CalculatorView(p: Props) {
           <p>{p.notice.text}</p>
           <div className="flex gap-2">
             {p.notice.undo && (
-              <button type="button" onClick={p.undoNotice} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">Undo</button>
+              <button type="button" title="Puts the previous mix back." onClick={p.undoNotice} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">Undo</button>
             )}
-            <button type="button" onClick={p.dismissNotice} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer">Dismiss</button>
+            <button type="button" title="Hides this note. Your numbers stay as they are." onClick={p.dismissNotice} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer">Dismiss</button>
           </div>
         </div>
       )}
@@ -206,12 +208,14 @@ export default function CalculatorView(p: Props) {
       <div className="hairline-card h-fit space-y-4 p-5 no-print lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-lg font-semibold">Your numbers</h3>
+          <Tip text="Clears the prize and puts every input back to the start.">
           <button onClick={p.resetAll} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer">
             <RotateCcw className="h-3 w-3" /> Reset
           </button>
+          </Tip>
         </div>
 
-        <Field label="Where you live now" help="Sets the state tax on the prize — and on future income if you stay.">
+        <Field label="Where you live now" tip="The state that taxes the prize, and future income if you stay." more="move" help="Sets the state tax on the prize — and on future income if you stay.">
           <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.state} onChange={(e) => set('state', e.target.value)}>
             {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
           </select>
@@ -222,20 +226,22 @@ export default function CalculatorView(p: Props) {
           </p>
         )}
 
-        <Field label="Prize amount ($)" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
+        <Field label="Prize amount ($)" tip="The cash option, or what is left if tax is already paid. Not the advertised jackpot." more="assumptions" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.amount} min={0} step={100000} onChange={(e) => set('amount', +e.target.value || 0)} />
         </Field>
 
         <div className="flex gap-2">
           {(['gross', 'net'] as const).map((b) => (
-            <button key={b} onClick={() => set('basis', b)}
+            <Tip key={b} text={b === 'gross' ? 'The number is the cash option before tax. The calculator subtracts tax.' : 'The number is money you already have. Tax is not subtracted again.'} more="assumptions">
+            <button onClick={() => set('basis', b)}
               className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors cursor-pointer ${inp.basis === b ? 'border-primary bg-accent text-accent-foreground font-medium' : 'border-input bg-card text-muted-foreground hover:border-primary/50'}`}>
               {b === 'gross' ? 'Before tax' : 'After tax'}
             </button>
+            </Tip>
           ))}
         </div>
 
-        <Field label="How much you want to spend each year" help="What you want to spend each year after the first year. This sizes the reserve and checks whether the stack can pay it.">
+        <Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than the engines can pay, the pile gets spent." more="trade" help="What you want to spend each year after the first year. This sizes the reserve and checks whether the stack can pay it.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend} min={0} step={10000} onChange={(e) => set('spend', +e.target.value || 0)} />
         </Field>
 
@@ -245,9 +251,11 @@ export default function CalculatorView(p: Props) {
             : `You keep ${fmtCompact(r.net)} after tax. You could take about ${fmtCompact(r.capacity)} a year with no tax on that cash. In 25 years this setup would be about ${fmtCompact(r.stackEnd)}, versus ${fmtCompact(r.baselineEnd)} in a normal taxable account.`}
         </p>
 
+        <Tip text={more ? 'Hide the extra inputs. State, prize, and spending stay visible.' : 'Move, reserves, fees, the income-or-growth slider, and the rate assumptions.'} more="assumptions">
         <button type="button" onClick={() => setMore((v) => !v)} className="text-left text-sm font-medium text-primary hover:underline cursor-pointer">
           {more ? 'Hide extra inputs' : 'More inputs'}
         </button>
+        </Tip>
 
         {more && (
         <>
@@ -259,7 +267,7 @@ export default function CalculatorView(p: Props) {
 
         <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
           <span className="text-[14px]">Grow draw with inflation</span>
-          <button onClick={() => set('flatDraw', !inp.flatDraw)}
+          <button title={inp.flatDraw ? 'Spending stays the same dollar amount every year. Click to let it rise with inflation.' : 'Spending rises each year with inflation. Click for a flat dollar amount.'} onClick={() => set('flatDraw', !inp.flatDraw)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${inp.flatDraw ? 'bg-card border border-input text-muted-foreground hover:border-primary/50' : 'bg-primary text-primary-foreground'}`}>
             {inp.flatDraw ? 'Off — flat draw' : 'On'}
           </button>
@@ -295,7 +303,7 @@ export default function CalculatorView(p: Props) {
 
         <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
           <span className="text-[14px]">Manual allocation</span>
-          <button onClick={() => set('mode', inp.mode === 'manual' ? 'balanced' : 'manual')}
+          <button title={inp.mode === 'manual' ? 'You are setting the split yourself. Click to let the slider set it.' : 'The slider sets the split. Click to type your own mix.'} onClick={() => set('mode', inp.mode === 'manual' ? 'balanced' : 'manual')}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${inp.mode === 'manual' ? 'bg-primary text-primary-foreground' : 'bg-card border border-input text-muted-foreground hover:border-primary/50'}`}>
             {inp.mode === 'manual' ? 'On' : 'Off'}
           </button>
@@ -326,6 +334,7 @@ export default function CalculatorView(p: Props) {
           <p className="px-3 pb-2 text-[12.5px] leading-snug text-muted-foreground">
             These are the middle, not a forecast and not a quote. The previous defaults were the optimistic end. Each rate below is what the chart uses, and why that number — not higher, not lower. Change any of them. Last set: November 2026.
           </p>
+          <button type="button" onClick={() => openExplain('assumptions')} className="px-3 pb-2 text-left text-[12.5px] font-medium text-primary underline cursor-pointer">Why these rates, in full</button>
           <div className="space-y-3 px-3 pb-3">
             {([
               ['muniYield', 'Muni yield', 'The tax-free interest the bond ladder pays. That cash is the first money you can spend. In early November 2026 a 10-year AAA municipal bond yielded about 3.4%, and a 30-year AAA bond about 4.5% to 4.8%. A ladder spread across those years is about 4%. The old 4.25% was a round number, a bit high for a mixed ladder. The model holds 4% flat for 25 years. Real coupons will move.'],
@@ -354,7 +363,7 @@ export default function CalculatorView(p: Props) {
         <div className="rounded-md border border-input p-3">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[13px] font-medium">Optional sleeve</div>
-            <button type="button" onClick={p.onOpenLibrary} className="text-[12.5px] text-primary hover:underline cursor-pointer">
+            <button type="button" title="Opens the list of extra ideas. Each row says whether it changes the chart." onClick={p.onOpenLibrary} className="text-[12.5px] text-primary hover:underline cursor-pointer">
               Strategy library
             </button>
           </div>
@@ -367,7 +376,7 @@ export default function CalculatorView(p: Props) {
           )}
         </div>
 
-        <button onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 cursor-pointer">
+        <button title="Copies a link that reopens these exact numbers." onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 cursor-pointer">
           {copied ? <><Check className="h-4 w-4" /> Link copied</> : <><Link2 className="h-4 w-4" /> Copy shareable link</>}
         </button>
         </>
@@ -379,10 +388,10 @@ export default function CalculatorView(p: Props) {
         <div className="hidden lg:block">{headline}</div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Engine A · Munis" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of core · ${fmtCompact(r.muni * asm.muniYield)}/yr tax-free`} />
-          <Stat label="Engine B · PPLI" value={fmtCompact(r.ppli)} sub={`${pct(w.b)} · ${fmtCompact(r.ppli * asm.ppliDraw)}/yr tax-free`} />
-          <Stat label="Engine C · Equities" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} of core after carve · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of core · ${fmtCompact(r.equity * asm.eqDraw)}/yr tax-free`} />
-          <Stat label="Tax-free cash capacity" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
+          <Stat label="Engine A · Munis" tip="The bond ladder. It pays about 4% tax-free and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of core · ${fmtCompact(r.muni * asm.muniYield)}/yr tax-free`} />
+          <Stat label="Engine B · PPLI" tip="The insurance policy. Up to about 4.5% a year tax-free. It needs about $5 million invested." more="policy" value={fmtCompact(r.ppli)} sub={`${pct(w.b)} · ${fmtCompact(r.ppli * asm.ppliDraw)}/yr tax-free`} />
+          <Stat label="Engine C · Equities" tip="Stocks. Modeled at 7% growth. The spendable slice is about 3.5%." more="stocks" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} of core after carve · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of core · ${fmtCompact(r.equity * asm.eqDraw)}/yr tax-free`} />
+          <Stat label="Tax-free cash capacity" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
         </div>
 
         {inp.amount > 0 && !r.sustainable && (
@@ -407,6 +416,7 @@ export default function CalculatorView(p: Props) {
 
         <div className="flex justify-end no-print">
           <button
+            title={customizing ? 'Close the layout controls. The order is saved on this browser.' : 'Show, hide, or reorder the charts below.'}
             onClick={() => setCustomizing(!customizing)}
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors cursor-pointer ${customizing ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:text-foreground'}`}
           >
@@ -418,7 +428,7 @@ export default function CalculatorView(p: Props) {
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             Hidden:
             {layout.hidden.map((id) => (
-              <button key={id} onClick={() => toggleHide(id)} className="rounded-full border border-dashed border-input px-3 py-1 hover:border-primary hover:text-primary cursor-pointer">
+              <button key={id} title={`Show ${SECTION_META.find((m) => m.id === id)?.title ?? 'this section'} again.`} onClick={() => toggleHide(id)} className="rounded-full border border-dashed border-input px-3 py-1 hover:border-primary hover:text-primary cursor-pointer">
                 Restore {SECTION_META.find((m) => m.id === id)?.title}
               </button>
             ))}
@@ -432,9 +442,9 @@ export default function CalculatorView(p: Props) {
               {customizing && (
                 <div className="mb-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
                   <span className="font-mono uppercase tracking-wider">{meta.title}</span>
-                  <button onClick={() => move(id, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => move(id, 1)} disabled={idx === arr.length - 1} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => toggleHide(id)} className="rounded p-1 hover:bg-secondary cursor-pointer" aria-label="Hide section"><EyeOff className="h-3.5 w-3.5" /></button>
+                  <button title="Move this section up." onClick={() => move(id, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
+                  <button title="Move this section down." onClick={() => move(id, 1)} disabled={idx === arr.length - 1} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
+                  <button title="Hide this section. You can restore it from the list above." onClick={() => toggleHide(id)} className="rounded p-1 hover:bg-secondary cursor-pointer" aria-label="Hide section"><EyeOff className="h-3.5 w-3.5" /></button>
                 </div>
               )}
               {sectionNode(id)}
@@ -545,7 +555,7 @@ function SleeveCard({ inp, setInputs, amount }: { inp: Inputs; setInputs: Props[
     <div className="mt-2 space-y-2">
       <div className="flex items-center justify-between gap-2 text-[13px]">
         <span>{name}</span>
-        <button type="button" onClick={() => setInputs((p) => ({ ...p, sleeve: null }))} className="text-[12.5px] text-muted-foreground hover:text-destructive cursor-pointer">Remove</button>
+        <button type="button" title="Clears this extra idea. If it was changing the chart, that cash goes back to the stocks." onClick={() => setInputs((p) => ({ ...p, sleeve: null }))} className="text-[12.5px] text-muted-foreground hover:text-destructive cursor-pointer">Remove</button>
       </div>
       {spec ? (
         <>
@@ -575,7 +585,7 @@ function ProjectionTable({ r, inp, asm, scenarios }: { r: StackResult; inp: Inpu
           Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
           (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
         </p>
-        <button type="button" onClick={() => exportPlan(inp, asm, r, scenarios)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
+        <button type="button" title="Downloads a spreadsheet of these inputs and the 25-year line." onClick={() => exportPlan(inp, asm, r, scenarios)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
           Download plan
         </button>
       </div>
@@ -622,13 +632,13 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
         </div>
         <div className="flex flex-wrap gap-2">
           {[0, 1, 2, 3, 4].map((i) => (
-            <button key={i} onClick={() => p.saveScenario(i)}
+            <button key={i} title={p.scenarios[i] ? `Replace saved setup ${LETTERS[i]} with the numbers on screen.` : `Save the numbers on screen as setup ${LETTERS[i]}.`} onClick={() => p.saveScenario(i)}
               className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
               {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
             </button>
           ))}
           {filled > 0 && (
-            <button onClick={p.clearScenarios} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-destructive cursor-pointer">Clear</button>
+            <button title="Deletes every saved setup. The numbers on screen stay." onClick={p.clearScenarios} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-destructive cursor-pointer">Clear</button>
           )}
         </div>
       </div>

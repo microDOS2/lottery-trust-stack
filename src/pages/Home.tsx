@@ -6,10 +6,13 @@ import LabView from '../sections/LabView';
 import StrategyView from '../sections/StrategyView';
 import AnnuityView from '../sections/AnnuityView';
 import { GuideView, GlossaryView } from '../sections/GuideView';
+import ExplainView from '../sections/ExplainView';
+import { ExplainNav } from '../explainNav';
+import { Tip } from '../components/widgets';
 import { ENGINE_PRESETS, STRATEGIES } from '../lib/content';
-import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass } from 'lucide-react';
+import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText } from 'lucide-react';
 
-type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals';
+type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
 const SCHEMA_VERSION = 5;
@@ -71,7 +74,19 @@ const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
   { id: 'library', label: 'Strategy Library', icon: Library },
   { id: 'lab', label: 'Spend vs. Grow', icon: TrendingUp },
   { id: 'glossary', label: 'Glossary', icon: BookOpen },
+  { id: 'explain', label: 'Explanations', icon: ScrollText },
 ];
+
+const NAV_TIP: Record<View, string> = {
+  annuity: 'Compare the cash you could take now with 30 years of checks.',
+  goals: 'Type the cash, answer the questions, and get five plans with the reason for each.',
+  calc: 'State, prize, and what you want to spend. The numbers on the right use the middle rates.',
+  guide: 'What to do in the first year, in order.',
+  library: 'Extra ideas. Each row says whether it changes the chart or is only a note.',
+  lab: 'Slide between spending more now and leaving more to grow.',
+  glossary: 'What the words mean. The longer why is on Explanations.',
+  explain: 'The trade, the rates, and what each kind of plan gives up.',
+};
 
 function loadInputs(): Inputs {
   const hash = readHash();
@@ -117,6 +132,7 @@ export interface EngineNotice {
 
 export default function Home() {
   const [view, setView] = useState<View>(() => (location.hash.startsWith('#s=') ? 'calc' : 'annuity'));
+  const [explainAt, setExplainAt] = useState<string | null>(null);
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
   const [scenarios, setScenarios] = useState<(ScenarioSlot | null)[]>(() => {
@@ -221,21 +237,37 @@ export default function Home() {
     setView('calc');
   };
 
+  useEffect(() => {
+    if (view !== 'explain' || !explainAt) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(explainAt)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 40);
+    return () => window.clearTimeout(t);
+  }, [view, explainAt]);
+
+  const openExplain = (id?: string) => {
+    setExplainAt(id ?? null);
+    setView('explain');
+  };
+
   return (
+    <ExplainNav.Provider value={openExplain}>
     <div className="min-h-dvh">
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md no-print">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 md:px-6">
+          <Tip text="Back to the first step: cash now, or 30 years of checks.">
           <button onClick={() => setView('annuity')} className="flex items-baseline gap-2 cursor-pointer">
             <span className="font-display text-xl font-bold tracking-tight">
               Lottery <span className="sig-italic">Trust Stack</span>
             </span>
             <span className="hidden font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground md:inline">2026 ed.</span>
           </button>
+          </Tip>
           <nav className="flex gap-1 overflow-x-auto" aria-label="Sections">
             {NAV.map(({ id, label, icon: Icon }) => (
+              <Tip key={id} text={NAV_TIP[id]}>
               <button
-                key={id}
-                onClick={() => setView(id)}
+                onClick={() => { setExplainAt(null); setView(id); }}
                 className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] transition-colors cursor-pointer ${
                   view === id
                     ? 'bg-primary text-primary-foreground font-medium'
@@ -245,6 +277,7 @@ export default function Home() {
                 <Icon className="h-3.5 w-3.5" />
                 {label}
               </button>
+              </Tip>
             ))}
           </nav>
         </div>
@@ -293,6 +326,7 @@ export default function Home() {
         )}
         {view === 'guide' && <GuideView />}
         {view === 'glossary' && <GlossaryView />}
+        {view === 'explain' && <ExplainView />}
       </main>
 
       <footer className="border-t border-border">
@@ -309,5 +343,6 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    </ExplainNav.Provider>
   );
 }

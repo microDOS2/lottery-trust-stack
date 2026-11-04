@@ -1,6 +1,7 @@
 import { GUIDE_STEPS, GLOSSARY } from '../lib/content';
 import { SectionTitle } from '../components/widgets';
 import { FlowDiagram } from '../components/viz';
+import { useExplain } from '../explainNav';
 
 export function GuideView() {
   return (
@@ -37,13 +38,17 @@ export function GuideView() {
 }
 
 export function GlossaryView() {
+  const open = useExplain();
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <SectionTitle
         num="06"
         title={<>Plain-English <span className="sig-italic">glossary</span></>}
-        blurb="Every term on this site, translated. If a word sounds like it was invented to bill you more, the translation is here."
+        blurb="Every term on this site, translated. The longer why — the trade, the rates, what each plan gives up — is on Explanations."
       />
+      <button type="button" onClick={() => open('trade')} className="text-sm font-medium text-primary underline cursor-pointer">
+        Open Explanations
+      </button>
       <dl className="grid gap-3 md:grid-cols-2">
         {GLOSSARY.map((g) => (
           <div key={g.term} className="hairline-card p-4">

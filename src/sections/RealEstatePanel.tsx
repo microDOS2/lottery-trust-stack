@@ -53,7 +53,7 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
         </div>
         <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
           <span className="text-[14px]">Cost-segregation study</span>
-          <button onClick={() => setCostSeg(!costSeg)}
+          <button title={costSeg ? 'A cost-segregation study is on. It pulls more of the building’s depreciation into year 1. Click to turn it off.' : 'Straight-line depreciation. Click to turn on a cost-segregation study, which front-loads the deduction.'} onClick={() => setCostSeg(!costSeg)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${costSeg ? 'bg-primary text-primary-foreground' : 'bg-card border border-input text-muted-foreground hover:border-primary/50'}`}>
             {costSeg ? 'On' : 'Off'}
           </button>

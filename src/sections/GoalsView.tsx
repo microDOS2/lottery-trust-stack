@@ -3,7 +3,8 @@ import { QUIZ, QUIZ_NOW, profileFromAnswers, type GoalProfile } from '../lib/qui
 import { fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
 import { STATES } from '../lib/taxdata';
 import { buildBestPlans } from '../lib/plans';
-import { SectionTitle } from '../components/widgets';
+import { Explainer, SectionTitle, Tip } from '../components/widgets';
+import { useExplain } from '../explainNav';
 
 interface Props {
   inputs: Inputs;
@@ -21,11 +22,22 @@ const DIM_LABELS: Array<[keyof GoalProfile, string]> = [
   ['simplicity', 'Simplicity'],
 ];
 
+const PLAN_MORE: Record<string, string> = {
+  'stay-spend': 'spend-now', bonds: 'spend-now', 'stay-mid': 'middle', 'stay-grow': 'grow',
+  simple: 'simple', move: 'move', pr: 'puerto-rico', house: 'house', business: 'business', oz: 'lockup',
+};
 const NOW = new Set<string>(QUIZ_NOW);
+const MORE: Record<string, string> = {
+  claim: 'assumptions', filing: 'assumptions', work: 'trade', debts: 'not-included', house: 'house',
+  spend: 'trade', horizon: 'trade', risk: 'stocks', move: 'move', pr: 'puerto-rico',
+  privacy: 'policy', lawsuit: 'policy', legacy: 'grow', charity: 'not-included', business: 'business', complexity: 'simple',
+};
 
-function Bars({ title, hint, rows, tone }: {
+function Bars({ title, hint, tip, more, rows, tone }: {
   title: string;
   hint: string;
+  tip: string;
+  more: string;
   rows: Array<{ name: string; value: number; best: boolean }>;
   tone: 'spend' | 'later';
 }) {
@@ -33,7 +45,7 @@ function Bars({ title, hint, rows, tone }: {
   const bar = tone === 'spend' ? 'bg-primary' : 'bg-[hsl(var(--success))]';
   return (
     <div>
-      <h3 className="font-display text-lg font-semibold">{title}</h3>
+      <h3 className="flex items-center gap-2 font-display text-lg font-semibold">{title}<Explainer text={tip} more={more} /></h3>
       <p className="mt-1 mb-3 text-sm text-muted-foreground">{hint}</p>
       <div className="space-y-3">
         {rows.map((r) => (
@@ -53,6 +65,7 @@ function Bars({ title, hint, rows, tone }: {
 }
 
 export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: Props) {
+  const openExplain = useExplain();
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const answered = Object.keys(answers).length;
   const ready = inputs.amount > 0 && answered === QUIZ.length;
@@ -80,7 +93,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
       <div className="hairline-card p-6 md:p-8">
         <div className="grid gap-4 md:grid-cols-3">
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-medium">Winning cash amount</span>
+            <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">Winning cash amount <Explainer text="The check you could take, or what is left if the tax is already paid. Not the advertised jackpot." more="trade" /></span>
             <input
               type="number"
               min={0}
@@ -92,14 +105,14 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
             <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">The check you could take, or what is left if the tax is already paid. Not the advertised jackpot.</span>
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-medium">State you live in now</span>
+            <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">State you live in now <Explainer text="This state taxes the prize. Moving later does not change that." more="move" /></span>
             <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inputs.state} onChange={(e) => setNum('state', e.target.value)}>
               {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
             </select>
             <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">This is the state that taxes the prize.</span>
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-[14px] font-medium">If you moved</span>
+            <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">If you moved <Explainer text="Used only by a plan that says move. The prize tax does not change." more="move" /></span>
             <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inputs.target} onChange={(e) => setNum('target', e.target.value)}>
               {moveStates.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
             </select>
@@ -156,19 +169,26 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
 
           <div className="hairline-card p-6 md:p-8">
             <h3 className="font-display text-xl font-semibold">The trade, in two numbers</h3>
-            <p className="mt-1 mb-6 max-w-[68ch] text-sm text-muted-foreground">
+            <p className="mt-1 mb-3 max-w-[68ch] text-sm text-muted-foreground">
               No landscape. Two lists. A longer bar on the first list means more cash each year. A longer bar on the second means more left after 25 years. The plan that wins one usually loses the other.
             </p>
+            <button type="button" onClick={() => openExplain('trade')} className="mb-6 text-sm font-medium text-primary underline cursor-pointer">
+              Full explanation of the trade
+            </button>
             <div className="grid gap-8 lg:grid-cols-2">
               <Bars
                 title="Cash you can spend each year"
                 hint="Tax-free, after the first year. Year 1 is a reserve, not a paycheck."
+                tip="The most the mix can pay without selling the pile. Spending more than this eats principal."
+                more="trade"
                 tone="spend"
                 rows={set.plans.map((p, i) => ({ name: p.name, value: p.result.capacity, best: i === 0 }))}
               />
               <Bars
                 title="What you would have in 25 years"
                 hint="The pile if the middle rates hold. Not a promise."
+                tip="What is left if the middle rates hold and you only spend the yearly amount. Not a promise."
+                more="trade"
                 tone="later"
                 rows={set.plans.map((p, i) => ({ name: p.name, value: p.result.stackEnd, best: i === 0 }))}
               />
@@ -179,9 +199,10 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
             {set.plans.map((plan, i) => (
               <article key={plan.id} className={`hairline-card p-6 ${i === 0 ? 'border-success/40' : ''}`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="font-display text-xl font-semibold">
-                    <span className="mr-2 font-mono text-sm text-muted-foreground">{i === 0 ? 'Best match' : `#${i + 1}`}</span>
+                  <h3 className="flex flex-wrap items-center gap-2 font-display text-xl font-semibold">
+                    <span className="font-mono text-sm text-muted-foreground">{i === 0 ? 'Best match' : `#${i + 1}`}</span>
                     {plan.name}
+                    <Explainer text={plan.whys[0] ?? 'Why this plan is on the list.'} more={PLAN_MORE[plan.id] ?? 'trade'} />
                   </h3>
                   <div className="font-num text-sm text-muted-foreground">
                     {fmtCompact(plan.result.capacity)}/yr · {fmtCompact(plan.result.stackEnd)} in 25 years · score {plan.score}
@@ -191,6 +212,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
                 <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14.5px] leading-relaxed text-muted-foreground">
                   {plan.whys.map((w) => <li key={w}>{w}</li>)}
                 </ul>
+                <Tip text="Loads this plan into the calculator and opens it. Your answers stay here." more={PLAN_MORE[plan.id] ?? 'trade'}>
                 <button
                   type="button"
                   onClick={() => { setInputs(() => plan.inputs); onApplyScenario(); }}
@@ -198,6 +220,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
                 >
                   Use this plan
                 </button>
+                </Tip>
               </article>
             ))}
           </div>
@@ -227,10 +250,9 @@ function QuestionGroup({
           </legend>
           <div className="flex flex-wrap gap-2">
             {q.options.map((o, oi) => (
+              <Tip key={oi} text={o.hint || 'This answer changes which five plans you see, and why.'} more={MORE[q.id]}>
               <button
-                key={oi}
                 type="button"
-                title={o.hint}
                 onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
                 className={`rounded-full border px-4 py-2 text-left text-[14px] transition-all cursor-pointer ${
                   answers[q.id] === oi
@@ -240,6 +262,7 @@ function QuestionGroup({
               >
                 {o.label}
               </button>
+              </Tip>
             ))}
           </div>
         </fieldset>
