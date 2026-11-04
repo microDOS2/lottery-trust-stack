@@ -31,15 +31,16 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
 
   if (inputs.amount <= 0) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl space-y-8">
         <SectionTitle
           num="08"
           title={<>Your numbers, <span className="sig-italic">explained</span></>}
-          blurb="This page explains the cash amount you typed, and the protection choices. There is nothing in dollars until you enter a cash amount."
+          blurb="This page explains the cash amount you typed, the stack, and the protection choices. There is nothing in dollars until you enter a cash amount."
         />
-        <p className="mt-6 text-[15px] leading-relaxed text-muted-foreground">
-          Go to Goals & Fit and type the winning cash amount. This page will then use that amount. The protection and trust section below does not need a cash amount.
+        <p className="text-[15px] leading-relaxed text-muted-foreground">
+          Go to Goals & Fit and type the winning cash amount. This page will then use that amount. The sections below do not need a cash amount.
         </p>
+        <StackFacts />
         <Protection />
       </div>
     );
@@ -50,9 +51,10 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <SectionTitle
         num="08"
         title={<>Your numbers, <span className="sig-italic">explained</span></>}
-        blurb="Every dollar on this page comes from what you typed. The protection section is about lawsuits and trusts, not about a bigger pile."
+        blurb="Every dollar on this page comes from what you typed. The stack sections explain what is tax-free, what is not, and when Puerto Rico matters."
       />
 
+      <StackFacts />
       <Protection />
 
       <section id="trade" className="hairline-card scroll-mt-24 p-6">
@@ -139,9 +141,14 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
 
       <section id="puerto-rico" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">Puerto Rico</h2>
-        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          The same dollars, if you live in Puerto Rico more than half the year, are worth {fmt(inPr.stackEnd)} in 25 years. Staying in {here.name}, they are worth {fmt(stayed.stackEnd)}. The difference is {fmt(Math.abs(inPr.stackEnd - stayed.stackEnd))}. The prize stays taxed. A mailing address does not get this. Days on a boat or traveling do not count as days in Puerto Rico.
-        </p>
+        <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
+          <p>The prize is not from Puerto Rico. It is taxed in {here.name}, the state you live in when you receive it. Moving does not change that tax.</p>
+          <p>Puerto Rico can exclude stock gains from US federal tax only in a year you are a bona fide resident. That requires the presence test, the tax-home test, and the closer-connection test for that year. The usual presence test is 183 days in Puerto Rico. Days outside Puerto Rico, on a boat or traveling, do not count. A mailing address, bills, and a license do not replace the days.</p>
+          <p>Each year is separate. A year you qualify, qualifying stock gains sold that year can use the Puerto Rico path. A year you do not qualify, those gains are taxed under the ordinary US rules. Living there one year does not carry the status into the next.</p>
+          <p>Compared with Nevada: Nevada has no state income tax, and traveling does not turn that off, because there is no day-count test. You still pay US federal tax on stock gains every year. Puerto Rico can remove that federal tax on qualifying gains, but only in the years you qualify.</p>
+          <p>The tax-free pieces of the stack do not gain from Puerto Rico. Municipal bond interest, money taken from the insurance policy under the rules, qualifying startup-stock gains, and opportunity-zone appreciation after ten years are already federal exclusions. Puerto Rico adds nothing to them. It matters only if stocks from the stack are sold in a qualifying year. If you never sell the stocks and only borrow against them, Puerto Rico adds nothing to the stack.</p>
+          <p>On your dollars, if the Puerto Rico path applied every year, the pile in 25 years is {fmt(inPr.stackEnd)}. Staying in {here.name}, it is {fmt(stayed.stackEnd)}. The difference is {fmt(Math.abs(inPr.stackEnd - stayed.stackEnd))}. That comparison assumes you qualify every year. If you do not, the difference is smaller or zero.</p>
+        </div>
       </section>
 
       <section id="spend-now" className="hairline-card scroll-mt-24 p-6">
@@ -179,6 +186,40 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
         </p>
       </section>
     </div>
+  );
+}
+
+function StackFacts() {
+  return (
+    <>
+      <section id="stack-free" className="hairline-card scroll-mt-24 p-6">
+        <h2 className="font-display text-2xl font-semibold">What the stack makes tax-free</h2>
+        <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
+          <p>These are federal. They apply to a US person no matter which US state they live in. A state can still tax some of them. Nevada taxes none of them because it has no income tax.</p>
+          <p>Municipal bond interest is excluded from federal income tax. Money taken from the insurance policy, up to what you put in, then as policy loans, is not taxed as income. Growth inside the policy is not taxed yearly. The death benefit is not income-taxed. Startup stock that qualifies can exclude the gain from federal tax, up to the per-company cap, after the holding period. Opportunity-zone appreciation after a 10-year hold can be excluded from federal tax.</p>
+          <p>The stack does not make ordinary stock gains, dividends, or interest from US companies tax-free. Those stay federally taxable wherever you live in the US.</p>
+        </div>
+      </section>
+
+      <section id="borrow" className="hairline-card scroll-mt-24 p-6">
+        <h2 className="font-display text-2xl font-semibold">Borrowing instead of selling</h2>
+        <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
+          <p>You can pledge the stocks and take a loan. A loan is not income, so there is no tax on the money you receive. The stocks stay in place. You still owe the loan.</p>
+          <p>At death, the stocks get a new cost basis equal to their value then. The gain that built up is not taxed as income to the heirs. The loan is still a debt of the estate.</p>
+          <p>Lenders typically advance 50–70% of a diversified stock portfolio. If the stocks drop and the loan is too large relative to them, the lender can force a sale. A loan above about 30% of the stocks is the point where that risk gets real. Interest is still owed.</p>
+          <p>If the stocks are sold to pay the loan, whether the lender forces the sale or you choose to sell, the sale is taxed. The sale price minus what you paid is a capital gain. Using the money to pay the loan does not erase the gain. Paying off every loan by selling stock taxes each sale the same way.</p>
+        </div>
+      </section>
+
+      <section id="harvest" className="hairline-card scroll-mt-24 p-6">
+        <h2 className="font-display text-2xl font-semibold">Offsetting a gain</h2>
+        <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
+          <p>The direct-indexed stocks are held as individual shares. Shares that have fallen can be sold to lock in a loss. Those losses offset gains from shares that are sold to pay a loan, up to the amount of the losses. You do not buy stocks intending them to lose money. You use declines that happen.</p>
+          <p>If you sell a stock at a loss and buy the same stock again within 30 days before or after the sale, the loss is disallowed. That is the wash-sale rule. You can sell the stock that is down and buy a different stock that is similar but not the same. The loss is allowed. If you wait until day 31 or later and buy the same stock, the loss is also allowed.</p>
+          <p>If the whole portfolio is up, there is no loss to harvest. The bond interest and the policy do not create losses that offset stock gains.</p>
+        </div>
+      </section>
+    </>
   );
 }
 
