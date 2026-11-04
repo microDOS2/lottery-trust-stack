@@ -126,3 +126,12 @@
 .text-\[14px\] { font-size: 16px !important; }
 .text-\[14\.5px\] { font-size: 16.5px !important; }
 .text-\[15px\] { font-size: 17px !important; }
+
+/* Contain text inside cards and main areas */
+.hairline-card, main, section, article, fieldset, label {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.hairline-card p, .hairline-card li, .hairline-card span, .hairline-card legend {
+  max-width: 100%;
+}
