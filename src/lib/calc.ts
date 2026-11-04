@@ -380,8 +380,9 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 // ---------- Annuity vs Lump Sum ----------
 
 export interface AnnuityInputs {
-  advertised: number;   // advertised jackpot
-  cashRatio: number;    // cash option as fraction of advertised (Powerball ≈ 0.45–0.50)
+  advertised: number;   // advertised jackpot (sum of the annuity checks)
+  cash?: number;        // lump sum before tax, typed directly. Wins over the ratio.
+  cashRatio: number;    // used only when cash is blank: cash option as a fraction of advertised
   years: number;        // annuity term (Powerball = 30)
   escalator: number;    // annual payment growth (Powerball = 5%)
   state: string;
@@ -417,7 +418,7 @@ export function computeAnnuity(a: AnnuityInputs): AnnuityResult {
   let annuityTaxes = 0;
   let total = 0;
   const yearly: AnnuityResult['yearly'] = [];
-  const lumpGross = a.advertised * a.cashRatio;
+  const lumpGross = a.cash != null ? a.cash : a.advertised * a.cashRatio;
   const lumpTaxes = federalTax(lumpGross, a.filing) + stateRate * Math.max(0, lumpGross - STD_DEDUCTION_2026[a.filing]);
   const lumpNet = lumpGross - lumpTaxes;
   const lumpEnd = lumpNet * Math.pow(1 + g, n);

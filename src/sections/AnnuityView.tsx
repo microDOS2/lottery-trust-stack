@@ -6,9 +6,11 @@ import { AnnuityChart } from '../components/viz';
 import { SectionTitle, Stat, Field } from '../components/widgets';
 import { Slider } from '@/components/ui/slider';
 
-export default function AnnuityView({ defaultState, filing, onNext }: { defaultState: string; filing: Filing; onNext?: () => void }) {
+export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing; onNext?: () => void; onUseCash?: (cash: number) => void }) {
+  const [more, setMore] = useState(false);
   const [a, setA] = useState({
     advertised: 0,
+    cash: 0,
     cashRatio: 0.47,
     years: 30,
     escalator: 0.05,
@@ -18,49 +20,66 @@ export default function AnnuityView({ defaultState, filing, onNext }: { defaultS
   });
   const r = useMemo(() => computeAnnuity(a), [a]);
   const lumpWins = r.winner === 'lump';
+  const hasCash = a.cash > 0;
+  const hasAnnuity = a.advertised > 0;
+  const canCompare = hasCash && hasAnnuity;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <SectionTitle
         num="04"
         title={<>Annuity or <span className="sig-italic">lump sum?</span></>}
-        blurb="The one decision you make before anything else — and you usually get 60–90 days to make it. The annuity pays the full advertised jackpot in 30 rising installments; the lump sum is a smaller pile, immediately, that you control. Here's the math both ways."
+        blurb="Type the cash amount you would get now. Add the annuity total only if you want to compare it with 30 years of checks."
       />
 
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="hairline-card h-fit space-y-4 p-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
-          <Field label="Advertised jackpot">
+          <Field label="Cash amount, before tax" help="The cash option on the lottery site. The check you could take now, before tax. Not the advertised jackpot.">
+            <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.cash} min={0} step={100000}
+              onChange={(e) => setA({ ...a, cash: +e.target.value || 0 })} />
+          </Field>
+          <Field label="Annuity total" help="All the checks added together. Usually 30 payments, each 5% larger than the last. Leave at 0 if you only want the cash math.">
             <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.advertised} min={0} step={1000000}
               onChange={(e) => setA({ ...a, advertised: +e.target.value || 0 })} />
           </Field>
-          <div>
-            <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">Cash-option ratio</span><span className="font-num text-muted-foreground">{pct(a.cashRatio, 0)}</span></div>
-            <Slider value={[a.cashRatio * 100]} min={35} max={60} step={1} onValueChange={([v]) => setA({ ...a, cashRatio: v / 100 })} />
-            <p className="mt-1 text-[12.5px] text-muted-foreground">Powerball cash options typically run ~45–50% of the advertised jackpot.</p>
-          </div>
-          <div>
-            <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">Reinvestment return</span><span className="font-num text-muted-foreground">{pct(a.investReturn)}</span></div>
-            <Slider value={[a.investReturn * 100]} min={3} max={10} step={0.25} onValueChange={([v]) => setA({ ...a, investReturn: v / 100 })} />
-            <p className="mt-1 text-[12.5px] text-muted-foreground">What the money earns after tax, either path. 7% ≈ a balanced stack.</p>
-          </div>
           <Field label="State where you'd claim">
             <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={a.state} onChange={(e) => setA({ ...a, state: e.target.value })}>
               {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
             </select>
           </Field>
+          <button type="button" onClick={() => setMore((v) => !v)} className="text-left text-sm font-medium text-primary hover:underline cursor-pointer">
+            {more ? 'Hide extra inputs' : 'More inputs'}
+          </button>
+          {more && (
+            <>
+              <div>
+                <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">I only know the jackpot</span><span className="font-num text-muted-foreground">{pct(a.cashRatio, 0)}</span></div>
+                <Slider value={[a.cashRatio * 100]} min={35} max={60} step={1} onValueChange={([v]) => setA({ ...a, cashRatio: v / 100, cash: Math.round(a.advertised * (v / 100)) })} />
+                <p className="mt-1 text-[12.5px] text-muted-foreground">Fills the cash amount as this share of the annuity total. A cash option is often about 45–50%. Typing a cash amount yourself replaces it.</p>
+              </div>
+              <div>
+                <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">What the money earns</span><span className="font-num text-muted-foreground">{pct(a.investReturn)}</span></div>
+                <Slider value={[a.investReturn * 100]} min={3} max={10} step={0.25} onValueChange={([v]) => setA({ ...a, investReturn: v / 100 })} />
+                <p className="mt-1 text-[12.5px] text-muted-foreground">Used for both paths after tax. 7% is a middle guess, not a promise.</p>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="min-w-0 space-y-6">
-          <div className={`rounded-lg border p-5 ${lumpWins ? 'border-success/40 bg-[hsl(var(--success-tint))]' : 'border-gold/50 bg-[hsl(var(--gold-tint))]'}`}>
-            <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">The model's verdict</div>
+          <div className={`rounded-lg border p-5 ${canCompare ? (lumpWins ? 'border-success/40 bg-[hsl(var(--success-tint))]' : 'border-gold/50 bg-[hsl(var(--gold-tint))]') : 'border-border'}`}>
+            <div className="font-mono text-[12.5px] uppercase tracking-wider text-muted-foreground">{canCompare ? "The model's verdict" : hasCash ? 'Cash only' : 'Start here'}</div>
             <div className="font-display mt-1 text-2xl font-semibold">
-              {lumpWins ? 'Lump sum, by the math' : 'Annuity, by the math'} — <span className="sig-italic">{fmtCompact(r.diff)}</span> apart
+              {!hasCash && 'Type the cash amount.'}
+              {hasCash && !hasAnnuity && <>You keep <span className="sig-italic">{fmtCompact(r.lumpNet)}</span> after tax.</>}
+              {canCompare && (lumpWins ? 'Lump sum, by the math' : 'Annuity, by the math')}
+              {canCompare && <> — <span className="sig-italic">{fmtCompact(r.diff)}</span> apart</>}
             </div>
             <p className="mt-2 max-w-[70ch] text-[14px] leading-relaxed text-muted-foreground">
-              {lumpWins
-                ? 'Invested in the stack, the smaller immediate pile compounds into more than 30 years of checks — plus you keep control, flexibility, and a step-up in basis at death.'
-                : 'The guaranteed rising checks actually out-compound the smaller lump at this return assumption — and they make it impossible to blow it all in year one.'}
-              {' '}The math flips with the return slider; the discipline question never does.
+              {!hasCash && 'This is the cash option, before tax. It is not the advertised jackpot.'}
+              {hasCash && !hasAnnuity && 'Add the annuity total if you want this compared with 30 years of checks. You do not need a percentage.'}
+              {canCompare && lumpWins && 'Invested, the cash you take now finishes ahead of the checks — and you keep control of the money.'}
+              {canCompare && !lumpWins && 'The rising checks finish ahead of the cash at this earnings guess. The cash still gives you control.'}
             </p>
           </div>
 
@@ -78,14 +97,21 @@ export default function AnnuityView({ defaultState, filing, onNext }: { defaultS
               Each annuity check uses 2026 federal brackets. State tax is the top marginal rate on the payment above the federal standard deduction. In a graduated-bracket state that overstates tax on smaller checks.
             </p>
             <AnnuityChart yearly={r.yearly} />
-          {a.advertised <= 0 && (
-            <p className="mt-3 text-sm text-muted-foreground">Type the advertised jackpot. Both paths stay at zero until you do.</p>
+          {(!hasCash && !hasAnnuity) && (
+            <p className="mt-3 text-sm text-muted-foreground">Type the cash amount. Add the annuity total only if you want the comparison.</p>
           )}
-          {onNext && (
-            <button type="button" onClick={onNext} className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground cursor-pointer">
-              Next: Goals & Fit
-            </button>
-          )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {onUseCash && hasCash && (
+              <button type="button" onClick={() => onUseCash(a.cash)} className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground cursor-pointer">
+                Use this cash in the calculator
+              </button>
+            )}
+            {onNext && (
+              <button type="button" onClick={onNext} className="rounded-md border border-input px-4 py-2 text-sm font-semibold cursor-pointer">
+                Next: Goals & Fit
+              </button>
+            )}
+          </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

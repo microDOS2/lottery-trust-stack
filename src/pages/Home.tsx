@@ -274,7 +274,17 @@ export default function Home() {
         {view === 'library' && (
           <StrategyView sleeve={inputs.sleeve} onApplyEngine={applyEngine} onSetSleeve={setSleeve} />
         )}
-        {view === 'annuity' && <AnnuityView defaultState={inputs.state} filing={inputs.filing} onNext={() => setView('goals')} />}
+        {view === 'annuity' && (
+          <AnnuityView
+            defaultState={inputs.state}
+            filing={inputs.filing}
+            onNext={() => setView('goals')}
+            onUseCash={(cash) => {
+              setInputsRaw((p) => ({ ...p, amount: cash, basis: 'gross' }));
+              setView('calc');
+            }}
+          />
+        )}
         {view === 'guide' && <GuideView />}
         {view === 'glossary' && <GlossaryView />}
       </main>
