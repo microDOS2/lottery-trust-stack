@@ -45,7 +45,7 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <SectionTitle
-        num="02"
+        num="01"
         title={<>Plan the life, <span className="sig-italic">short, middle, and long</span></>}
         blurb="One page. Age first, because a 40-year-old and a 75-year-old do not mean the same thing by later. The result is whether the money can pay for the life without running out. A pile at a fixed year 25 is not the finish line."
       />
