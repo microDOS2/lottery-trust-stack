@@ -124,16 +124,6 @@ export default function GoalsView({ inputs, setInputs, asm, onApplyScenario }: P
 
       <Group heading={`Long term — ${span.long}`} questions={QUIZ.filter((q) => LONG.has(q.id))} answers={answers} setAnswers={setAnswers} />
 
-      {!ready && (
-        <p className="text-sm text-muted-foreground">
-          {age <= 0 ? 'Enter your age. ' : ''}
-          {inputs.amount <= 0 ? 'Enter the cash amount. ' : ''}
-          {inputs.spend <= 0 ? 'Enter the yearly amount you want available. ' : ''}
-          {answered < QUIZ.length ? `Answer ${QUIZ.length - answered} more. ` : ''}
-          The result shows up when those are done.
-        </p>
-      )}
-
       {outcome && (
         <article className="hairline-card border-success/40 p-6">
           <h3 className="font-display text-xl font-semibold">The result</h3>
