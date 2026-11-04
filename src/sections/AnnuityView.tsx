@@ -35,11 +35,11 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
       <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="hairline-card h-fit space-y-4 p-5 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
           <Field label="Cash amount, before tax" tip="The check you could take now, before tax. Not the advertised jackpot." more="trade" help="The cash option on the lottery site. The check you could take now, before tax. Not the advertised jackpot.">
-            <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.cash} min={0} step={100000}
+            <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.cash || ''} min={0} step={100000}
               onChange={(e) => setA({ ...a, cash: +e.target.value || 0 })} />
           </Field>
-          <Field label="Annuity total" tip="Every annuity check added together. Leave at 0 if you only want the cash math." more="trade" help="All the checks added together. Usually 30 payments, each 5% larger than the last. Leave at 0 if you only want the cash math.">
-            <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.advertised} min={0} step={1000000}
+          <Field label="Annuity total" tip="Every annuity check added together. Leave blank if you only want the cash math." more="trade" help="All the checks added together. Usually 30 payments, each 5% larger than the last. Leave blank if you only want the cash math.">
+            <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.advertised || ''} min={0} step={1000000}
               onChange={(e) => setA({ ...a, advertised: +e.target.value || 0 })} />
           </Field>
           <Field label="State where you'd claim" tip="The state that taxes the prize. A California lottery prize bought in California is not taxed by the state." more="move">
