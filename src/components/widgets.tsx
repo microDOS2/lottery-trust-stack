@@ -78,10 +78,10 @@ export function Field({
 
 export function SectionTitle({ num, title, blurb }: { num: string; title: ReactNode; blurb?: string }) {
   return (
-    <div className="mb-5">
-      <div className="eyebrow"><span className="eyebrow-num">{num}</span></div>
-      <h2 className="mt-2 text-2xl md:text-3xl font-semibold text-balance">{title}</h2>
-      {blurb && <p className="mt-2 max-w-[68ch] text-[15px] text-muted-foreground">{blurb}</p>}
+    <div className="mb-6">
+      <div className="eyebrow mb-1"><span className="eyebrow-num">{num}</span></div>
+      <h2 className="mt-3 text-2xl md:text-3xl font-semibold text-balance">{title}</h2>
+      {blurb && <p className="mt-3 max-w-[68ch] text-[15px] text-muted-foreground">{blurb}</p>}
     </div>
   );
 }
