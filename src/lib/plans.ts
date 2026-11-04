@@ -16,34 +16,14 @@ export interface PlanSet {
   plans: PlanOption[];
 }
 
-interface Draft {
-  id: string;
-  name: () => string;
-  when: (answers: Record<string, number>) => boolean;
-  patch: () => Partial<Inputs>;
-}
-
-function drafts(): Draft[] {
-  return [
-    { id: 'cover', name: () => 'Pays for the life', when: () => true, patch: () => ({ residency: 'stay', dial: 70, mode: 'balanced' }) },
-    { id: 'steady', name: () => 'Steadier cash', when: () => true, patch: () => ({ residency: 'stay', dial: 100, mode: 'balanced' }) },
-    {
-      id: 'move',
-      name: () => 'After a move',
-      when: (a) => (a.move ?? 0) >= 1,
-      patch: () => ({ residency: 'move', dial: 60, mode: 'balanced' }),
-    },
-    {
-      id: 'pr',
-      name: () => 'Living in Puerto Rico',
-      when: (a) => a.pr === 1,
-      patch: () => ({ residency: 'pr', dial: 60, mode: 'balanced' }),
-    },
-  ];
-}
-
 function year10(result: StackResult): number {
   return result.projection[9]?.end ?? 0;
+}
+
+function residencyFor(answers: Record<string, number>): Inputs['residency'] {
+  if (answers.live === 2) return 'pr';
+  if (answers.live === 1) return 'move';
+  return 'stay';
 }
 
 function outcomeLines(inputs: Inputs, result: StackResult, answers: Record<string, number>): string[] {
@@ -62,23 +42,27 @@ function outcomeLines(inputs: Inputs, result: StackResult, answers: Record<strin
   }
   if (result.debtPaid > 0) lines.push(`${fmtCompact(result.debtPaid)} of debt is paid first and is not invested.`);
   if (result.housePaid > 0) lines.push(`${fmtCompact(result.housePaid)} for a home is not invested.`);
-  if (result.venturePaid > 0) lines.push(`${fmtCompact(result.venturePaid)} for a business or rental is not invested.`);
-  if (answers.pr === 2) {
-    lines.push('A Puerto Rico address while you travel or live on a boat most of the year does not qualify. The tax treatment requires you to actually be there more than half the year. The lottery check is taxed either way.');
-  } else if (answers.pr === 1) {
+  if (result.venturePaid > 0) lines.push(`${fmtCompact(result.venturePaid)} for a business, a rental, or something else is not invested.`);
+  if (answers.live === 3) {
+    lines.push('A Puerto Rico address while you travel or live on a boat most of the year does not qualify. The tax break does not apply. The lottery check is taxed the same either way.');
+  } else if (answers.live === 2) {
     lines.push('Puerto Rico changes later investment gains only if you live there more than half the year. It does not change the tax on the lottery check.');
-  }
-  if (answers.move === 2) {
+  } else if (answers.live === 1) {
     lines.push(`A move changes tax on future investment income only. The lottery check is still taxed in ${stateByCode(inputs.state).name}.`);
+  } else if (answers.live === 4) {
+    lines.push('Living in another country with a US passport does not turn off US tax.');
   }
   if (answers.cbi === 2) {
     lines.push('A passport from another country does not lower US tax. The tax ends only if you give up US citizenship.');
   }
-  if (answers.abroad && answers.abroad > 0) {
-    lines.push('Living in another country with a US passport does not turn off US tax.');
-  }
   if (answers.renounce && answers.renounce > 0) {
     lines.push('Giving up US citizenship has its own tax. It is not treated as reversible.');
+  }
+  if (answers.worry === 1) {
+    lines.push('A trust can keep a name off a house, a car, or a court paper. It does not hide the money from the tax office.');
+  }
+  if (answers.gone === 2) {
+    lines.push('A trust in the United States can slow a lawsuit. A foreign trust does not hide the money from the tax office.');
   }
   return lines;
 }
@@ -87,58 +71,37 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
   const profile = profileFromAnswers(answers);
   const basis: Inputs['basis'] = answers.claim === 1 ? 'net' : 'gross';
   const filing: Inputs['filing'] = answers.filing === 1 ? 'mfj' : 'single';
-  const base: Inputs = {
+  const planInputs: Inputs = {
     ...inputs,
     basis,
     filing,
     spend: inputs.spend,
-    residency: 'stay',
+    residency: residencyFor(answers),
     mode: 'balanced',
+    dial: 70,
     flatDraw: false,
     drawOverrides: {},
   };
-
-  const built = drafts()
-    .filter((d) => d.when(answers))
-    .map((d) => {
-      const patch = d.patch();
-      const planInputs: Inputs = { ...base, ...patch, manual: patch.manual ?? base.manual };
-      return { d, planInputs, result: computeStack(planInputs, asm) };
-    });
-
-  const allResults = built.map((b) => b.result);
-  const ranked = built
-    .map((b) => ({
-      ...b,
-      score: scoreScenario(b.planInputs, b.result, profile, allResults).total,
-    }))
-    .sort((a, b) => {
-      const aCover = a.result.capacity >= inputs.spend ? 1 : 0;
-      const bCover = b.result.capacity >= inputs.spend ? 1 : 0;
-      if (aCover !== bCover) return bCover - aCover;
-      return b.score - a.score;
-    });
-
-  const best = ranked[0];
+  const result = computeStack(planInputs, asm);
+  const score = scoreScenario(planInputs, result, profile, [result]).total;
   const here = stateByCode(inputs.state);
   const preface = [
     answers.claim === 1
       ? `The ${fmtCompact(inputs.amount)} you typed is money already after tax.`
       : `The ${fmtCompact(inputs.amount)} you typed is the lottery check before tax. Federal and ${here.name} tax come off first.`,
   ];
-
-  const plans: PlanOption[] = best
-    ? [{
-        id: best.d.id,
-        name: 'What the money can do',
-        whys: outcomeLines(best.planInputs, best.result, answers),
-        inputs: best.planInputs,
-        result: best.result,
-        score: best.score,
-      }]
-    : [];
-
-  return { preface, plans };
+  void QUIZ;
+  return {
+    preface,
+    plans: [{
+      id: 'outcome',
+      name: 'What the money can do',
+      whys: outcomeLines(planInputs, result, answers),
+      inputs: planInputs,
+      result,
+      score,
+    }],
+  };
 }
 
 export function outcomesForQuestion(): string[] {
