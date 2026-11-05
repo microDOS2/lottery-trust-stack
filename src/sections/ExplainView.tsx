@@ -90,9 +90,9 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <section id="policy" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">The insurance policy</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          {yours.core < PPLI_QP_MIN
-            ? `The policy is ${fmt(yours.ppli)}. Your invested amount is ${fmt(yours.core)}, and the policy is only used when at least ${fmt(PPLI_QP_MIN)} is left to invest. Nothing was removed to make that happen. The amount is too small.`
-            : `${fmt(yours.ppli)} of your invested money is in the policy. At the calculator’s rate it can pay ${fmt(yours.ppli * asm.ppliDraw)} a year from that piece, and what stays inside grows at ${pct(asm.ppliGrowth)}. It is extra paperwork. Without it, the same dollars are worth ${fmt(noPolicy.stackEnd)} in 25 years instead of ${fmt(yours.stackEnd)}, and the yearly check is ${fmt(noPolicy.capacity)} instead of ${fmt(yours.capacity)}.`}
+          {yours.ppli < PPLI_QP_MIN
+            ? `The insurance box is ${fmt(yours.ppli)}. Rule: the policy is not used under ${fmt(PPLI_QP_MIN)} in that box. The paycheck from that box is $0. The number was not erased. The bond amount and the stock amount were not changed.`
+            : `The insurance box is ${fmt(yours.ppli)}. That is at least ${fmt(PPLI_QP_MIN)}, so the policy is used. At the calculator’s rate it can pay ${fmt(yours.ppli * asm.ppliDraw)} a year from that box, and what stays inside grows at ${pct(asm.ppliGrowth)}.`}
         </p>
       </section>
 

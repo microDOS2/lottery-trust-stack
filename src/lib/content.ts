@@ -61,7 +61,7 @@ export const STRATEGIES: Strategy[] = [
     name: 'Private Placement Life Insurance (PPLI)',
     oneLiner: 'A hedge-fund-style portfolio wrapped inside an institutional life insurance policy. The IRS treats the growth as insurance, not investments — so it compounds untaxed and comes out tax-free.',
     taxMagic: 'Inside a non-MEC policy, growth is not taxed as it compounds (IRC §7702). You take money out tax-free by withdrawing up to your cost basis, then switching to policy loans (IRC §72(e)). At death it all passes income-tax-free. This is federal. Puerto Rico does not add to it.',
-    qualifies: 'Typically requires Qualified Purchaser status — $5M+ in investments — and carrier minimum premiums around $2.5M. This is an institutional product, not retail insurance.',
+    qualifies: 'The insurance box must be at least $5,000,000. Under that, the policy is not used. The number in the box is not erased. The bond box and the stock box are not changed.',
     watchOut: 'Must respect IRS diversification rules (IRC §817(h)) and investor-control doctrine — you cannot pick the stocks yourself. Fees matter; only large premiums make the math beat a taxable account. Never let it lapse with loans outstanding.',
     plugsIn: 'Trust #3 owns the policy. The model takes about 4.5% a year tax-free, under the policy’s assumed growth.',
     stat: '$5M',

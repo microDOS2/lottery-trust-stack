@@ -177,8 +177,12 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Insurance charge, dollars a year <Explainer text="What the insurance company charges to hold the policy. Nothing is subtracted until you type it. A common charge is about 0.8% of the policy. This box does not apply that by itself." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Leave this blank if you do not want a charge taken out. The policy growth rate is before this charge.</p>
         <input type="number" min={0} step={1} value={inputs.ppliFee || ''} onChange={(e) => setNum('ppliFee', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-        {preview.core > 0 && preview.core < 5_000_000 && inputs.mode !== 'manual' && (
-          <Limit>The insurance policy is not used unless at least $5,000,000 is invested. That is the Qualified Purchaser rule. This result has {fmtCompact(preview.core)} invested, so the policy is not used.</Limit>
+        <Limit>Rule: the insurance policy is not used under $5,000,000 in the insurance box. Under that, the paycheck from that box is $0. The box is not changed. The bond box and the stock box are not changed.</Limit>
+        {preview.ppli > 0 && preview.ppli < 5_000_000 && (
+          <Limit>This result puts {fmtCompact(preview.ppli)} in the insurance box. That is under $5,000,000. The policy is not used.</Limit>
+        )}
+        {preview.ppli >= 5_000_000 && (
+          <Limit>This result puts {fmtCompact(preview.ppli)} in the insurance box. That meets the $5,000,000 minimum. The policy is used.</Limit>
         )}
       </label>
 

@@ -207,7 +207,7 @@ export default function CalculatorView(p: Props) {
           <Stat label="Federal tax on prize" tip="Federal income tax on the cash option, at 2026 rates. The line under it is the state tax." more="assumptions" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
           <Stat label="Net after-tax pool" tip="What is left after federal and state tax. This is the money the rest of the page invests." more="trade" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
           <Stat label="Year-1 reserve" tip="The first year of spending, plus setup cost, held back. The investments are not touched in year 1." more="trade" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
-          <Stat label="Investable core" tip="What is left to invest after tax, the first year of spending, setup cost, and anything you set aside. The policy is not used unless this is at least $5,000,000." more="trade" value={fmtCompact(r.core)} sub={r.qpOk ? 'At least $5,000,000, so the policy can be used' : `Under ${fmtCompact(PPLI_QP_MIN)}. The policy is not used.`} />
+          <Stat label="Investable core" tip="What is left to invest after tax, the first year of spending, setup cost, and anything you set aside." more="trade" value={fmtCompact(r.core)} sub="This number is not the insurance minimum." />
         </div>
       </div>
     </div>
@@ -316,7 +316,7 @@ export default function CalculatorView(p: Props) {
         <Field label="Insurance charge, dollars a year" tip="Taken out of the pile each year. Nothing is taken until you type it. The policy growth rate is before this charge." help="Leave blank for no charge. A common carrier charge is about 0.8% of the policy. This box does not apply that unless you type it.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.ppliFee || ''} min={0} step={1000} onChange={(e) => set('ppliFee', +e.target.value || 0)} />
         </Field>
-        {!r.qpOk && inp.amount > 0 && inp.mode !== 'manual' && <Limit>The insurance policy is not used unless at least {fmtCompact(PPLI_QP_MIN)} is invested. That is the Qualified Purchaser rule. This page has {fmtCompact(r.core)} invested.</Limit>}
+        <Limit>Rule: the insurance policy is not used under {fmtCompact(PPLI_QP_MIN)} in the insurance box. If this box is under that, the policy paycheck is $0. This box is not changed. The bond box is not changed. The stock box is not changed.</Limit>
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
@@ -422,7 +422,7 @@ export default function CalculatorView(p: Props) {
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat label="Bonds" tip="The bond ladder. It pays the bond rate, tax-free, and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of what is invested · ${fmtCompact(r.muni * asm.muniYield)}/yr`} />
-          <Stat label="Insurance policy" tip="The life insurance policy. It is not used under $5,000,000 invested. Carriers usually want $2,500,000 inside it. This page does not move money to hit that." more="policy" value={fmtCompact(r.ppli)} sub={`${pct(w.b)} · ${fmtCompact(r.ppli * asm.ppliDraw)}/yr from this piece`} />
+          <Stat label="Insurance policy" tip="This box stands on its own. The policy is not used under $5,000,000 in this box. Under that, the paycheck from this box is $0. The number is not erased. The bond box and the stock box are not changed." more="policy" value={fmtCompact(r.ppli)} sub={r.qpOk ? `At least ${fmtCompact(PPLI_QP_MIN)}. The policy is used. ${fmtCompact(r.ppli * asm.ppliDraw)}/yr from this box.` : `${fmtCompact(r.ppli)} is under ${fmtCompact(PPLI_QP_MIN)}. The policy is not used. Paycheck from this box: $0.`} />
           <Stat label="Stocks" tip="Stocks. The growth rate and the spendable slice are the rates in the assumptions." more="stocks" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} after anything you moved out · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of what is invested · ${fmtCompact(r.equity * asm.eqDraw)}/yr`} />
           <Stat label="Tax-free cash capacity" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
         </div>
@@ -507,13 +507,10 @@ function RealEstateLazy({ inputs, result }: { inputs: Inputs; result: StackResul
 
 function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['setInputs'] }) {
   const upd = (key: 'a' | 'b' | 'c', v: number) => {
-    setInputs((prev) => {
-      const m = { ...prev.manual, [key]: v };
-      const t = m.a + m.b + m.c || 1;
-      return { ...prev, manual: { a: m.a / t, b: m.b / t, c: m.c / t } };
-    });
+    setInputs((prev) => ({ ...prev, manual: { ...prev.manual, [key]: v } }));
   };
   const m = inputs.manual;
+  const sum = Math.round((m.a + m.b + m.c) * 100);
   return (
     <div className="space-y-3 rounded-md bg-secondary p-3">
       {([
@@ -526,7 +523,9 @@ function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['
           <Slider value={[Math.round(v * 100)]} min={0} max={100} step={1} onValueChange={([x]) => upd(k, x / 100)} />
         </div>
       ))}
-      <p className="text-[15px] text-muted-foreground">The three sliders are forced to add to 100%. A handmade mix is left as you set it.</p>
+      <p className="text-[15px] text-muted-foreground">Each slider stands on its own. Moving one does not change the other two.</p>
+      {sum > 100 && <Limit>These three add up to {sum}%. That is over 100%. The chart does not invent money. It fills bonds, then the insurance box, then stocks, and stops when the money left is gone. The percents you set are not changed.</Limit>}
+      <Limit>Rule: the insurance policy is not used under $5,000,000 in the insurance box.</Limit>
     </div>
   );
 }

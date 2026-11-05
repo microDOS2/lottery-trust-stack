@@ -118,8 +118,8 @@ export function describeCombo(inp: Inputs, asm: Assumptions): ComboView {
   if (engines.length) {
     const w = result.weights;
     const names = engines.map(nameOf).join(', ');
-    const policy = engines.includes('engine-b') && result.ppli <= 0
-      ? ` The policy is ${fmt(0)} because ${fmt(result.core)} is invested and the policy starts at ${fmt(PPLI_QP_MIN)}.`
+    const policy = engines.includes('engine-b') && result.ppli < PPLI_QP_MIN
+      ? ` The insurance box is ${fmt(result.ppli)}. The policy is not used under ${fmt(PPLI_QP_MIN)} in that box. The paycheck from that box is $0. The other boxes were not changed.`
       : '';
     sections.push({
       heading: 'How the money is split',

@@ -118,8 +118,7 @@ export const DEFAULT_INPUTS: Inputs = {
   assetValue: 0,
 };
 
-export const PPLI_QP_MIN = 5_000_000;      // invested amount before the policy is used
-export const PPLI_PREMIUM_MIN = 2_500_000; // carrier minimum inside the policy; not applied automatically
+export const PPLI_QP_MIN = 5_000_000; // insurance box. Under this, the policy is not used. The box is not changed.
 export const SLEEVE_PCT_MAX = 0.25;
 export const BOND_MIN = 0.15;
 export const BOND_MAX = 0.55;
@@ -145,15 +144,12 @@ export function drawForYear(inp: Inputs, asm: Assumptions, y: number): number {
   return base * Math.pow(1 + asm.inflation, Math.max(0, steps));
 }
 
-/** Resolve engine weights from mode / dial / manual, enforcing PPLI minimums and safety floors. */
-export function resolveWeights(inp: Inputs, core: number): Weights {
+/** The three weights are not resized to add up to 1, and the insurance weight is not erased. */
+export function resolveWeights(inp: Inputs, _core: number): Weights {
   if (inp.mode === 'manual') {
     const { a, b, c } = inp.manual;
-    const t = a + b + c || 1;
-    return { a: a / t, b: b / t, c: c / t };
+    return { a: Math.max(0, a), b: Math.max(0, b), c: Math.max(0, c) };
   }
-  const qpOk = core >= PPLI_QP_MIN;
-  // Presets: growth → balanced → income
   const growth: Weights = { a: 0.2, b: 0.25, c: 0.55 };
   const balanced: Weights = { a: 0.25, b: 0.25, c: 0.5 };
   const income: Weights = { a: 0.4, b: 0.35, c: 0.25 };
@@ -163,12 +159,7 @@ export function resolveWeights(inp: Inputs, core: number): Weights {
     b: x.b + (y.b - x.b) * t,
     c: x.c + (y.c - x.c) * t,
   });
-  let w = d <= 0.5 ? lerp(growth, balanced, d * 2) : lerp(balanced, income, (d - 0.5) * 2);
-  if (!qpOk) w = { ...w, b: 0 };
-  else if (w.b > 0 && w.b * core < PPLI_PREMIUM_MIN) w = { ...w, b: PPLI_PREMIUM_MIN / core };
-  w = { ...w, a: Math.min(BOND_MAX, Math.max(BOND_MIN, w.a)), c: Math.min(STOCK_MAX, Math.max(STOCK_MIN, w.c)) };
-  const t = w.a + w.b + w.c;
-  return { a: w.a / t, b: w.b / t, c: w.c / t };
+  return d <= 0.5 ? lerp(growth, balanced, d * 2) : lerp(balanced, income, (d - 0.5) * 2);
 }
 
 /** State rate applied to future unshielded investment income. */
@@ -281,12 +272,21 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   const giftPaid = Math.min(left, Math.max(0, inp.gift || 0));
   left -= giftPaid;
   const core = left;
-  const qpOk = core >= PPLI_QP_MIN;
   const w = resolveWeights(inp, core);
-
-  const muni = core * w.a;
-  const ppli = core * w.b;
-  const equityGross = core * w.c;
+  const wantMuni = Math.max(0, core * w.a);
+  const wantPpli = Math.max(0, core * w.b);
+  const wantEq = Math.max(0, core * w.c);
+  let room = core;
+  const take = (n: number) => {
+    const t = Math.min(n, room);
+    room -= t;
+    return t;
+  };
+  const muni = take(wantMuni);
+  const ppli = take(wantPpli);
+  const equityGross = take(wantEq);
+  const policyUsed = ppli >= PPLI_QP_MIN;
+  const qpOk = policyUsed;
   const chosenIds = Array.isArray(inp.chosen) ? inp.chosen : [];
   const strategyDollars = inp.strategyDollars ?? {};
   let equity = equityGross;
@@ -323,7 +323,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 
   // Muni interest is federal-tax-free; in 'stay' mode we assume in-state bonds → state-free too.
   // `capacity` is what the engines COULD pay tax-free each year — it is a ceiling, not a forced draw.
-  const capacity = muni * asm.muniYield + ppli * asm.ppliDraw + equity * asm.eqDraw + sleeveAmount * slDrawRate;
+  const capacity = muni * asm.muniYield + (policyUsed ? ppli * asm.ppliDraw : 0) + equity * asm.eqDraw + sleeveAmount * slDrawRate;
   const blendedDraw = core > 0 ? capacity / core : 0;
 
   const sustainable = inp.spend <= capacity + 1e-9;
@@ -350,7 +350,9 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
       continue;
     }
     const coupons = muniB * asm.muniYield;
-    const ppliCap = ppliB * asm.ppliDraw;
+    const ppliRate = policyUsed ? asm.ppliGrowth : 0;
+    const ppliDrawRate = policyUsed ? asm.ppliDraw : 0;
+    const ppliCap = ppliB * ppliDrawRate;
     const eqCap = eqB * asm.eqDraw;
     const slCap = slB * slDrawRate;
     const discCap = ppliCap + eqCap + slCap;
@@ -375,7 +377,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
       const slRoom = Math.max(0, slB * (1 + slGrowth) - slDrawAmt);
       const takeSl = Math.min(extra, slRoom);
       slDrawAmt += takeSl; extra -= takeSl;
-      const ppliRoom = Math.max(0, ppliB * (1 + asm.ppliGrowth) - ppliDrawAmt);
+      const ppliRoom = Math.max(0, ppliB * (1 + ppliRate) - ppliDrawAmt);
       const takePpli = Math.min(extra, ppliRoom);
       ppliDrawAmt += takePpli; extra -= takePpli;
       if (extra > 1 && depletedYear === null) depletedYear = y;
@@ -386,10 +388,10 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const reinvested = outTotal - cash;
 
     let newMuni = muniB;
-    let newPpli = Math.max(0, ppliB * (1 + asm.ppliGrowth) - ppliDrawAmt);
+    let newPpli = Math.max(0, ppliB * (1 + ppliRate) - ppliDrawAmt);
     let newSl = Math.max(0, slB * (1 + slGrowth) - slDrawAmt);
     let newEq = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt + reinvested);
-    const growth = ppliB * asm.ppliGrowth + eqB * asm.eqGrowth + slB * slGrowth;
+    const growth = ppliB * ppliRate + eqB * asm.eqGrowth + slB * slGrowth;
 
     let fees = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1) + Math.max(0, inp.ppliFee || 0);
     const fromEq = Math.min(fees, newEq); newEq -= fromEq; fees -= fromEq;
