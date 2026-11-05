@@ -165,6 +165,7 @@ export function resolveWeights(inp: Inputs, core: number): Weights {
   });
   let w = d <= 0.5 ? lerp(growth, balanced, d * 2) : lerp(balanced, income, (d - 0.5) * 2);
   if (!qpOk) w = { ...w, b: 0 };
+  else if (w.b > 0 && w.b * core < PPLI_PREMIUM_MIN) w = { ...w, b: PPLI_PREMIUM_MIN / core };
   w = { ...w, a: Math.min(BOND_MAX, Math.max(BOND_MIN, w.a)), c: Math.min(STOCK_MAX, Math.max(STOCK_MIN, w.c)) };
   const t = w.a + w.b + w.c;
   return { a: w.a / t, b: w.b / t, c: w.c / t };
@@ -281,11 +282,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   left -= giftPaid;
   const core = left;
   const qpOk = core >= PPLI_QP_MIN;
-  let w = resolveWeights(inp, core);
-  if (!qpOk && w.b > 0) {
-    const rest = w.a + w.c || 1;
-    w = { a: w.a / rest, b: 0, c: w.c / rest };
-  }
+  const w = resolveWeights(inp, core);
 
   const muni = core * w.a;
   const ppli = core * w.b;

@@ -94,8 +94,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">How old are you? <Explainer text="Age sets what short, middle, and long mean. It is not a range." more="trade" /></span>
-            <input type="number" min={1} max={120} step={1} value={age || ''} onChange={(e) => setAge(+e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-            {(age > 0 && (age < 1 || age > 120)) && <Limit>Age only counts from 1 to 120.</Limit>}
+            <input type="number" min={0} max={120} step={1} value={age || ''} onChange={(e) => setAge(+e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
             <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
               {age > 0 ? `Short is ${span.short}. Middle is ${span.middle}. Long is ${span.long}.` : 'Type your age. The three stretches are set from it.'}
             </span>
@@ -178,14 +177,8 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Insurance charge, dollars a year <Explainer text="What the insurance company charges to hold the policy. Nothing is subtracted until you type it. A common charge is about 0.8% of the policy. This box does not apply that by itself." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Leave this blank if you do not want a charge taken out. The policy growth rate is before this charge.</p>
         <input type="number" min={0} step={1} value={inputs.ppliFee || ''} onChange={(e) => setNum('ppliFee', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-        {preview.ppli > 0 && (
-          <Limit>0.8% of the policy in this result would be {fmtCompact(preview.ppli * 0.008)} a year. Nothing is taken unless you type it above.</Limit>
-        )}
-        {preview.core > 0 && preview.core < 5_000_000 && (
-          <Limit>The insurance policy is not used unless at least $5,000,000 is invested. This result has {fmtCompact(preview.core)} invested, so the policy is not used.</Limit>
-        )}
-        {preview.ppli > 0 && preview.ppli < 2_500_000 && (
-          <Limit>Carriers usually want $2,500,000 inside the policy. This result has {fmtCompact(preview.ppli)}. The page did not move money to hit that.</Limit>
+        {preview.core > 0 && preview.core < 5_000_000 && inputs.mode !== 'manual' && (
+          <Limit>The insurance policy is not used unless at least $5,000,000 is invested. That is the Qualified Purchaser rule. This result has {fmtCompact(preview.core)} invested, so the policy is not used.</Limit>
         )}
       </label>
 

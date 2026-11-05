@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { STATES } from '../lib/taxdata';
 import {
-  fmt, fmtCompact, pct, PPLI_QP_MIN, PPLI_PREMIUM_MIN, SLEEVE_MATH, SLEEVE_PCT_MAX, BOND_MIN, BOND_MAX, STOCK_MIN, STOCK_MAX,
+  fmt, fmtCompact, pct, PPLI_QP_MIN, SLEEVE_MATH, SLEEVE_PCT_MAX,
   type Inputs, type Assumptions, type StackResult,
 } from '../lib/calc';
 import { Stat, Field, SectionTitle, Tip, Explainer, Limit } from '../components/widgets';
@@ -316,10 +316,7 @@ export default function CalculatorView(p: Props) {
         <Field label="Insurance charge, dollars a year" tip="Taken out of the pile each year. Nothing is taken until you type it. The policy growth rate is before this charge." help="Leave blank for no charge. A common carrier charge is about 0.8% of the policy. This box does not apply that unless you type it.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.ppliFee || ''} min={0} step={1000} onChange={(e) => set('ppliFee', +e.target.value || 0)} />
         </Field>
-        {r.ppli > 0 && <Limit>0.8% of the policy here would be {fmtCompact(r.ppli * 0.008)} a year. Nothing is taken unless the box above has a number.</Limit>}
-        {!r.qpOk && inp.amount > 0 && <Limit>The insurance policy is not used unless at least {fmtCompact(PPLI_QP_MIN)} is invested. This page has {fmtCompact(r.core)} invested.</Limit>}
-        {r.ppli > 0 && r.ppli < PPLI_PREMIUM_MIN && <Limit>Carriers usually want {fmtCompact(PPLI_PREMIUM_MIN)} inside the policy. This page has {fmtCompact(r.ppli)}. It did not move money to hit that.</Limit>}
-        <Limit>Bonds stay between {Math.round(BOND_MIN * 100)}% and {Math.round(BOND_MAX * 100)}%. Stocks stay between {Math.round(STOCK_MIN * 100)}% and {Math.round(STOCK_MAX * 100)}%. The page will not go outside those.</Limit>
+        {!r.qpOk && inp.amount > 0 && inp.mode !== 'manual' && <Limit>The insurance policy is not used unless at least {fmtCompact(PPLI_QP_MIN)} is invested. That is the Qualified Purchaser rule. This page has {fmtCompact(r.core)} invested.</Limit>}
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
@@ -368,7 +365,7 @@ export default function CalculatorView(p: Props) {
         <details className="rounded-md border border-input" open>
           <summary className="cursor-pointer px-3 py-2 text-[14px] font-medium text-muted-foreground hover:text-foreground">Assumptions (editable)</summary>
           <p className="px-3 pb-2 text-[15px] leading-snug text-muted-foreground">
-            These boxes only accept 0% to 20%. They are the middle, not a forecast and not a quote.
+            These are the middle, not a forecast and not a quote. Change any of them. The chart uses the number in the box.
           </p>
           <button type="button" onClick={() => openExplain('assumptions')} className="px-3 pb-2 text-left text-[12.5px] font-medium text-primary underline cursor-pointer">Why these rates, in full (new tab)</button>
           <div className="space-y-3 px-3 pb-3">
@@ -529,7 +526,7 @@ function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['
           <Slider value={[Math.round(v * 100)]} min={0} max={100} step={1} onValueChange={([x]) => upd(k, x / 100)} />
         </div>
       ))}
-      <p className="text-[15px] text-muted-foreground">The three sliders are forced to add to 100%. Bonds stay between {Math.round(BOND_MIN * 100)}% and {Math.round(BOND_MAX * 100)}% only on the slider above, not in this handmade mix. The policy is still unused under $5,000,000 invested.</p>
+      <p className="text-[15px] text-muted-foreground">The three sliders are forced to add to 100%. A handmade mix is left as you set it.</p>
     </div>
   );
 }

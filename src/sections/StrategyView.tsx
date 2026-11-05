@@ -12,16 +12,16 @@ interface Props {
 }
 
 const MUST: Record<string, string> = {
-  'engine-a': 'Does not change the tax on the lottery check. A bond lot is often $5,000. There is no other minimum here.',
-  'engine-b': 'Not used under $5,000,000 invested. Carriers usually want $2,500,000 in the policy. This page does not move money to hit that. Does not change the prize tax.',
-  'engine-c': 'Does not change the tax on the lottery check. Stocks are kept between 20% and 60% on the calculator slider.',
-  leverage: 'The pile is not sold. You still owe the loan. Above 30% of the stocks, a drop can let the lender sell. Does not change the prize tax.',
+  'engine-a': 'Does not change the tax on the lottery check.',
+  'engine-b': 'Not used under $5,000,000 invested. That is the Qualified Purchaser rule. Does not change the prize tax.',
+  'engine-c': 'Does not change the tax on the lottery check.',
+  leverage: 'The pile is not sold. You still owe the loan. Does not change the prize tax.',
   oz: 'The gain has to go in within 180 days. The new gain is excluded only after 10 years. Does not change the prize tax.',
   qsbs: '50% excluded after 3 years, 75% after 4, 100% after 5. Stops at $15,000,000 per company, or 10 times what you paid if that is higher. Does not change the prize tax.',
   legacy: 'Estate tax here uses $15,000,000 per person, then 40%. The trust does not move money until a lawyer drafts it and you give the money away.',
   charitable: 'At least 10% has to go to charity. You type the dollars. Nothing is given until you do.',
   'pr-act60': 'You must be there more than half the year. Home within 2 years. $15,000 a year to local charity. File by December 31, 2026 for 0% instead of 4%. Does not change the prize tax.',
-  'real-estate': 'You type the dollars. Land is treated as 20% of the price. The building writes off over 27.5 years unless the study is on.',
+  'real-estate': 'You type the dollars. A residential building is written off over 27.5 years. That is the federal schedule.',
   'foreign-trust': 'Does not lower the US income tax in these numbers. It can matter for a lawsuit.',
   expatriation: 'Ends US tax on money from anywhere. Has its own tax on the gain as if you sold. You may not be able to live in the US again.',
 };
