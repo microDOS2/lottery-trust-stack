@@ -118,7 +118,10 @@ export const DEFAULT_INPUTS: Inputs = {
   assetValue: 0,
 };
 
-export const PPLI_QP_MIN = 5_000_000; // insurance box. Under this, the policy is not used. The box is not changed.
+export const HORIZON = 30;
+export const PPLI_QP_MIN = 5_000_000;
+export const AVG_ADMIN = 25_000;
+export const AVG_PPLI_FEE_RATE = 0.008;
 export const SLEEVE_PCT_MAX = 0.25;
 export const BOND_MIN = 0.15;
 export const BOND_MAX = 0.55;
@@ -229,8 +232,8 @@ export interface StackResult {
   qpOk: boolean;
   depletedYear: number | null;
   baselineDepletedYear: number | null;
-  projection: ProjectionRow[];      // 25 years, stack
-  baseline: ProjectionRow[];        // 25 years, plain taxable account
+  projection: ProjectionRow[];      // 30 years, stack
+  baseline: ProjectionRow[];        // 30 years, plain taxable account
   stackEnd: number;
   baselineEnd: number;
   advantage: number;                // stackEnd - baselineEnd
@@ -282,11 +285,10 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     room -= t;
     return t;
   };
-  const muni = take(wantMuni);
   const ppli = take(wantPpli);
+  const muni = take(wantMuni);
   const equityGross = take(wantEq);
-  const policyUsed = ppli >= PPLI_QP_MIN;
-  const qpOk = policyUsed;
+  const qpOk = ppli >= PPLI_QP_MIN;
   const chosenIds = Array.isArray(inp.chosen) ? inp.chosen : [];
   const strategyDollars = inp.strategyDollars ?? {};
   let equity = equityGross;
@@ -323,7 +325,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 
   // Muni interest is federal-tax-free; in 'stay' mode we assume in-state bonds → state-free too.
   // `capacity` is what the engines COULD pay tax-free each year — it is a ceiling, not a forced draw.
-  const capacity = muni * asm.muniYield + (policyUsed ? ppli * asm.ppliDraw : 0) + equity * asm.eqDraw + sleeveAmount * slDrawRate;
+  const capacity = muni * asm.muniYield + ppli * asm.ppliDraw + equity * asm.eqDraw + sleeveAmount * slDrawRate;
   const blendedDraw = core > 0 ? capacity / core : 0;
 
   const sustainable = inp.spend <= capacity + 1e-9;
@@ -342,7 +344,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   let plannedDrawY2 = 0;
   let reinvestY2 = 0;
 
-  for (let y = 1; y <= 25; y++) {
+  for (let y = 1; y <= HORIZON; y++) {
     const begin = muniB + ppliB + eqB + slB;
     if (begin <= 0) {
       projection.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, fees: 0, capacity: 0, end: 0 });
@@ -350,8 +352,8 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
       continue;
     }
     const coupons = muniB * asm.muniYield;
-    const ppliRate = policyUsed ? asm.ppliGrowth : 0;
-    const ppliDrawRate = policyUsed ? asm.ppliDraw : 0;
+    const ppliRate = asm.ppliGrowth;
+    const ppliDrawRate = asm.ppliDraw;
     const ppliCap = ppliB * ppliDrawRate;
     const eqCap = eqB * asm.eqDraw;
     const slCap = slB * slDrawRate;
@@ -393,12 +395,16 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     let newEq = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt + reinvested);
     const growth = ppliB * ppliRate + eqB * asm.eqGrowth + slB * slGrowth;
 
-    let fees = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1) + Math.max(0, inp.ppliFee || 0);
+    const adminBase = (inp.annualAdmin || 0) > 0 ? inp.annualAdmin : AVG_ADMIN;
+    const typedIns = (inp.ppliFee || 0) > 0;
+    const inflate = Math.pow(1 + asm.inflation, y - 1);
+    const feeBill = adminBase * inflate + (typedIns ? inp.ppliFee * inflate : newPpli * AVG_PPLI_FEE_RATE);
+    let fees = feeBill;
+    const fromPpli = Math.min(fees, newPpli); newPpli -= fromPpli; fees -= fromPpli;
     const fromEq = Math.min(fees, newEq); newEq -= fromEq; fees -= fromEq;
     const fromSl = Math.min(fees, newSl); newSl -= fromSl; fees -= fromSl;
-    const fromPpli = Math.min(fees, newPpli); newPpli -= fromPpli; fees -= fromPpli;
     const fromMuni = Math.min(fees, newMuni); newMuni -= fromMuni; fees -= fromMuni;
-    const feesPaid = inp.annualAdmin * Math.pow(1 + asm.inflation, y - 1) + Math.max(0, inp.ppliFee || 0) - fees;
+    const feesPaid = feeBill - fees;
 
     const end = newMuni + newPpli + newEq + newSl;
     if (end <= 0 && depletedYear === null) depletedYear = y;
@@ -420,7 +426,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   let bal = core;
   let baselineDepletedYear: number | null = null;
 
-  for (let y = 1; y <= 25; y++) {
+  for (let y = 1; y <= HORIZON; y++) {
     const begin = bal;
     if (begin <= 0) {
       baseline.push({ year: y, begin: 0, cash: 0, reinvested: 0, growth: 0, fees: 0, capacity: 0, end: 0 });

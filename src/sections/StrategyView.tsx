@@ -13,7 +13,7 @@ interface Props {
 
 const MUST: Record<string, string> = {
   'engine-a': 'Does not change the tax on the lottery check.',
-  'engine-b': 'Rule: the insurance box must be at least $5,000,000 or the policy is not used. Under that, the paycheck from that box is $0. The number is not erased. The bond box and the stock box are not changed. This does not change the prize tax.',
+  'engine-b': 'Minimum: $5,000,000 in the insurance box. Under that, the number stays. It is not erased. The bond box and the stock box are not changed. This does not change the prize tax.',
   'engine-c': 'Does not change the tax on the lottery check.',
   leverage: 'The pile is not sold. You still owe the loan. Does not change the prize tax.',
   oz: 'The gain has to go in within 180 days. The new gain is excluded only after 10 years. Does not change the prize tax.',

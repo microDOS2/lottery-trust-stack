@@ -1,4 +1,4 @@
-import { computeStack, fmtCompact, type Assumptions, type Inputs, type StackResult } from './calc';
+import { computeStack, fmtCompact, HORIZON, type Assumptions, type Inputs, type StackResult } from './calc';
 import { stateByCode } from './taxdata';
 import { QUIZ, profileFromAnswers, scoreScenario } from './quiz';
 
@@ -31,11 +31,11 @@ function outcomeLines(inputs: Inputs, result: StackResult, answers: Record<strin
   const y10 = year10(result);
   const lasts = result.depletedYear
     ? `The yearly amount lasts about ${Math.max(0, result.depletedYear - 1)} years. In year ${result.depletedYear} the pile is gone on these assumptions.`
-    : 'The yearly amount lasts at least 25 years on these assumptions. That is as far as this page looks. It is not a promise you will live that long.';
-  const y25 = result.projection[24]?.end ?? result.stackEnd;
+    : `The yearly amount lasts at least ${HORIZON} years on these assumptions. That is as far as this page looks. It is not a promise you will live that long.`;
+  const yEnd = result.projection[HORIZON - 1]?.end ?? result.stackEnd;
   const lines = [
     lasts,
-    `In 25 years, about ${fmtCompact(y25)} would still be there. That pile is a comparison, not the finish line.`,
+    `In ${HORIZON} years, about ${fmtCompact(yEnd)} would still be there. That pile is a comparison, not the finish line.`,
     covers
       ? `The money can pay the ${fmtCompact(inputs.spend)} a year you want without running out on these assumptions.`
       : inputs.spend > 0
@@ -79,7 +79,7 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
     spend: inputs.spend,
     residency: residencyFor(answers),
     mode: 'balanced',
-    dial: 70,
+    dial: answers.market === 0 ? 100 : answers.market === 1 ? 0 : 50,
     flatDraw: false,
     drawOverrides: {},
   };

@@ -69,7 +69,7 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
             <div className="font-num mt-1 text-2xl font-semibold text-accent-foreground">{fmt(current.capacity)}<span className="text-sm font-normal">/yr</span></div>
           </div>
           <div className="rounded-lg bg-[hsl(var(--success-tint))] p-4 text-center">
-            <div className="text-[13.5px] font-medium text-success/80">You'd have in 25 years <Explainer text="What is left if the middle rates hold and you only take the yearly amount." more="grow" /></div>
+            <div className="text-[13.5px] font-medium text-success/80">You'd have in 30 years <Explainer text="What is left if the middle rates hold and you only take the yearly amount." more="grow" /></div>
             <div className="font-num mt-1 text-2xl font-semibold stat-good">{fmt(current.stackEnd)}</div>
           </div>
           <div className="rounded-lg bg-secondary p-4 text-center">
@@ -87,7 +87,7 @@ export default function LabView({ inputs, setInputs, asm }: Props) {
         <p className="mt-1 max-w-[70ch] text-sm text-muted-foreground">
           Every possible slider setting, left to right. The <span className="font-medium text-primary">coral line</span> is your yearly
           tax-free spending money — it climbs as you slide right. The <span className="font-medium stat-good">green line</span> is what
-          you'd have after 25 years — it falls. The marker is where you are now.
+          you'd have after 30 years — it falls. The marker is where you are now.
         </p>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={curve} margin={{ top: 12, right: 8, left: 4, bottom: 0 }}>
@@ -160,7 +160,7 @@ function BalanceScale({ tip, income, end }: { tip: number; income: number; end: 
       {/* labels */}
       <text x="45" y="100" textAnchor="middle" fontSize="11" fill="#6B6359">spend/yr</text>
       <text x="45" y="114" textAnchor="middle" fontSize="12" fontWeight={700} fill="#C8472F" fontFamily="'IBM Plex Mono',monospace">{fmtCompact(income)}</text>
-      <text x="255" y="100" textAnchor="middle" fontSize="11" fill="#6B6359">in 25 yrs</text>
+      <text x="255" y="100" textAnchor="middle" fontSize="11" fill="#6B6359">in 30 yrs</text>
       <text x="255" y="114" textAnchor="middle" fontSize="12" fontWeight={700} fill="#3E6B33" fontFamily="'IBM Plex Mono',monospace">{fmtCompact(end)}</text>
       <text x="150" y="158" textAnchor="middle" fontSize="10.5" fill="#9C9388">the scale tips toward whichever you prioritize</text>
     </svg>

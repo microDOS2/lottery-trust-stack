@@ -138,7 +138,7 @@ export default function Terrain3D({ inputs, asm, markers }: Props) {
     };
     label('more growth', -24, 0.6, 0);
     label('more income', 24, 0.6, 0);
-    label('25 years', 0, 0.6, 16.2);
+    label('30 years', 0, 0.6, 16.2);
 
     // ---- Scenario markers ----
     const markerObjs: THREE.Object3D[] = [];
@@ -227,7 +227,7 @@ export default function Terrain3D({ inputs, asm, markers }: Props) {
     <div>
       <div ref={mountRef} className="h-[420px] w-full overflow-hidden rounded-lg border border-border" />
       <p className="mt-2 text-sm text-muted-foreground">
-        The terrain is every dial position across 25 years — higher ground means more net worth. Drag to orbit.
+        The terrain is every dial position across 30 years — higher ground means more net worth. Drag to orbit.
         Letters mark your saved scenarios at year 25; the green beacon is your best fit.
       </p>
     </div>

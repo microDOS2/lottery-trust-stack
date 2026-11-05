@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { QUIZ, QUIZ_LONG, QUIZ_MIDDLE, QUIZ_PROTECT, QUIZ_SHORT, type QuizQuestion } from '../lib/quiz';
 import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
 import { STATES } from '../lib/taxdata';
@@ -24,14 +24,19 @@ const LONG = new Set<string>(QUIZ_LONG);
 
 function stretches(age: number): { short: string; middle: string; long: string } {
   if (age <= 0) return { short: 'the next few years', middle: 'the next 10 years', long: 'the years after that' };
-  if (age >= 75) return { short: 'the next 1 to 2 years', middle: 'about the next 5 years', long: 'the years after that, which may be under 15' };
-  if (age >= 60) return { short: 'the next 2 to 3 years', middle: 'about the next 8 years', long: 'the years after that' };
-  return { short: 'about the next 3 years', middle: 'about the next 10 years', long: 'the decades after that' };
+  if (age >= 75) return { short: `the next 2 years, until you are ${age + 2}`, middle: `the next 5 years, until you are ${age + 5}`, long: `the years after you are ${age + 5}` };
+  if (age >= 60) return { short: `the next 3 years, until you are ${age + 3}`, middle: `the next 8 years, until you are ${age + 8}`, long: `the years after you are ${age + 8}` };
+  return { short: `the next 3 years, until you are ${age + 3}`, middle: `the next 10 years, until you are ${age + 10}`, long: `the years after you are ${age + 10}` };
 }
 
 export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScenario, loadScenario, onApplyScenario }: Props) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [age, setAge] = useState(0);
+  useEffect(() => {
+    if (answers.market === undefined || inputs.mode === 'manual') return;
+    const dial = answers.market === 0 ? 100 : answers.market === 1 ? 0 : 50;
+    if (inputs.dial !== dial) setInputs((p) => ({ ...p, dial, mode: 'balanced' }));
+  }, [answers.market, inputs.mode, inputs.dial, setInputs]);
   const answered = Object.keys(answers).length;
   const ready = inputs.amount > 0 && age > 0 && answered === QUIZ.length && inputs.spend > 0;
   const set = useMemo(
@@ -177,13 +182,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Insurance charge, dollars a year <Explainer text="What the insurance company charges to hold the policy. Nothing is subtracted until you type it. A common charge is about 0.8% of the policy. This box does not apply that by itself." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Leave this blank if you do not want a charge taken out. The policy growth rate is before this charge.</p>
         <input type="number" min={0} step={1} value={inputs.ppliFee || ''} onChange={(e) => setNum('ppliFee', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-        <Limit>Rule: the insurance policy is not used under $5,000,000 in the insurance box. Under that, the paycheck from that box is $0. The box is not changed. The bond box and the stock box are not changed.</Limit>
-        {preview.ppli > 0 && preview.ppli < 5_000_000 && (
-          <Limit>This result puts {fmtCompact(preview.ppli)} in the insurance box. That is under $5,000,000. The policy is not used.</Limit>
-        )}
-        {preview.ppli >= 5_000_000 && (
-          <Limit>This result puts {fmtCompact(preview.ppli)} in the insurance box. That meets the $5,000,000 minimum. The policy is used.</Limit>
-        )}
+        <Limit>Minimum: $5,000,000 in the insurance box. If this result is under that, the box still shows its number. The number is not erased.</Limit>
       </label>
 
       <div className="space-y-4">
@@ -205,7 +204,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
           <label className="mt-3 block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly amount from year 11 on <Explainer text="Replaces the first yearly amount from year 11 through year 25. Years 2 through 10 keep the first amount. Nothing changes until you type it." /></span>
             <input type="number" min={0} step={1} value={inputs.laterSpend || ''} onChange={(e) => setNum('laterSpend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-            <Limit>From year 11 through year 25. Years 2 through 10 stay on the first yearly amount.</Limit>
+            <Limit>From year 11 through year 30. Years 2 through 10 stay on the first yearly amount.</Limit>
           </label>
         ) : null,
       }} />

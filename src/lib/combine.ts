@@ -108,9 +108,9 @@ export function describeCombo(inp: Inputs, asm: Assumptions): ComboView {
   sections.push({
     heading: 'The numbers',
     lines: [
-      `With these on: ${fmt(result.capacity)} a year, and ${fmt(result.stackEnd)} in 25 years.`,
-      `With none of the library on: ${fmt(plain.capacity)} a year, and ${fmt(plain.stackEnd)} in 25 years.`,
-      `Difference: ${fmt(Math.abs(dCash))} ${dCash >= 0 ? 'more' : 'less'} a year, and ${fmt(Math.abs(dEnd))} ${dEnd >= 0 ? 'more' : 'less'} in 25 years.`,
+      `With these on: ${fmt(result.capacity)} a year, and ${fmt(result.stackEnd)} in 30 years.`,
+      `With none of the library on: ${fmt(plain.capacity)} a year, and ${fmt(plain.stackEnd)} in 30 years.`,
+      `Difference: ${fmt(Math.abs(dCash))} ${dCash >= 0 ? 'more' : 'less'} a year, and ${fmt(Math.abs(dEnd))} ${dEnd >= 0 ? 'more' : 'less'} in 30 years.`,
     ],
   });
 
@@ -119,7 +119,7 @@ export function describeCombo(inp: Inputs, asm: Assumptions): ComboView {
     const w = result.weights;
     const names = engines.map(nameOf).join(', ');
     const policy = engines.includes('engine-b') && result.ppli < PPLI_QP_MIN
-      ? ` The insurance box is ${fmt(result.ppli)}. The policy is not used under ${fmt(PPLI_QP_MIN)} in that box. The paycheck from that box is $0. The other boxes were not changed.`
+      ? ` The insurance box is ${fmt(result.ppli)}. The minimum is ${fmt(PPLI_QP_MIN)}. This box is under the minimum. The number was not erased. The other boxes were not changed.`
       : '';
     sections.push({
       heading: 'How the money is split',

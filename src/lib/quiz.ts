@@ -68,7 +68,6 @@ export const QUIZ: QuizQuestion[] = [
     text: 'How do you want to spend your time in the next 10 years?',
     why: 'The way you live is what the yearly amount has to pay for. Working less means the yearly amount has to cover more of your living costs. Traveling or living in more than one place means the yearly amount has to cover those costs. The answer does not change the tax. It changes how large the yearly amount needs to be.',
     options: [
-      { label: 'Keep working, and this money is extra', note: 'The yearly amount can be smaller. The result still checks that it can be paid.', weights: { simplicity: 0.5 } },
       { label: 'Stop working, and live on this money', note: 'The yearly amount has to cover living costs. The result checks that it can be paid without the money running out.', weights: { income: 1 } },
       { label: 'Travel, or live in more than one place', note: 'The yearly amount has to cover the travel and the places. The result checks that number.', weights: { mobility: 0.5 } },
       { label: 'I have not decided', note: 'The result uses the yearly amount you typed. You can change it later.', weights: {} },

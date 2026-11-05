@@ -1,4 +1,4 @@
-import { fmtCompact, drawForYear, type Assumptions, type Inputs, type StackResult } from '../lib/calc';
+import { fmtCompact, drawForYear, HORIZON, type Assumptions, type Inputs, type StackResult } from '../lib/calc';
 
 interface Props {
   inputs: Inputs;
@@ -14,7 +14,7 @@ interface Props {
  * dip into principal and are flagged red.
  */
 export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) {
-  const years = Array.from({ length: 24 }, (_, i) => i + 2); // years 2..25
+  const years = Array.from({ length: HORIZON - 1 }, (_, i) => i + 2);
   const defaultDraw = (y: number) => drawForYear(inputs, asm, y);
 
   const setYear = (y: number, v: number | null) =>
@@ -33,7 +33,7 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
         Custom draw schedule{hasOverrides && <span className="ml-2 rounded bg-accent px-2 py-0.5 font-mono text-[13.5px] font-semibold uppercase tracking-wider text-accent-foreground">edited</span>}
       </summary>
       <p className="mt-1 text-sm text-muted-foreground">
-        Type the dollars for that year. These boxes are only year 2 through year 25. Year 1 is the cash you already set aside, so it has no box. Leave a box blank to use the yearly amount. From year 11, a later amount you typed replaces it.
+        Type the dollars for that year. These boxes are year 2 through year {HORIZON}. Year 1 is the cash you already set aside, so it has no box. Leave a box blank to use the yearly amount. From year 11, a later amount you typed replaces it.
         <span className="text-destructive font-medium"> Red</span> means that year is more than the money can pay without spending the pile.
       </p>
       <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-2.5 sm:grid-cols-2">

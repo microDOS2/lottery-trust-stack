@@ -60,30 +60,30 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <section id="trade" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">The choice your cash has to make</h2>
         <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
-          <p>The first question is how many years the yearly amount lasts. A larger pile in 25 years is a comparison, not the finish line. You typed {fmt(inputs.amount)}{inputs.basis === 'net' ? ', and you said the tax is already paid' : ', before tax'}. After tax, that is {fmt(yours.net)}. You live in {here.name}. You asked for {fmt(inputs.spend)} a year.</p>
+          <p>The first question is how many years the yearly amount lasts. A larger pile in 30 years is a comparison, not the finish line. You typed {fmt(inputs.amount)}{inputs.basis === 'net' ? ', and you said the tax is already paid' : ', before tax'}. After tax, that is {fmt(yours.net)}. You live in {here.name}. You asked for {fmt(inputs.spend)} a year.</p>
           <p>The first year holds back {fmt(yours.yr1Reserve)}. That is the spending you typed plus setup cost, and it is not invested. {fmt(yours.core)} is what gets invested. The check from the investments starts in year 2.</p>
-          <p>The same dollars can pay you more each year, or leave more later. A dollar you spend is a dollar that is no longer growing. You do not get the larger check and the larger pile. A larger amount left in 25 years is not a win. You may not be alive then. Below, your dollars are split two ways so you can see the trade. Your debt, home, and business amounts are left as you typed them.</p>
+          <p>The same dollars can pay you more each year, or leave more later. A dollar you spend is a dollar that is no longer growing. You do not get the larger check and the larger pile. A larger amount left in 30 years is not a win. You may not be alive then. Below, your dollars are split two ways so you can see the trade. Your debt, home, and business amounts are left as you typed them.</p>
         </div>
         <div className="mt-4">
-          <Row label="Steadier check" value={`${fmt(steady.capacity)} a year · ${fmt(steady.stackEnd)} in 25 years`} note={`${pct(steady.weights.a, 0)} bonds, ${pct(steady.weights.b, 0)} insurance, ${pct(steady.weights.c, 0)} stocks.`} />
-          <Row label="Bigger pile later" value={`${fmt(growth.capacity)} a year · ${fmt(growth.stackEnd)} in 25 years`} note={`${pct(growth.weights.a, 0)} bonds, ${pct(growth.weights.b, 0)} insurance, ${pct(growth.weights.c, 0)} stocks.`} />
+          <Row label="Steadier check" value={`${fmt(steady.capacity)} a year · ${fmt(steady.stackEnd)} in 30 years`} note={`${pct(steady.weights.a, 0)} bonds, ${pct(steady.weights.b, 0)} insurance, ${pct(steady.weights.c, 0)} stocks.`} />
+          <Row label="Bigger pile later" value={`${fmt(growth.capacity)} a year · ${fmt(growth.stackEnd)} in 30 years`} note={`${pct(growth.weights.a, 0)} bonds, ${pct(growth.weights.b, 0)} insurance, ${pct(growth.weights.c, 0)} stocks.`} />
         </div>
         <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
-          The steadier split pays {fmt(Math.abs(steady.capacity - growth.capacity))} {steady.capacity >= growth.capacity ? 'more' : 'less'} each year. The other is worth {fmt(Math.abs(growth.stackEnd - steady.stackEnd))} {growth.stackEnd >= steady.stackEnd ? 'more' : 'less'} in 25 years. If the check you asked for is larger than what the investments can pay, the pile is sold to make the check. Year 25 is shown only so the trade is visible. It is not the finish line.
+          The steadier split pays {fmt(Math.abs(steady.capacity - growth.capacity))} {steady.capacity >= growth.capacity ? 'more' : 'less'} each year. The other is worth {fmt(Math.abs(growth.stackEnd - steady.stackEnd))} {growth.stackEnd >= steady.stackEnd ? 'more' : 'less'} in 30 years. If the check you asked for is larger than what the investments can pay, the pile is sold to make the check. Year 25 is shown only so the trade is visible. It is not the finish line.
         </p>
       </section>
 
       <section id="bonds" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">Bonds</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          On the steadier split, {fmt(steady.muni)} of your invested money is in bonds. At the rate on the calculator, {pct(asm.muniYield)}, that pays {fmt(steady.muni * asm.muniYield)} a year. The interest does not depend on the stock market. The bonds themselves do not grow, which is why that split has the smaller pile in 25 years: {fmt(steady.stackEnd)}.
+          On the steadier split, {fmt(steady.muni)} of your invested money is in bonds. At the rate on the calculator, {pct(asm.muniYield)}, that pays {fmt(steady.muni * asm.muniYield)} a year. The interest does not depend on the stock market. The bonds themselves do not grow, which is why that split has the smaller pile in 30 years: {fmt(steady.stackEnd)}.
         </p>
       </section>
 
       <section id="stocks" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">Stocks</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          On the bigger-pile split, {fmt(growth.equity)} is in stocks. The calculator grows that at {pct(asm.eqGrowth)} a year and spends {pct(asm.eqDraw)} of it a year, which is {fmt(growth.equity * asm.eqDraw)}. That split pays {fmt(growth.capacity)} a year and is worth {fmt(growth.stackEnd)} in 25 years. If stocks do worse than {pct(asm.eqGrowth)}, this is the split that loses more, because more of your money is there.
+          On the bigger-pile split, {fmt(growth.equity)} is in stocks. The calculator grows that at {pct(asm.eqGrowth)} a year and spends {pct(asm.eqDraw)} of it a year, which is {fmt(growth.equity * asm.eqDraw)}. That split pays {fmt(growth.capacity)} a year and is worth {fmt(growth.stackEnd)} in 30 years. If stocks do worse than {pct(asm.eqGrowth)}, this is the split that loses more, because more of your money is there.
         </p>
       </section>
 
@@ -91,8 +91,8 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
         <h2 className="font-display text-2xl font-semibold">The insurance policy</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
           {yours.ppli < PPLI_QP_MIN
-            ? `The insurance box is ${fmt(yours.ppli)}. Rule: the policy is not used under ${fmt(PPLI_QP_MIN)} in that box. The paycheck from that box is $0. The number was not erased. The bond amount and the stock amount were not changed.`
-            : `The insurance box is ${fmt(yours.ppli)}. That is at least ${fmt(PPLI_QP_MIN)}, so the policy is used. At the calculator’s rate it can pay ${fmt(yours.ppli * asm.ppliDraw)} a year from that box, and what stays inside grows at ${pct(asm.ppliGrowth)}.`}
+            ? `The insurance box is ${fmt(yours.ppli)}. The minimum is ${fmt(PPLI_QP_MIN)}. This box is under the minimum. The number was not erased. The bond amount and the stock amount were not changed.`
+            : `The insurance box is ${fmt(yours.ppli)}. That meets the ${fmt(PPLI_QP_MIN)} minimum. At the calculator’s rate it can pay ${fmt(yours.ppli * asm.ppliDraw)} a year from that box, and what stays inside grows at ${pct(asm.ppliGrowth)}.`}
         </p>
       </section>
 
@@ -101,7 +101,7 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
           {inputs.entity4 <= 0
             ? `You typed ${fmt(0)}. Nothing is set aside for a home.`
-            : `You typed ${fmt(inputs.entity4)}. ${fmt(yours.housePaid)} of that is not invested. With it, the pile in 25 years is ${fmt(yours.stackEnd)}. Without that home amount, the same other numbers leave ${fmt(noHouse.stackEnd)}. The difference is ${fmt(Math.abs(noHouse.stackEnd - yours.stackEnd))}. The house itself is not given a price here.`}
+            : `You typed ${fmt(inputs.entity4)}. ${fmt(yours.housePaid)} of that is not invested. With it, the pile in 30 years is ${fmt(yours.stackEnd)}. Without that home amount, the same other numbers leave ${fmt(noHouse.stackEnd)}. The difference is ${fmt(Math.abs(noHouse.stackEnd - yours.stackEnd))}. The house itself is not given a price here.`}
         </p>
       </section>
 
@@ -110,7 +110,7 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
           {inputs.debt <= 0
             ? `You typed ${fmt(0)}. Nothing is paid off before investing.`
-            : `You typed ${fmt(inputs.debt)}. ${fmt(yours.debtPaid)} is paid from the cash after tax, before anything is invested. It does not change the tax. With that payment, the pile in 25 years is ${fmt(yours.stackEnd)}. Without it, ${fmt(noDebt.stackEnd)}. A gift to charity is not subtracted.`}
+            : `You typed ${fmt(inputs.debt)}. ${fmt(yours.debtPaid)} is paid from the cash after tax, before anything is invested. It does not change the tax. With that payment, the pile in 30 years is ${fmt(yours.stackEnd)}. Without it, ${fmt(noDebt.stackEnd)}. A gift to charity is not subtracted.`}
         </p>
       </section>
 
@@ -119,7 +119,7 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
           {inputs.venture <= 0
             ? `You typed ${fmt(0)}. Nothing is taken out for a business.`
-            : `You typed ${fmt(inputs.venture)}. ${fmt(yours.venturePaid)} of that is not invested. With it, the pile in 25 years is ${fmt(yours.stackEnd)}. Without it, ${fmt(noVenture.stackEnd)}. A real business can also lose the money. That loss is not added on top of this number.`}
+            : `You typed ${fmt(inputs.venture)}. ${fmt(yours.venturePaid)} of that is not invested. With it, the pile in 30 years is ${fmt(yours.stackEnd)}. Without it, ${fmt(noVenture.stackEnd)}. A real business can also lose the money. That loss is not added on top of this number.`}
         </p>
       </section>
 
@@ -135,7 +135,7 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <section id="move" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">Moving</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          The tax on the prize stays {here.name}’s. Moving does not change it. If you stay, the pile in 25 years is {fmt(stayed.stackEnd)}. If the later investment income is taxed in {there.name} instead, it is {fmt(moved.stackEnd)}. The difference is {fmt(Math.abs(moved.stackEnd - stayed.stackEnd))}.
+          The tax on the prize stays {here.name}’s. Moving does not change it. If you stay, the pile in 30 years is {fmt(stayed.stackEnd)}. If the later investment income is taxed in {there.name} instead, it is {fmt(moved.stackEnd)}. The difference is {fmt(Math.abs(moved.stackEnd - stayed.stackEnd))}.
         </p>
       </section>
 
@@ -147,19 +147,19 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
           <p>Each year is separate. A year you qualify, qualifying stock gains sold that year can use the Puerto Rico path. A year you do not qualify, those gains are taxed under the ordinary US rules. Living there one year does not carry the status into the next.</p>
           <p>Compared with Nevada: Nevada has no state income tax, and traveling does not turn that off, because there is no day-count test. You still pay US federal tax on stock gains every year. Puerto Rico can remove that federal tax on qualifying gains, but only in the years you qualify.</p>
           <p>The tax-free pieces of the stack do not gain from Puerto Rico. Municipal bond interest, money taken from the insurance policy under the rules, qualifying startup-stock gains, and opportunity-zone appreciation after ten years are already federal exclusions. Puerto Rico adds nothing to them. It matters only if stocks from the stack are sold in a qualifying year. If you never sell the stocks and only borrow against them, Puerto Rico adds nothing to the stack.</p>
-          <p>On your dollars, if the Puerto Rico path applied every year, the pile in 25 years is {fmt(inPr.stackEnd)}. Staying in {here.name}, it is {fmt(stayed.stackEnd)}. The difference is {fmt(Math.abs(inPr.stackEnd - stayed.stackEnd))}. That comparison assumes you qualify every year. If you do not, the difference is smaller or zero.</p>
+          <p>On your dollars, if the Puerto Rico path applied every year, the pile in 30 years is {fmt(inPr.stackEnd)}. Staying in {here.name}, it is {fmt(stayed.stackEnd)}. The difference is {fmt(Math.abs(inPr.stackEnd - stayed.stackEnd))}. That comparison assumes you qualify every year. If you do not, the difference is smaller or zero.</p>
         </div>
       </section>
 
       <section id="spend-now" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">A larger check now</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          On your dollars, the steadier split pays {fmt(steady.capacity)} a year and leaves {fmt(steady.stackEnd)} in 25 years. That is more cash in hand and less left later than the other split.
+          On your dollars, the steadier split pays {fmt(steady.capacity)} a year and leaves {fmt(steady.stackEnd)} in 30 years. That is more cash in hand and less left later than the other split.
         </p>
       </section>
 
       <section id="grow" className="hairline-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl font-semibold">More left in 25 years</h2>
+        <h2 className="font-display text-2xl font-semibold">More left in 30 years</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
           The other split pays {fmt(growth.capacity)} a year and leaves {fmt(growth.stackEnd)}. The extra pile is only there if the money stays invested. A larger pile is not a win if you are not alive to use it.
         </p>
@@ -168,21 +168,21 @@ export default function ExplainView({ inputs, asm }: { inputs: Inputs; asm: Assu
       <section id="middle" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">The middle split</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          A middle split of your dollars pays {fmt(middle.capacity)} a year and is worth {fmt(middle.stackEnd)} in 25 years. The check is smaller than the steadier split. The pile is smaller than the growth split.
+          A middle split of your dollars pays {fmt(middle.capacity)} a year and is worth {fmt(middle.stackEnd)} in 30 years. The check is smaller than the steadier split. The pile is smaller than the growth split.
         </p>
       </section>
 
       <section id="simple" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">No insurance policy</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          With the policy removed and the money split half bonds and half stocks, the yearly check is {fmt(noPolicy.capacity)} and the pile in 25 years is {fmt(noPolicy.stackEnd)}. Your current numbers pay {fmt(yours.capacity)} a year and leave {fmt(yours.stackEnd)}.
+          With the policy removed and the money split half bonds and half stocks, the yearly check is {fmt(noPolicy.capacity)} and the pile in 30 years is {fmt(noPolicy.stackEnd)}. Your current numbers pay {fmt(yours.capacity)} a year and leave {fmt(yours.stackEnd)}.
         </p>
       </section>
 
       <section id="assumptions" className="hairline-card scroll-mt-24 p-6">
         <h2 className="font-display text-2xl font-semibold">The rates on your numbers</h2>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-          Bonds {pct(asm.muniYield)}. Stocks, growth {pct(asm.eqGrowth)}. Stocks, the amount spent {pct(asm.eqDraw)}. Policy growth {pct(asm.ppliGrowth)}. Policy paycheck {pct(asm.ppliDraw)}. Inflation {pct(asm.inflation)}. These are the rates on the calculator. Change them there and every figure on this page changes with them. They are not a promise about the next 25 years.
+          Bonds {pct(asm.muniYield)}. Stocks, growth {pct(asm.eqGrowth)}. Stocks, the amount spent {pct(asm.eqDraw)}. Policy growth {pct(asm.ppliGrowth)}. Policy paycheck {pct(asm.ppliDraw)}. Inflation {pct(asm.inflation)}. These are the rates on the calculator. Change them there and every figure on this page changes with them. They are not a promise about the next 30 years.
         </p>
       </section>
     </div>

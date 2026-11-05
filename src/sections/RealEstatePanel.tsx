@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { fmt, fmtCompact, pct } from '../lib/calc';
 import { Explainer } from '../components/widgets';
-import { Slider } from '@/components/ui/slider';
 
 interface Props {
   suggestedPrice: number;
@@ -23,9 +22,9 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
     const shieldValue = yr1Shield * marginalRate;
     const grossRent = price * rentYield;
     const v10 = price * Math.pow(1 + appreciation, 10);
-    const v25 = price * Math.pow(1 + appreciation, 25);
-    const gain25 = v25 - price;
-    return { building, bonusDep, yr1Shield, shieldValue, grossRent, v10, v25, gain25 };
+    const v30 = price * Math.pow(1 + appreciation, 30);
+    const gain30 = v30 - price;
+    return { building, bonusDep, yr1Shield, shieldValue, grossRent, v10, v30, gain30 };
   }, [price, appreciation, rentYield, costSeg, marginalRate]);
 
   return (
@@ -48,21 +47,22 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
             <span className="font-medium flex items-center gap-1">Property price <Explainer text="What you would pay. The slider starts at zero. It does not use the home amount from Goals." /></span>
             <span className="font-num text-muted-foreground">{fmtCompact(price)}</span>
           </div>
-          <Slider value={[price]} min={0} max={10000000} step={50000} onValueChange={([v]) => setPrice(v)} />
+          <input type="number" min={0} step={1000} value={price || ''} onChange={(e) => setPrice(Math.max(0, +e.target.value || 0))} className="mt-1 w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm font-num" />
+          <p className="mt-2 text-[15px] leading-snug text-muted-foreground">There is no legal limit on how much real estate you can buy. This box has no stop.</p>
         </div>
         <div>
           <div className="mb-1 flex justify-between text-[14px]">
             <span className="font-medium flex items-center gap-1">Annual appreciation <Explainer text="How fast you think the property price rises each year. Zero means the price stays flat." /></span>
             <span className="font-num text-muted-foreground">{pct(appreciation)}</span>
           </div>
-          <Slider value={[appreciation * 100]} min={0} max={8} step={0.25} onValueChange={([v]) => setAppreciation(v / 100)} />
+          <input type="number" min={0} step={0.25} value={+(appreciation * 100).toFixed(2) || ''} onChange={(e) => setAppreciation(Math.max(0, +e.target.value || 0) / 100)} className="mt-1 w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm font-num" />
         </div>
         <div>
           <div className="mb-1 flex justify-between text-[14px]">
             <span className="font-medium flex items-center gap-1">Gross rent yield <Explainer text="Rent collected in a year, before expenses, as a share of the price. Zero means no rent in this box." /></span>
             <span className="font-num text-muted-foreground">{pct(rentYield)}</span>
           </div>
-          <Slider value={[rentYield * 100]} min={0} max={10} step={0.25} onValueChange={([v]) => setRentYield(v / 100)} />
+          <input type="number" min={0} step={0.25} value={+(rentYield * 100).toFixed(2) || ''} onChange={(e) => setRentYield(Math.max(0, +e.target.value || 0) / 100)} className="mt-1 w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm font-num" />
         </div>
         <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
           <span className="text-[14px] flex items-center gap-1">Cost-segregation study <Explainer text="A paid study that splits the building into parts that depreciate faster, so more of the deduction lands in year 1. Off means the building depreciates evenly over 27.5 years. The study fee is not in these numbers until you type a setup cost." /></span>
@@ -85,20 +85,20 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
           <div className="text-[12.5px] text-muted-foreground">at {pct(marginalRate, 0)}</div>
         </div>
         <div className="rounded-md bg-secondary p-3">
-          <div className="font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">Value at 10 and 25 years <Explainer text="Price grown by the appreciation you set. Rent is not added. Tax on a sale is not taken out." /></div>
-          <div className="font-num mt-1 text-lg font-semibold">{fmtCompact(r.v10)} / {fmtCompact(r.v25)}</div>
+          <div className="font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">Value at 10 and 30 years <Explainer text="Price grown by the appreciation you set. Rent is not added. Tax on a sale is not taken out." /></div>
+          <div className="font-num mt-1 text-lg font-semibold">{fmtCompact(r.v10)} / {fmtCompact(r.v30)}</div>
           <div className="text-[12.5px] text-muted-foreground">price only, before rent and before sale tax</div>
         </div>
         <div className="rounded-md bg-secondary p-3">
-          <div className="font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">Gain if sold at year 25 <Explainer text="Year-25 price minus what you paid. Selling can tax this gain and the depreciation you already took. A 1031 exchange delays that. It does not erase it unless the property is inherited." /></div>
-          <div className="font-num mt-1 text-lg font-semibold stat-warm">{fmtCompact(r.gain25)}</div>
+          <div className="font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">Gain if sold at year 30 <Explainer text="Year-30 price minus what you paid. Selling can tax this gain and the depreciation you already took. A 1031 exchange delays that. It does not erase it unless the property is inherited." /></div>
+          <div className="font-num mt-1 text-lg font-semibold stat-warm">{fmtCompact(r.gain30)}</div>
           <div className="text-[12.5px] text-muted-foreground">not taxed in this box until you sell</div>
         </div>
       </div>
 
       <p className="mt-4 rounded-md bg-secondary px-3 py-2 text-[14px] leading-relaxed text-muted-foreground">
         Rent in this box is about {fmt(r.grossRent)} a year before expenses. Depreciation can offset rent on paper. Selling can bring tax on the gain and on depreciation already taken.
-        A 1031 exchange delays that tax. It does not remove it. The land share (20%), the study split (25%), and 27.5 years are written into this box. They are not quotes.
+        A US citizen still pays US tax on rent and on a sale of real estate in another country. Gold is not tax-free either. A gain on gold is taxed as a collectible, up to 28% federal. This box does not treat either one as tax-free.
       </p>
     </div>
   );

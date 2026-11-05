@@ -4,7 +4,6 @@ import { computeAnnuity, fmtCompact, pct } from '../lib/calc';
 import type { Filing } from '../lib/taxdata';
 import { AnnuityChart } from '../components/viz';
 import { SectionTitle, Stat, Field, Tip } from '../components/widgets';
-import { Slider } from '@/components/ui/slider';
 
 export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing; onNext?: (cash: number) => void; onUseCash?: (cash: number) => void }) {
   const [more, setMore] = useState(false);
@@ -55,14 +54,14 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
           {more && (
             <>
               <div>
-                <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">I only know the jackpot</span><span className="font-num text-muted-foreground">{pct(a.cashRatio, 0)}</span></div>
-                <Slider value={[a.cashRatio * 100]} min={35} max={60} step={1} onValueChange={([v]) => setA({ ...a, cashRatio: v / 100, cash: Math.round(a.advertised * (v / 100)) })} />
-                <p className="mt-1 text-[15px] text-muted-foreground">Fills the cash amount as this share of the annuity total. A cash option is often about 45–50%. Typing a cash amount yourself replaces it.</p>
+                <label className="mb-1 block text-[14px] font-medium">Cash as a percent of the jackpot</label>
+                <input type="number" min={0} max={100} step={1} value={Math.round(a.cashRatio * 100)} onChange={(e) => { const v = Math.min(100, Math.max(0, +e.target.value || 0)); setA({ ...a, cashRatio: v / 100, cash: Math.round(a.advertised * (v / 100)) }); }} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+                <p className="mt-1 text-[15px] text-muted-foreground">0 to 100 because this is a share of the jackpot. 100 means the whole jackpot. There is no other stop. A cash option is often about 45 to 50. Typing the cash amount yourself replaces this.</p>
               </div>
               <div>
-                <div className="mb-1 flex justify-between text-[14px]"><span className="font-medium">What the money earns</span><span className="font-num text-muted-foreground">{pct(a.investReturn)}</span></div>
-                <Slider value={[a.investReturn * 100]} min={3} max={10} step={0.25} onValueChange={([v]) => setA({ ...a, investReturn: v / 100 })} />
-                <p className="mt-1 text-[15px] text-muted-foreground">Used for both paths after tax. 7% is a middle guess, not a promise.</p>
+                <label className="mb-1 block text-[14px] font-medium">What the money earns, percent a year</label>
+                <input type="number" min={0} step={0.25} value={+(a.investReturn * 100).toFixed(2)} onChange={(e) => setA({ ...a, investReturn: Math.max(0, +e.target.value || 0) / 100 })} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+                <p className="mt-1 text-[15px] text-muted-foreground">No legal stop. 7 is a middle guess, not a promise.</p>
               </div>
             </>
           )}

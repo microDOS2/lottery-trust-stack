@@ -23,7 +23,7 @@ const tipStyle = {
 export function ScenarioLines({ scenarios }: { scenarios: ScenarioWithResult[] }) {
   const data = useMemo(() => {
     const rows: Array<Record<string, number>> = [];
-    for (let y = 1; y <= 25; y++) {
+    for (let y = 1; y <= 30; y++) {
       const row: Record<string, number> = { year: y };
       for (const s of scenarios) row[s.letter] = Math.round(s.result.projection[y - 1]?.end ?? 0);
       rows.push(row);
