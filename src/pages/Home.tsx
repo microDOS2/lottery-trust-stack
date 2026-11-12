@@ -9,9 +9,11 @@ import { GuideView, GlossaryView } from '../sections/GuideView';
 import ExplainView from '../sections/ExplainView';
 import { ExplainNav, explainSectionFromHash, openExplainTab } from '../explainNav';
 import { Tip } from '../components/widgets';
-import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText } from 'lucide-react';
+import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText, Columns3, GraduationCap } from 'lucide-react';
+import Tour from '../components/Tour';
+import CompareView from '../sections/CompareView';
 
-type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain';
+type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain' | 'compare';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
 const SCHEMA_VERSION = 7;
@@ -72,9 +74,10 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
 }
 
 const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
+  { id: 'calc', label: 'Calculator', icon: Landmark },
+  { id: 'compare', label: 'Compare', icon: Columns3 },
   { id: 'goals', label: 'Goals & Fit', icon: Compass },
   { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
-  { id: 'calc', label: 'Calculator', icon: Landmark },
   { id: 'guide', label: 'First-Year Guide', icon: Map },
   { id: 'library', label: 'Strategy Library', icon: Library },
   { id: 'lab', label: 'Spend vs. Grow', icon: TrendingUp },
@@ -85,6 +88,7 @@ const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
 const NAV_TIP: Record<View, string> = {
   annuity: 'Compare the cash you could take now with 30 years of checks.',
   goals: 'Type the cash, answer the questions, and get five plans with the reason for each.',
+  compare: 'Every saved setup, side by side: yearly cash, fees, and the 25-year pile.',
   calc: 'State, prize, and what you want to spend. The numbers on the right use the middle rates.',
   guide: 'What to do in the first year, in order.',
   library: 'Extra ideas. Each row says whether it changes the chart or is only a note.',
@@ -142,7 +146,7 @@ export interface EngineNotice {
 }
 
 export default function Home() {
-  const [view, setView] = useState<View>(() => (explainSectionFromHash() !== null ? 'explain' : location.hash.startsWith('#s=') ? 'calc' : 'goals'));
+  const [view, setView] = useState<View>(() => (explainSectionFromHash() !== null ? 'explain' : location.hash.startsWith('#s=') ? 'calc' : 'calc'));
   const [explainAt] = useState<string | null>(() => explainSectionFromHash() || null);
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
@@ -179,6 +183,7 @@ export default function Home() {
     return [null, null, null, null, null];
   });
   const [notice, setNotice] = useState<EngineNotice | null>(null);
+  const [touring, setTouring] = useState(false);
   const [welcomed, setWelcomed] = useState<boolean>(() => {
     try { return localStorage.getItem('lotteryStack.welcomed') === '1'; } catch { return false; }
   });
@@ -292,6 +297,30 @@ export default function Home() {
             ))}
           </nav>
         </div>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 pb-2 md:px-6 no-print">
+          <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground" aria-label="Your path">
+            {([['calc', '1 · Your numbers'], ['compare', '2 · Compare setups'], ['goals', '3 · Find your fit']] as const).map(([id, label], i) => (
+              <span key={id} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-border">→</span>}
+                <button onClick={() => setView(id)} className={`rounded-full px-2.5 py-0.5 cursor-pointer ${view === id ? 'bg-accent font-semibold text-accent-foreground' : 'hover:text-foreground'}`}>{label}</button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setInputsRaw((p) => ({ ...p, amount: 100_000_000, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000 })); setView('calc'); }}
+              className="rounded-full border border-input bg-card px-3 py-1 text-[12px] font-medium hover:border-primary hover:text-primary cursor-pointer"
+            >
+              Try a $100M example
+            </button>
+            <button
+              onClick={() => setTouring(true)}
+              className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[12px] font-semibold text-primary-foreground cursor-pointer"
+            >
+              <GraduationCap className="h-3.5 w-3.5" /> Take the tour
+            </button>
+          </div>
+        </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 md:px-6">
@@ -314,6 +343,14 @@ export default function Home() {
           />
         )}
         {view === 'lab' && <LabView inputs={inputs} setInputs={setInputs} asm={asm} />}
+        {view === 'compare' && (
+          <CompareView
+            scenarios={scenarios}
+            asm={asm}
+            onUse={(i) => { loadScenario(i); setView('calc'); }}
+            onDelete={(i) => setScenarios((prev) => prev.map((s, j) => (j === i ? null : s)))}
+          />
+        )}
         {view === 'goals' && (
           <GoalsView
             inputs={inputs}
@@ -387,6 +424,7 @@ export default function Home() {
         </div>
       </div>
     )}
+      <Tour active={touring} setView={(v) => setView(v as View)} onClose={() => setTouring(false)} />
     </ExplainNav.Provider>
   );
 }
