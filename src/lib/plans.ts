@@ -59,6 +59,26 @@ function outcomeLines(inputs: Inputs, result: StackResult, answers: Record<strin
   if (answers.renounce && answers.renounce > 0) {
     lines.push('Giving up US citizenship ends US tax on money from anywhere. It has its own tax, the exit tax, on the gain in your assets as if you sold them. You may not be able to live in the US again. Type what the assets would sell for and what you paid, on the calculator, to see the tax.');
   }
+  if (answers.reinvest === 1) {
+    lines.push('For the venture dollars: if it is a C-corporation, startup stock can exclude up to $15M of gain after 5 years (QSBS). That is the one reinvestment that can beat the stack.');
+  }
+  if (answers.umbrella === 2) {
+    lines.push('Umbrella liability insurance pays when you are sued. Trusts make assets harder to take. You usually want both, and the insurance is the cheaper first step.');
+  }
+  if (answers.foreign === 0) {
+    lines.push('Offshore trusts do not save a US citizen income tax. If you fund it and benefit from it, the IRS taxes every gain to you personally. Use them for protection only.');
+  }
+  if (answers.estate === 0) {
+    lines.push('Above the $15M-per-person federal estate exclusion, the top estate rate is 40%. The dynasty-trust layer is how growth escapes it — fund it early.');
+  }
+  if (answers.giving === 0) {
+    lines.push('A donor-advised fund turns the big tax year into a big deduction and lets you grant the money out over time.');
+  } else if (answers.giving === 1) {
+    lines.push('A charitable remainder trust sells appreciated assets tax-free and pays you income for life. The remainder goes to charity.');
+  }
+  if (answers.spendpattern === 0) {
+    lines.push('The draw is flat: the same dollars every year. Buying power slowly shrinks with inflation; more stays compounding.');
+  }
   if (answers.worry === 1) {
     lines.push('A trust can keep a name off a house, a car, or a court paper. It does not hide the money from the tax office.');
   }
@@ -80,7 +100,7 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
     residency: residencyFor(answers),
     mode: 'balanced',
     dial: answers.market === 0 ? 100 : answers.market === 1 ? 0 : 50,
-    flatDraw: false,
+    flatDraw: answers.spendpattern === 0,
     drawOverrides: {},
   };
   const result = computeStack(planInputs, asm);
