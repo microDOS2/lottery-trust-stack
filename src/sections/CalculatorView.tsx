@@ -171,7 +171,7 @@ export default function CalculatorView(p: Props) {
       <div className="flex flex-wrap items-center gap-2">
         {[0, 1, 2, 3, 4].map((i) => (
           <Tip key={i} text={p.scenarios[i] ? `Replace saved setup ${LETTERS[i]} with the numbers on screen.` : `Save the numbers on screen as setup ${LETTERS[i]}.`}>
-            <button type="button" onClick={() => p.saveScenario(i)}
+            <button type="button" data-tour={i === 0 ? "saveA" : undefined} onClick={() => p.saveScenario(i)}
               className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
               {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
             </button>
@@ -251,7 +251,7 @@ export default function CalculatorView(p: Props) {
           </p>
         )}
 
-        <Field label="Prize amount ($)" tip="The cash option, or what is left if tax is already paid. Not the advertised jackpot." more="assumptions" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
+        <div data-tour="amount"><Field label="Prize amount ($)" tip="The cash option, or what is left if tax is already paid. Not the advertised jackpot." more="assumptions" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.amount || ''} min={0} step={100000} onChange={(e) => set('amount', +e.target.value || 0)} />
         </Field>
 
@@ -266,13 +266,14 @@ export default function CalculatorView(p: Props) {
           ))}
         </div>
 
+        </div>
         <Field label="Debt to pay before investing ($)" tip="Subtracted after tax and before anything is invested. Zero subtracts nothing. It does not change the tax." more="not-included" help="The exact amount. If it is larger than the cash left after tax, only the cash left is subtracted.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.debt || ''} min={0} step={1} onChange={(e) => set('debt', +e.target.value || 0)} />
         </Field>
 
-        <Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than what the investments can pay, the pile gets spent." more="trade" help="The exact amount, in dollars.">
+        <div data-tour="spend"><Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than what the investments can pay, the pile gets spent." more="trade" help="The exact amount, in dollars.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend || ''} min={0} step={1} onChange={(e) => set('spend', +e.target.value || 0)} />
-        </Field>
+        </Field></div>
 
         <p className="rounded-md bg-secondary px-3 py-2 text-[13.5px] leading-relaxed">
           {inp.amount <= 0
@@ -426,7 +427,7 @@ export default function CalculatorView(p: Props) {
           <Stat label="Bonds" tip="The bond ladder. It pays the bond rate, tax-free, and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of what is invested · ${fmtCompact(r.muni * asm.muniYield)}/yr`} />
           <Stat label="Insurance policy" tip="This box stands on its own. The minimum in this box is $5,000,000. The number is not erased when it is under that. The bond box and the stock box are not changed." more="policy" value={fmtCompact(r.ppli)} sub={r.qpOk ? `At least ${fmtCompact(PPLI_QP_MIN)}. ${fmtCompact(r.ppli * asm.ppliDraw)} a year from this box.` : `${fmtCompact(r.ppli)} is under the ${fmtCompact(PPLI_QP_MIN)} minimum.`} />
           <Stat label="Stocks" tip="Stocks. The growth rate and the spendable slice are the rates in the assumptions." more="stocks" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} after anything you moved out · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of what is invested · ${fmtCompact(r.equity * asm.eqDraw)}/yr`} />
-          <Stat label="Safe to take per year" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
+          <div data-tour="capacity"><Stat label="Safe to take per year" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" /></div>
         </div>
 
         {inp.amount > 0 && !r.sustainable && (
@@ -616,7 +617,7 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
         </div>
         <div className="flex flex-wrap gap-2">
           {[0, 1, 2, 3, 4].map((i) => (
-            <button key={i} title={p.scenarios[i] ? `Replace saved setup ${LETTERS[i]} with the numbers on screen.` : `Save the numbers on screen as setup ${LETTERS[i]}.`} onClick={() => p.saveScenario(i)}
+            <button key={i} title={p.scenarios[i] ? `Replace saved setup ${LETTERS[i]} with the numbers on screen.` : `Save the numbers on screen as setup ${LETTERS[i]}.`} data-tour={i === 0 ? "saveA" : undefined} onClick={() => p.saveScenario(i)}
               className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
               {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
             </button>
