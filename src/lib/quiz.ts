@@ -181,6 +181,127 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
+    id: 'family', group: 'short',
+    text: 'Who else relies on this money besides you?',
+    why: 'More people relying on the money means the yearly amount has to cover more lives. It also changes what "leaving something" should mean later. The result does not judge the number. It checks whether it can be paid.',
+    options: [
+      { label: 'Just me', note: 'The yearly amount only has to cover you.', weights: {} },
+      { label: 'A partner or kids', note: 'The yearly amount has to cover the household. It also makes the estate question worth answering below.', weights: { legacy: 0.5 } },
+      { label: 'Parents, or other people too', note: 'Include their support in the yearly amount. If later care costs more, answer "later years cost more" below.', weights: { legacy: 0.5, income: 0.3 } },
+    ],
+  },
+  {
+    id: 'team', group: 'short',
+    text: 'Who is helping you with this money right now?',
+    why: 'A lottery-sized check usually needs a tax attorney, a CPA, and a fee-only advisor. This answer changes nothing in the math. It tells you whether the next step is hiring them.',
+    options: [
+      { label: 'Nobody yet', note: 'The usual first three hires: a tax attorney, a CPA, and a fee-only fiduciary advisor. In that order.', weights: {} },
+      { label: 'Friends and family', note: 'Useful for support. The tax and trust work still needs licensed professionals.', weights: {} },
+      { label: 'I have professionals already', note: 'Show them the result. The assumptions are editable, so they can argue with the rates.', weights: {} },
+    ],
+  },
+  {
+    id: 'discipline', group: 'short',
+    text: 'Be honest: a very large check lands. What happens first?',
+    why: 'The most common way lottery money dies is not tax or markets. It is spending. This answer does not judge you. It only affects whether the result emphasizes guardrails.',
+    options: [
+      { label: 'I have a plan and I will follow it', note: 'No guardrails added. The yearly amount you type drives everything.', weights: { income: 0.5 } },
+      { label: 'I will figure it out as I go', note: 'Consider starting with a smaller yearly amount. You can raise it later.', weights: {} },
+      { label: 'I might overspend', note: 'Guardrails help: keep the yearly amount modest, and read the annuity comparison — 30 years of checks is a built-in guardrail.', weights: { income: 0.3 } },
+    ],
+  },
+  {
+    id: 'risk', group: 'middle',
+    text: 'The market drops 30%. What do you actually do?',
+    why: 'This is different from the bad-stretch question above. That one is about whether the yearly check must continue. This one is about your behavior. Selling in a panic is how compounding dies.',
+    options: [
+      { label: 'Sell everything and hide', note: 'If that is likely, keep more in bonds and the insurance wrapper, and less in stocks.', weights: { income: 0.8, protection: 0.3 } },
+      { label: 'Get nervous but hold', note: 'Normal. The balanced split is built for this.', weights: {} },
+      { label: 'Barely look at it', note: 'More can stay in stocks. Compounding does the work.', weights: { growth: 0.5 } },
+    ],
+  },
+  {
+    id: 'spendpattern', group: 'middle',
+    text: 'Do you want the same dollar amount every year, or more later to keep up with prices?',
+    why: 'A flat amount means your buying power slowly shrinks as prices rise. An amount that grows with inflation keeps your lifestyle but leaves less compounding. Both are valid. This answer changes the draw schedule in the model.',
+    options: [
+      { label: 'The same amount every year (flat)', note: 'The model uses a flat draw. More stays compounding. Later years buy less.', weights: {} },
+      { label: 'Grow it with prices (inflation-linked)', note: 'The model grows the draw each year. Your lifestyle stays constant in real terms.', weights: {} },
+      { label: 'I do not know', note: 'The model uses inflation-linked. You can flip it on the calculator.', weights: {} },
+    ],
+  },
+  {
+    id: 'reinvest', group: 'middle',
+    text: 'If you take out more than you spend in a year, what should happen to the rest?',
+    why: 'Cash sitting outside the stack earns taxable interest and sits in your estate. The stack is usually the best place to reinvest it. A business, an Opportunity Zone fund, or property can justify taking it out — those have their own tax shelters.',
+    options: [
+      { label: 'Back into the stack', note: 'Best default: pay down policy loans, buy more ladder, or reinvest in the stock engine.', weights: { growth: 0.5 } },
+      { label: 'Into a business or venture', note: 'Read the QSBS card: startup stock can exclude up to $15M of gain after 5 years.', weights: {} },
+      { label: 'Keep it as cash for a while', note: 'Park it in Treasuries or a tax-exempt money market, not a 0% checking account.', weights: { simplicity: 0.5 } },
+    ],
+  },
+  {
+    id: 'business', group: 'middle',
+    text: 'Do you plan to start or buy a business?',
+    why: 'A business can beat anything the stack offers — or lose everything. If it is a C-corporation, startup stock can carry a $15M federal gain exclusion after 5 years. That is why the business dollars get their own box instead of being mixed with the investments.',
+    options: [
+      { label: 'No', note: 'Nothing is set aside for a business.', weights: {} },
+      { label: 'Yes, or maybe', note: 'Type the amount in the business box. Read the QSBS card before choosing the legal form.', weights: {} },
+      { label: 'I already have one', note: 'If it is a C-corp, ask your CPA about QSBS before any sale or restructure.', weights: {} },
+    ],
+  },
+  {
+    id: 'umbrella', group: 'protect',
+    text: 'Do you have umbrella liability insurance?',
+    why: 'Trusts make assets harder to take. Insurance pays when you are sued. They solve different problems. A large umbrella policy is usually the cheapest protection you can buy.',
+    options: [
+      { label: 'Yes', note: 'Check the limit against your new net worth. Many winners carry $5M or more.', weights: { protection: 0.5 } },
+      { label: 'No', note: 'Worth pricing before any complex structure. It is usually the cheapest protection there is.', weights: { protection: 0.5 } },
+      { label: 'I do not know what that is', note: 'Umbrella insurance pays legal costs and judgments above your home and auto policies. Ask an insurance broker, not a trust promoter.', weights: { protection: 0.3 } },
+    ],
+  },
+  {
+    id: 'foreign', group: 'protect',
+    text: 'Has anyone suggested a foreign (offshore) trust to save on taxes?',
+    why: 'For a US citizen, a foreign trust you fund and benefit from is a grantor trust: every gain inside is taxed to you personally. It is an asset-protection tool, not a tax tool. This answer adds a warning, not a structure.',
+    options: [
+      { label: 'Yes, or I saw a video about it', note: 'Read the Foreign Trust Reality Check in the Strategy Library. Protection yes, tax savings no.', weights: { protection: 0.3 } },
+      { label: 'No', note: 'Nothing to unlearn.', weights: {} },
+      { label: 'I am not a US citizen', note: 'Different rules. Your home country decides the tax. This page uses US federal and state rules.', weights: {} },
+    ],
+  },
+  {
+    id: 'estate', group: 'long',
+    text: 'Will your estate be worth more than $15 million per person?',
+    why: 'That is the 2026 federal estate exclusion. Above it, the top estate tax rate is 40%. The dynasty-trust layer exists for this. It works best when funded while the assets are still small.',
+    options: [
+      { label: 'Yes, clearly', note: 'Talk to an estate attorney about the dynasty layer early. Moving growth assets out now is the point.', weights: { legacy: 1 } },
+      { label: 'Possibly, with growth', note: 'Worth a review once a year, not a structure on day one.', weights: { legacy: 0.5 } },
+      { label: 'No', note: 'The estate layer can wait.', weights: {} },
+    ],
+  },
+  {
+    id: 'giving', group: 'long',
+    text: 'How do you want to give to charity?',
+    why: 'A donor-advised fund gives a deduction in the big tax year and lets you grant over time. A charitable remainder trust can sell appreciated assets tax-free and pay you income for life. Both beat writing checks from a taxable account.',
+    options: [
+      { label: 'A fund now, grants over time', note: 'That is a donor-advised fund. It fits the big-tax-year deduction.', weights: { legacy: 0.4 } },
+      { label: 'Give assets but keep an income', note: 'That is a charitable remainder trust. Part goes to charity, so it is not an income maximizer.', weights: { legacy: 0.6, income: 0.3 } },
+      { label: 'No giving planned', note: 'Nothing is added.', weights: {} },
+    ],
+  },
+  {
+    id: 'retire', group: 'long',
+    text: 'When do you want work to be optional?',
+    why: 'This is the real "long term." If work must be optional soon, the yearly amount has to be reliable now. If it can wait, more can compound before the draws begin.',
+    options: [
+      { label: 'Immediately', note: 'The yearly amount has to be reliable from month 13 on.', weights: { income: 0.8 } },
+      { label: 'In about 10 years', note: 'A decade of compounding first. The growth-leaning settings fit.', weights: { growth: 0.6 } },
+      { label: 'I do not want to stop', note: 'The stack can be all growth. Take income only if you want it.', weights: { growth: 0.8 } },
+    ],
+  },
+
+  {
     id: 'never', group: 'long',
     text: 'Which of these are you willing to do?',
     why: 'A tax change you will not actually do is not a plan. Pick the one you would do. If you would not move, later income stays taxed where you are. If you would not live in Puerto Rico, that path is off. If you would not give up US citizenship, US tax on money from anywhere continues.',
@@ -193,10 +314,10 @@ export const QUIZ: QuizQuestion[] = [
   },
 ];
 
-export const QUIZ_SHORT = ['claim', 'filing', 'worry'] as const;
-export const QUIZ_MIDDLE = ['live', 'time', 'market', 'give'] as const;
-export const QUIZ_PROTECT = ['sue', 'stolen', 'who', 'hold'] as const;
-export const QUIZ_LONG = ['last', 'renounce', 'gone', 'later', 'never'] as const;
+export const QUIZ_SHORT = ['claim', 'filing', 'worry', 'family', 'team', 'discipline'] as const;
+export const QUIZ_MIDDLE = ['live', 'time', 'market', 'give', 'risk', 'spendpattern', 'reinvest', 'business'] as const;
+export const QUIZ_PROTECT = ['sue', 'stolen', 'who', 'hold', 'umbrella', 'foreign'] as const;
+export const QUIZ_LONG = ['last', 'renounce', 'gone', 'later', 'never', 'estate', 'giving', 'retire'] as const;
 
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
   const acc: GoalProfile = { income: 1, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
