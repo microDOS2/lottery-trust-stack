@@ -118,7 +118,7 @@ export default function CalculatorView(p: Props) {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="hairline-card p-5">
               <h3 className="font-display text-lg font-semibold">Where the core sits</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Trust #2 holds Engines A + C · Trust #3 holds Engine B · Entity #4 holds property cash.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Trust #2 holds the bonds and stocks · Trust #3 holds the insurance · Entity #4 holds property cash.</p>
               <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} sleeve={r.sleeveAmount} sleeveName={STRATEGIES.find((s) => s.id === r.sleeveId)?.name ?? 'Sleeve'} />
             </div>
             <div className="hairline-card p-5">
@@ -206,8 +206,8 @@ export default function CalculatorView(p: Props) {
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat label="Federal tax on prize" tip="Federal income tax on the cash option, at 2026 rates. The line under it is the state tax." more="assumptions" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
           <Stat label="Net after-tax pool" tip="What is left after federal and state tax. This is the money the rest of the page invests." more="trade" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
-          <Stat label="Year-1 reserve" tip="The first year of spending, plus setup cost, held back. The investments are not touched in year 1." more="trade" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
-          <Stat label="Investable core" tip="What is left to invest after tax, the first year of spending, setup cost, and anything you set aside." more="trade" value={fmtCompact(r.core)} sub="This number is not the insurance minimum." />
+          <Stat label="Year-1 living reserve" tip="The first year of spending, plus setup cost, held back. The investments are not touched in year 1." more="trade" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
+          <Stat label="Money left to invest" tip="What is left to invest after tax, the first year of spending, setup cost, and anything you set aside." more="trade" value={fmtCompact(r.core)} sub="This number is not the insurance minimum." />
         </div>
       </div>
     </div>
@@ -426,14 +426,14 @@ export default function CalculatorView(p: Props) {
           <Stat label="Bonds" tip="The bond ladder. It pays the bond rate, tax-free, and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of what is invested · ${fmtCompact(r.muni * asm.muniYield)}/yr`} />
           <Stat label="Insurance policy" tip="This box stands on its own. The minimum in this box is $5,000,000. The number is not erased when it is under that. The bond box and the stock box are not changed." more="policy" value={fmtCompact(r.ppli)} sub={r.qpOk ? `At least ${fmtCompact(PPLI_QP_MIN)}. ${fmtCompact(r.ppli * asm.ppliDraw)} a year from this box.` : `${fmtCompact(r.ppli)} is under the ${fmtCompact(PPLI_QP_MIN)} minimum.`} />
           <Stat label="Stocks" tip="Stocks. The growth rate and the spendable slice are the rates in the assumptions." more="stocks" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} after anything you moved out · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of what is invested · ${fmtCompact(r.equity * asm.eqDraw)}/yr`} />
-          <Stat label="Tax-free cash capacity" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
+          <Stat label="Safe to take per year" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" />
         </div>
 
         {inp.amount > 0 && !r.sustainable && (
           <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="text-sm">
-              <strong>Your spending target outruns the engines.</strong> You want {fmt(inp.spend)}/yr but the stack can sustainably pay {fmt(r.capacity)}/yr tax-free. Either lower the target, move the dial toward income, or grow the core — at this draw mix you'd need a core of roughly <span className="font-num font-semibold">{fmt(r.requiredCore)}</span>.
+              <strong>Your spending target is more than the stack can safely pay.</strong> You want {fmt(inp.spend)}/yr but the stack can safely pay {fmt(r.capacity)}/yr tax-free. Either lower the target, move the dial toward income, or grow the core — at this draw mix you'd need a core of roughly <span className="font-num font-semibold">{fmt(r.requiredCore)}</span>.
             </div>
           </div>
         )}
@@ -641,7 +641,7 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
                   ['Net after-tax pool', (s: ScenarioSlot) => fmtCompact(s.result.net)],
                   ['Investable core', (s: ScenarioSlot) => fmtCompact(s.result.core)],
                   ['Allocation A/B/C', (s: ScenarioSlot) => s.result.alloc],
-                  ['Tax-free capacity /yr', (s: ScenarioSlot) => fmtCompact(s.result.capacity)],
+                  ['Safe to take /yr', (s: ScenarioSlot) => fmtCompact(s.result.capacity)],
                   ['Net worth @ 25 yrs', (s: ScenarioSlot) => fmtCompact(s.result.stackEnd)],
                   ['Edge over taxable', (s: ScenarioSlot) => fmtCompact(s.result.advantage)],
                 ] as const).map(([label, fn]) => (
