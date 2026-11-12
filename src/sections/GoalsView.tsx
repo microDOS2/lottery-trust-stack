@@ -30,7 +30,16 @@ function stretches(age: number): { short: string; middle: string; long: string }
 }
 
 export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScenario, loadScenario, onApplyScenario }: Props) {
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [answers, setAnswersRaw] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}'); } catch { return {}; }
+  });
+  const setAnswers = (fn: (a: Record<string, number>) => Record<string, number>) => {
+    setAnswersRaw((prev) => {
+      const next = fn(prev);
+      try { localStorage.setItem('lotteryStack.quizAnswers', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [age, setAge] = useState(0);
   useEffect(() => {
     if (answers.market === undefined || inputs.mode === 'manual') return;
@@ -61,7 +70,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       />
       <button
         type="button"
-        onClick={() => { setAnswers({}); setAge(0); setInputs(() => ({ ...inputs, amount: 0, spend: 0, debt: 0, entity4: 0, venture: 0, rental: 0, gift: 0, laterSpend: 0, ppliFee: 0, setupCost: 0, annualAdmin: 0 })); }}
+        onClick={() => { setAnswers(() => ({})); setAge(0); setInputs(() => ({ ...inputs, amount: 0, spend: 0, debt: 0, entity4: 0, venture: 0, rental: 0, gift: 0, laterSpend: 0, ppliFee: 0, setupCost: 0, annualAdmin: 0 })); }}
         className="mb-4 rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 cursor-pointer"
       >
         Clear and start over
@@ -117,7 +126,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         </div>
       </div>
 
-      <Group heading={`Short term — ${span.short}`} questions={QUIZ.filter((q) => SHORT.has(q.id))} answers={answers} setAnswers={setAnswers} />
+      <Group heading={`First, the basics — ${span.short}`} questions={QUIZ.filter((q) => SHORT.has(q.id))} answers={answers} setAnswers={setAnswers} />
 
       <label className="hairline-card block p-6">
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">How much do you want available each year to live the way you want? <Explainer text="This is the check the result tests. Include anyone you support and any care cost. A bigger number runs out sooner." /></span>
@@ -140,7 +149,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <input type="number" min={0} step={1} value={inputs.entity4 || ''} onChange={(e) => setNum('entity4', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
-      <Group heading={`Middle term — ${span.middle}`} questions={QUIZ.filter((q) => MIDDLE.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
+      <Group heading={`Your everyday life — ${span.middle}`} questions={QUIZ.filter((q) => MIDDLE.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
         give: answers.give === 1 || answers.give === 2 ? (
           <label className="mt-3 block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for the gift <Explainer text="Taken out before investing. Nothing is given until you type it. A gift to a person can use the $15,000,000 estate exclusion. A gift to charity can reduce income tax in the year you give it. This page does not compute that tax cut." /></span>
@@ -204,7 +213,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <Group heading="" questions={QUIZ.filter((q) => PROTECT.has(q.id))} answers={answers} setAnswers={setAnswers} />
       </div>
 
-      <Group heading={`Long term — ${span.long}`} questions={QUIZ.filter((q) => LONG.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
+      <Group heading={`Down the road — ${span.long}`} questions={QUIZ.filter((q) => LONG.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
         later: answers.later === 1 ? (
           <label className="mt-3 block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly amount from year 11 on <Explainer text="Replaces the first yearly amount from year 11 through year 25. Years 2 through 10 keep the first amount. Nothing changes until you type it." /></span>
@@ -215,7 +224,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       }} />
 
       {outcome && (
-        <article className="hairline-card border-success/40 p-6">
+        <article data-tour="result" className="hairline-card border-success/40 p-6">
           <h3 className="font-display text-xl font-semibold">The result</h3>
           <p className="mt-2 text-[14.5px] text-muted-foreground">Age {age}. Short is {span.short}. Middle is {span.middle}.</p>
           <ul className="mt-3 list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-muted-foreground">
