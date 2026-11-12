@@ -187,15 +187,20 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
 
       <div className="space-y-4">
         <h3 className="font-display text-lg font-semibold">Protecting you and the estate</h3>
-        <div className="hairline-card p-5 text-[14.5px] leading-relaxed text-muted-foreground">
-          <p>A trust does not stop you from being sued. You can still be sued. Insurance is what protects you, the person.</p>
+        <div className="hairline-card border-primary/30 bg-accent/40 p-5 text-[14.5px] leading-relaxed">
+          <strong>The 10-second version:</strong> a trust makes it harder to <em>take</em> the money, not harder to sue you.
+          Revocable = you keep control, no protection. Irrevocable = someone else is trustee, real protection — but only if funded before any claim.
+        </div>
+        <details className="hairline-card p-5 text-[14.5px] leading-relaxed text-muted-foreground">
+          <summary className="cursor-pointer font-medium text-foreground">The full explanation</summary>
+          <p className="mt-3">A trust does not stop you from being sued. You can still be sued. Insurance is what protects you, the person.</p>
           <p className="mt-3">You can have more than one trust at the same time. A revocable trust and one or more irrevocable trusts can exist together. You can be the only beneficiary of all of them.</p>
           <p className="mt-3">A revocable trust can be changed or cancelled by you. You still control it, so a lawsuit can reach it while you are alive. It is for who gets the money after you die. It is not asset protection.</p>
           <p className="mt-3">An irrevocable trust cannot be taken back, and you cannot change it on your own. Someone else is the trustee. You no longer own what you put in. That is why a later lawsuit has a harder time taking those assets. It has to be funded before any claim. A transfer after you know about a lawsuit, or made to dodge a creditor, can be undone.</p>
           <p className="mt-3">If you are the only beneficiary of an irrevocable trust you created, most states give little or no asset protection. Nevada, South Dakota, Delaware, and Alaska allow a domestic asset protection trust where you can be a beneficiary and still have some protection. It is not absolute. A foreign trust can be harder for a US court to reach. It does not hide the money from the IRS, and it can create extra reporting.</p>
           <p className="mt-3">A trustee has a legal duty to follow the trust terms and act for the beneficiary. You choose the trustee. You can name a co-trustee. You can name a trust protector who can remove the trustee. You can write distribution standards that require the trustee to pay you for living costs, care, or other needs. You can require accountings. What you cannot do is keep the power to force distributions or to remove and replace the trustee at will. That power can make the protection fail and can make the IRS treat the assets as still yours.</p>
           <p className="mt-3">Neither kind hides money from the tax office. Answering a question does not create a trust. A lawyer has to draft it.</p>
-        </div>
+        </details>
         <Group heading="" questions={QUIZ.filter((q) => PROTECT.has(q.id))} answers={answers} setAnswers={setAnswers} />
       </div>
 
