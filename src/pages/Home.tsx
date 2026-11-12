@@ -179,6 +179,17 @@ export default function Home() {
     return [null, null, null, null, null];
   });
   const [notice, setNotice] = useState<EngineNotice | null>(null);
+  const [welcomed, setWelcomed] = useState<boolean>(() => {
+    try { return localStorage.getItem('lotteryStack.welcomed') === '1'; } catch { return false; }
+  });
+  const dismissWelcome = () => {
+    setWelcomed(true);
+    try { localStorage.setItem('lotteryStack.welcomed', '1'); } catch { /* ignore */ }
+  };
+  const trySample = () => {
+    setInputsRaw((p) => ({ ...p, amount: 100_000_000, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000 }));
+    dismissWelcome();
+  };
 
   useEffect(() => {
     try {
@@ -248,7 +259,19 @@ export default function Home() {
             <span className="hidden font-mono text-[13.5px] uppercase tracking-wider text-muted-foreground md:inline">2026 ed.</span>
           </button>
           </Tip>
-          <nav className="flex flex-nowrap gap-0.5 overflow-x-auto" aria-label="Sections">
+          <select
+            aria-label="Sections"
+            className="rounded-md border border-input bg-card px-2 py-1.5 text-sm md:hidden"
+            value={view}
+            onChange={(e) => {
+              const v = e.target.value as View;
+              if (v === 'explain') { openExplainTab(); return; }
+              setView(v);
+            }}
+          >
+            {NAV.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
+          </select>
+          <nav className="hidden flex-nowrap gap-0.5 overflow-x-auto md:flex" aria-label="Sections">
             {NAV.map(({ id, label, icon: Icon }) => (
               <Tip key={id} text={NAV_TIP[id]}>
               <button
@@ -335,6 +358,35 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    {!welcomed && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[hsl(25_55%_10%/0.35)] px-4 backdrop-blur-sm no-print">
+        <div className="hairline-card max-w-lg p-8 shadow-xl" role="dialog" aria-modal="true" aria-label="Welcome">
+          <div className="eyebrow"><span className="eyebrow-num">Welcome</span></div>
+          <h2 className="mt-3 font-display text-3xl font-semibold text-balance">
+            Can your lottery money <span className="sig-italic">pay for your life</span> — without running out?
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+            That's the one question this site answers. No accounts, nothing uploaded — everything runs in your browser.
+          </p>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-[15px] leading-relaxed text-muted-foreground">
+            <li>Type your cash and answer a few plain questions.</li>
+            <li>See what the money can safely pay each year, and for how long.</li>
+            <li>Save setups and compare them. The quiz scores which one fits you.</li>
+          </ol>
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+            <button onClick={trySample} className="flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer">
+              Try a sample $100M
+            </button>
+            <button onClick={dismissWelcome} className="flex-1 rounded-md border border-input bg-card px-4 py-2.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
+              Start with my own numbers
+            </button>
+          </div>
+          <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
+            Educational model, not tax or legal advice. Rates verified November 2026.
+          </p>
+        </div>
+      </div>
+    )}
     </ExplainNav.Provider>
   );
 }
