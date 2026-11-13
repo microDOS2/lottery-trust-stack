@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, LEGACY_ASSUMPTIONS, computeStack, type Inputs, type Assumptions } from '../lib/calc';
+import { QUIZ } from '../lib/quiz';
 import CalculatorView, { type ScenarioSlot } from '../sections/CalculatorView';
 import GoalsView from '../sections/GoalsView';
 import LabView from '../sections/LabView';
@@ -206,8 +207,17 @@ export default function Home() {
     try { localStorage.setItem('lotteryStack.welcomed', '1'); } catch { /* ignore */ }
   };
   const trySample = () => {
+    const persona: Record<string, number> = {
+      worry: 0, live: 0, market: 1, sue: 1, hold: 1, gone: 1, estate: 1, discipline: 0,
+    };
+    const allAnswers = Object.fromEntries(QUIZ.map((q) => [q.id, persona[q.id] ?? 0]));
+    try {
+      localStorage.setItem('lotteryStack.quizAnswers', JSON.stringify(allAnswers));
+      localStorage.setItem('lotteryStack.age', '55');
+    } catch { /* ignore */ }
     setInputsRaw((p) => ({ ...p, amount: 100_000_000, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000 }));
     dismissWelcome();
+    setView('goals');
   };
 
   useEffect(() => {
@@ -301,6 +311,7 @@ export default function Home() {
   return (
     <ExplainNav.Provider value={openExplain}>
     <div className="min-h-dvh">
+      <h1 className="sr-only">Lottery Trust Stack — plan tax-free income and long-term compounding after a lottery win</h1>
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md no-print">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 md:px-6">
           <Tip text="Back to Goals & Fit.">
@@ -323,7 +334,7 @@ export default function Home() {
           >
             {NAV.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
           </select>
-          <nav className="hidden flex-nowrap gap-0.5 overflow-x-auto md:flex" aria-label="Sections">
+          <nav className="hidden flex-nowrap gap-0.5 overflow-x-auto md:flex [mask-image:linear-gradient(to_right,black_92%,transparent)]" aria-label="Sections">
             {NAV.map(({ id, label, icon: Icon }) => (
               <Tip key={id} text={NAV_TIP[id]}>
               <button
@@ -354,12 +365,26 @@ export default function Home() {
             ))}
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => { setInputsRaw((p) => ({ ...p, amount: 100_000_000, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000 })); setView('calc'); }}
-              className="rounded-full border border-input bg-card px-3 py-1 text-[12px] font-medium hover:border-primary hover:text-primary cursor-pointer"
+            <select
+              aria-label="Try a sample by size"
+              className="rounded-full border border-input bg-card px-2 py-1 text-[12px] font-medium"
+              value=""
+              onChange={(e) => {
+                const amount = Number(e.target.value);
+                if (!amount) return;
+                setInputsRaw((p) => ({ ...p, amount, basis: 'gross', spend: amount >= 50_000_000 ? 500_000 : Math.round(amount * 0.03) }));
+                setView('calc');
+                e.target.value = '';
+              }}
             >
-              Try a $100M example
-            </button>
+              <option value="">Try a sample…</option>
+              <option value="2000000">$2M</option>
+              <option value="10000000">$10M</option>
+              <option value="50000000">$50M</option>
+              <option value="100000000">$100M</option>
+              <option value="250000000">$250M</option>
+              <option value="1000000000">$1B</option>
+            </select>
             <button
               onClick={() => setTouring(true)}
               className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[12px] font-semibold text-primary-foreground cursor-pointer"
@@ -424,6 +449,7 @@ export default function Home() {
         {view === 'annuity' && (
           <AnnuityView
             defaultState={inputs.state}
+            defaultAmount={inputs.amount}
             filing={inputs.filing}
             onNext={(cash) => { if (cash > 0) setInputsRaw((p) => ({ ...p, amount: cash, basis: 'gross' })); setView('goals'); }}
             onUseCash={(cash) => {
@@ -455,8 +481,14 @@ export default function Home() {
       </footer>
     </div>
     {!welcomed && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[hsl(25_55%_10%/0.35)] px-4 backdrop-blur-sm no-print">
-        <div className="hairline-card max-w-lg p-8 shadow-xl" role="dialog" aria-modal="true" aria-label="Welcome">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[hsl(25_55%_10%/0.35)] px-4 py-6 backdrop-blur-sm no-print"
+        onClick={dismissWelcome}
+        onKeyDown={(e) => { if (e.key === 'Escape') dismissWelcome(); }}
+        tabIndex={-1}
+        ref={(el) => { el?.focus(); }}
+      >
+        <div className="hairline-card max-h-[90dvh] max-w-lg overflow-y-auto p-8 shadow-xl" role="dialog" aria-modal="true" aria-label="Welcome" onClick={(e) => e.stopPropagation()}>
           <div className="eyebrow"><span className="eyebrow-num">Welcome</span></div>
           <h2 className="mt-3 font-display text-3xl font-semibold text-balance">
             Can your lottery money <span className="sig-italic">pay for your life</span> — without running out?
