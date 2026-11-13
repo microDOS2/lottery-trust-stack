@@ -10,13 +10,16 @@ import { GuideView, GlossaryView } from '../sections/GuideView';
 import ExplainView from '../sections/ExplainView';
 import { ExplainNav, explainSectionFromHash, openExplainTab } from '../explainNav';
 import { Tip } from '../components/widgets';
-import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText, Columns3, GraduationCap, Globe2 } from 'lucide-react';
+import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText, Columns3, GraduationCap, Globe2, FileText, Activity, Shield } from 'lucide-react';
 import Tour from '../components/Tour';
 import CompareView from '../sections/CompareView';
 import EntitiesView from '../sections/EntitiesView';
+import PlanSummary from '../sections/PlanSummary';
+import AnalysisView from '../sections/AnalysisView';
+import LegacyView from '../sections/LegacyView';
 import type { EntityItem } from '../lib/entities';
 
-type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain' | 'compare' | 'entities';
+type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain' | 'compare' | 'entities' | 'plan' | 'analysis' | 'legacy';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
 const SCHEMA_VERSION = 7;
@@ -80,6 +83,9 @@ const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
   { id: 'goals', label: 'Start here', icon: Compass },
   { id: 'calc', label: 'Fine-tune', icon: Landmark },
   { id: 'compare', label: 'Compare & decide', icon: Columns3 },
+  { id: 'plan', label: 'Plan Summary', icon: FileText },
+  { id: 'analysis', label: 'Analysis', icon: Activity },
+  { id: 'legacy', label: 'Estate & Legacy', icon: Shield },
   { id: 'entities', label: 'Entities & Assets', icon: Globe2 },
   { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
   { id: 'guide', label: 'First-Year Guide', icon: Map },
@@ -94,6 +100,9 @@ const NAV_TIP: Record<View, string> = {
   goals: 'Type the cash, answer the questions, and get five plans with the reason for each.',
   compare: 'Every saved setup, side by side: yearly cash, fees, and the 25-year pile.',
   entities: 'Multiple LLCs, foreign trusts, and second passports — with honest tax notes.',
+  plan: 'A printable, plain-English summary of your plan to hand to an attorney or CPA.',
+  analysis: 'Which assumptions your plan depends on most, and how often it survives a bad market.',
+  legacy: 'Estate tax at death, annual-exclusion gifting, and charitable bunching.',
   calc: 'State, prize, and what you want to spend. The numbers on the right use the middle rates.',
   guide: 'What to do in the first year, in order.',
   library: 'Extra ideas. Each row says whether it changes the chart or is only a note.',
@@ -461,6 +470,9 @@ export default function Home() {
         {view === 'entities' && (
           <EntitiesView entities={entities} setEntities={setEntities} setInputs={setInputs} />
         )}
+        {view === 'plan' && <PlanSummary inputs={inputs} asm={asm} result={result} scenarios={scenarios} />}
+        {view === 'analysis' && <AnalysisView inputs={inputs} asm={asm} />}
+        {view === 'legacy' && <LegacyView inputs={inputs} asm={asm} />}
         {view === 'guide' && <GuideView />}
         {view === 'glossary' && <GlossaryView />}
         {view === 'explain' && <ExplainView inputs={inputs} asm={asm} />}
