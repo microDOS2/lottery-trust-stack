@@ -39,13 +39,13 @@ interface Props {
 
 const LETTERS = 'ABCDE';
 
-const SECTION_META: Array<{ id: string; title: string }> = [
-  { id: 'charts', title: 'Charts' },
-  { id: 'projection', title: `${HORIZON}-year projection` },
-  { id: 'schedule', title: 'Custom draw schedule' },
-  { id: 'realestate', title: 'Real estate' },
-  { id: 'flow', title: 'Money flow' },
-  { id: 'compare', title: 'Scenario comparison' },
+const SECTION_META: Array<{ id: string; title: string; purpose: string }> = [
+  { id: 'charts', title: 'Charts', purpose: 'Two pictures of your money: how it is split between bonds, insurance, and stocks — and how it grows over 30 years versus a normal brokerage account.' },
+  { id: 'projection', title: `${HORIZON}-year projection`, purpose: 'The year-by-year numbers behind the chart: what you take out, what gets reinvested, what the fees are, and what is left.' },
+  { id: 'schedule', title: 'Custom draw schedule', purpose: 'Tell the stack how much to pay you each year. Set a year to $0 and it just keeps growing; double another and it stays tax-free within capacity.' },
+  { id: 'realestate', title: 'Real estate', purpose: 'If you want property owned privately in an LLC: what it earns, what the depreciation saves, and what it is worth later.' },
+  { id: 'flow', title: 'Money flow', purpose: 'Where the money goes after the lottery pays you: reserves first, then the engines, then the anonymous LLC.' },
+  { id: 'compare', title: 'Scenario comparison', purpose: 'Save a few different setups and see which life each one buys — yearly cash, fees, and the pile at the end.' },
 ];
 
 interface Layout { order: string[]; hidden: string[] }
@@ -507,6 +507,7 @@ export default function CalculatorView(p: Props) {
                   <button title="Hide this section. You can restore it from the list above." onClick={() => toggleHide(id)} className="rounded p-1 hover:bg-secondary cursor-pointer" aria-label="Hide section"><EyeOff className="h-3.5 w-3.5" /></button>
                 </div>
               )}
+              <p className="-mt-1 mb-2 max-w-[75ch] text-[13px] leading-snug text-muted-foreground">{meta.purpose}</p>
               {sectionNode(id)}
             </div>
           );
