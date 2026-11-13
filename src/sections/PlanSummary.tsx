@@ -40,7 +40,7 @@ function Row({ label, value, strong, sub }: { label: string; value: string; stro
   return (
     <tr className={sub ? 'text-muted-foreground' : ''}>
       <td className={`py-1.5 pr-4 ${strong ? 'font-semibold' : ''}`}>{label}</td>
-      <td className={`py-1.5 text-right font-num ${strong ? 'font-semibold' : ''}`}>{value}</td>
+      <td className={`py-1.5 text-right whitespace-nowrap font-num ${strong ? 'font-semibold' : ''}`}>{value}</td>
     </tr>
   );
 }
@@ -122,31 +122,31 @@ export default function PlanSummary({ inputs: inp, asm, result: r, scenarios, se
           <thead>
             <tr className="text-left text-muted-foreground">
               <th className="py-1.5 pr-4 font-medium">Engine</th>
-              <th className="py-1.5 pr-4 text-right font-medium">Amount</th>
-              <th className="py-1.5 text-right font-medium">Share of core</th>
+              <th className="py-1.5 pr-4 text-right whitespace-nowrap font-medium">Amount</th>
+              <th className="py-1.5 text-right whitespace-nowrap font-medium">Share of core</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td className="py-1.5 pr-4">Bonds — municipal bond ladder (tax-free interest)</td>
-              <td className="py-1.5 pr-4 text-right font-num">{fmt(r.muni)}</td>
-              <td className="py-1.5 text-right font-num">{r.core > 0 ? pct(r.muni / r.core) : '—'}</td>
+              <td className="py-1.5 pr-4 text-right whitespace-nowrap font-num">{fmt(r.muni)}</td>
+              <td className="py-1.5 text-right whitespace-nowrap font-num">{r.core > 0 ? pct(r.muni / r.core) : '—'}</td>
             </tr>
             <tr>
               <td className="py-1.5 pr-4">Insurance — private placement life insurance (tax-free growth and draws)</td>
-              <td className="py-1.5 pr-4 text-right font-num">{fmt(r.ppli)}</td>
-              <td className="py-1.5 text-right font-num">{r.core > 0 ? pct(r.ppli / r.core) : '—'}</td>
+              <td className="py-1.5 pr-4 text-right whitespace-nowrap font-num">{fmt(r.ppli)}</td>
+              <td className="py-1.5 text-right whitespace-nowrap font-num">{r.core > 0 ? pct(r.ppli / r.core) : '—'}</td>
             </tr>
             <tr>
               <td className="py-1.5 pr-4">Stocks — direct-indexed equities (growth, tax-managed)</td>
-              <td className="py-1.5 pr-4 text-right font-num">{fmt(r.equity)}</td>
-              <td className="py-1.5 text-right font-num">{r.core > 0 ? pct(r.equity / r.core) : '—'}</td>
+              <td className="py-1.5 pr-4 text-right whitespace-nowrap font-num">{fmt(r.equity)}</td>
+              <td className="py-1.5 text-right whitespace-nowrap font-num">{r.core > 0 ? pct(r.equity / r.core) : '—'}</td>
             </tr>
             {r.sleeveAmount > 0 && sleeveName && (
               <tr>
                 <td className="py-1.5 pr-4">Sleeve — {sleeveName}</td>
-                <td className="py-1.5 pr-4 text-right font-num">{fmt(r.sleeveAmount)}</td>
-                <td className="py-1.5 text-right font-num">{pct(r.sleeveAmount / r.core)}</td>
+                <td className="py-1.5 pr-4 text-right whitespace-nowrap font-num">{fmt(r.sleeveAmount)}</td>
+                <td className="py-1.5 text-right whitespace-nowrap font-num">{pct(r.sleeveAmount / r.core)}</td>
               </tr>
             )}
           </tbody>
@@ -200,9 +200,9 @@ export default function PlanSummary({ inputs: inp, asm, result: r, scenarios, se
             <thead>
               <tr className="text-left text-muted-foreground">
                 <th className="py-1.5 pr-4 font-medium">Outcome</th>
-                <th className="py-1.5 pr-4 text-right font-medium">This plan</th>
+                <th className="py-1.5 pr-4 text-right whitespace-nowrap font-medium">This plan</th>
                 {savedScenarios.map(({ s, i }) => (
-                  <th key={i} className="py-1.5 pr-4 text-right font-medium">
+                  <th key={i} className="py-1.5 pr-4 text-right whitespace-nowrap font-medium">
                     Scenario {LETTERS[i]}{s.name ? ` — ${s.name}` : ''}
                   </th>
                 ))}
@@ -219,10 +219,10 @@ export default function PlanSummary({ inputs: inp, asm, result: r, scenarios, se
               ] as const).map(([label, fn]) => (
                 <tr key={label}>
                   <td className="py-1.5 pr-4 font-sans text-muted-foreground">{label}</td>
-                  <td className="py-1.5 pr-4 text-right">{fn(r)}</td>
+                  <td className="py-1.5 pr-4 text-right whitespace-nowrap">{fn(r)}</td>
                   {savedScenarios.map(({ s, i }) => {
                     const res = computeStack(s.inputs, asm);
-                    return <td key={i} className="py-1.5 pr-4 text-right">{fn(res)}</td>;
+                    return <td key={i} className="py-1.5 pr-4 text-right whitespace-nowrap">{fn(res)}</td>;
                   })}
                 </tr>
               ))}
