@@ -56,9 +56,21 @@ const WORKS_WHEN: Record<string, string> = {
   'real-estate': 'you want a hands-on asset you can hold for the long term.',
   'foreign-trust': 'the real goal is lawsuit protection, with an irrevocable gift a lawyer drafts.',
   expatriation: 'you truly want a new home country, not just a lower tax bill.',
+  wing: 'you live in a high-tax state and will not move, but want to shield future gains.',
+  hiring: 'you are assembling your team and want to verify who is real.',
+  'ppli-depth': 'you are considering the insurance wrapper and want to know what disqualifies it.',
+  'leverage-math': 'you want the real cost of borrowing before you sign.',
+  'state-estate': 'you live in a state with its own estate or inheritance tax.',
+  'box-spreads': 'you want cheap financing without selling stocks.',
 };
 
 const SKIP_WHEN: Record<string, string> = {
+  wing: 'you expect a simple revocable trust to do the same job — this needs careful drafting.',
+  hiring: 'you are tempted by guaranteed returns or urgency pitches.',
+  'ppli-depth': 'you cannot pass underwriting or want to pick the stocks yourself.',
+  'leverage-math': 'you are treating a loan as free money.',
+  'state-estate': 'you assume the federal $15M exclusion is the only threshold.',
+  'box-spreads': 'you are not comfortable with options mechanics or early assignment risk.',
   'engine-a': 'you need growth more than a steady floor — yields are modest.',
   'engine-b': `your investable core is under ${fmt(PPLI_QP_MIN)} — the minimum is not met.`,
   'engine-c': 'watching the value drop would make you sell.',
@@ -108,6 +120,9 @@ function eligibilityOf(id: string, core: number, stackEnd: number, typed: number
     case 'expatriation':
       return { ok: true, label: 'Always available', reason: 'Anyone can renounce. Read the exit-tax math below before treating it as an option.' };
     default:
+      if (['wing', 'hiring', 'ppli-depth', 'leverage-math', 'state-estate', 'box-spreads'].includes(id)) {
+        return { ok: true, label: 'Information only', reason: 'A concept explainer, not a strategy to toggle on. Read it before the related module.' };
+      }
       // engine-a, engine-c, charitable: no minimum
       return { ok: true, label: 'Your numbers qualify', reason: 'No minimum — this works at any amount.' };
   }
