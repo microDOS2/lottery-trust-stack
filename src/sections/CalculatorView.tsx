@@ -9,6 +9,7 @@ import { downloadPlan } from '../lib/download';
 import { useExplain } from '../explainNav';
 import { AllocationDonut, ProjectionChart, FlowDiagram } from '../components/viz';
 import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/CompareCharts';
+import Skyline3D from '../components/Skyline3D';
 import { STRATEGIES } from '../lib/content';
 import DrawSchedule from './DrawSchedule';
 import { Slider } from '@/components/ui/slider';
@@ -70,6 +71,8 @@ export default function CalculatorView(p: Props) {
   const [copied, setCopied] = useState(false);
   const [realDollars, setRealDollars] = useState(false);
   const [customizing, setCustomizing] = useState(false);
+  const [alloc3D, setAlloc3D] = useState(true);
+  const [race3D, setRace3D] = useState(true);
   const [layout, setLayoutRaw] = useState<Layout>(loadLayout);
   const [more, setMore] = useState(false);
   const setLayout = (l: Layout) => {
@@ -126,9 +129,25 @@ export default function CalculatorView(p: Props) {
         return (
           <div className="grid gap-6 md:grid-cols-2">
             <div className="hairline-card p-5">
-              <h3 className="font-display text-lg font-semibold">Where the core sits</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Trust #2 holds the bonds and stocks · Trust #3 holds the insurance · Entity #4 holds property cash.</p>
-              <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} sleeve={r.sleeveAmount} sleeveName={STRATEGIES.find((s) => s.id === r.sleeveId)?.name ?? 'Sleeve'} />
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-display text-lg font-semibold">Where the core sits</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Trust #2 holds the bonds and stocks · Trust #3 holds the insurance · Entity #4 holds property cash.</p>
+                </div>
+                <button onClick={() => setAlloc3D(!alloc3D)} className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground cursor-pointer">
+                  {alloc3D ? '2D' : '3D'}
+                </button>
+              </div>
+              {alloc3D ? (
+                <Skyline3D milestones={['']} scenarios={[
+                  { letter: 'Bonds', color: '#4C7A3F', values: [r.muni] },
+                  { letter: 'Insurance', color: '#E5604A', values: [r.ppli] },
+                  { letter: 'Stocks', color: '#D9A441', values: [r.equity] },
+                  ...(inp.entity4 > 0 ? [{ letter: 'LLC', color: '#7B6556', values: [inp.entity4] }] : []),
+                ]} />
+              ) : (
+                <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} sleeve={r.sleeveAmount} sleeveName={STRATEGIES.find((s) => s.id === r.sleeveId)?.name ?? 'Sleeve'} />
+              )}
             </div>
             <div className="hairline-card p-5">
               <div className="flex items-start justify-between gap-2">
@@ -139,12 +158,24 @@ export default function CalculatorView(p: Props) {
                     Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
                   </p>
                 </div>
-                <button title={realDollars ? 'Showing later years in today’s dollars. Click for the raw future amounts.' : 'Showing raw future dollars. Click to shrink later years for inflation.'} onClick={() => setRealDollars(!realDollars)}
-                  className={`shrink-0 rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
-                  {realDollars ? "Today's $" : 'Nominal $'}
-                </button>
+                <div className="flex shrink-0 gap-1.5">
+                  <button title="Switch between the 3D skyline and the line chart" onClick={() => setRace3D(!race3D)} className="rounded-full bg-secondary px-3 py-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground cursor-pointer">
+                    {race3D ? '2D' : '3D'}
+                  </button>
+                  <button title={realDollars ? 'Showing later years in today’s dollars. Click for the raw future amounts.' : 'Showing raw future dollars. Click to shrink later years for inflation.'} onClick={() => setRealDollars(!realDollars)}
+                    className={`rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
+                    {realDollars ? "Today's $" : 'Nominal $'}
+                  </button>
+                </div>
               </div>
-              <ProjectionChart stack={projStack} baseline={projBase} />
+              {race3D ? (
+                <Skyline3D scenarios={[
+                  { letter: 'Trust stack', color: '#4C7A3F', values: [r.projection[9]?.end ?? 0, r.stackEnd] },
+                  { letter: 'Taxable account', color: '#9C9388', values: [r.baseline[9]?.end ?? 0, r.baselineEnd] },
+                ]} />
+              ) : (
+                <ProjectionChart stack={projStack} baseline={projBase} />
+              )}
             </div>
           </div>
         );
