@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { STATES } from '../lib/taxdata';
 import {
-  fmt, fmtCompact, pct, PPLI_QP_MIN, SLEEVE_MATH, SLEEVE_PCT_MAX,
+  fmt, fmtCompact, pct, PPLI_QP_MIN, HORIZON, solveSpendForTarget, SLEEVE_MATH, SLEEVE_PCT_MAX,
   type Inputs, type Assumptions, type StackResult,
 } from '../lib/calc';
 import { Stat, Field, SectionTitle, Tip, Explainer, Limit } from '../components/widgets';
@@ -41,7 +41,7 @@ const LETTERS = 'ABCDE';
 
 const SECTION_META: Array<{ id: string; title: string }> = [
   { id: 'charts', title: 'Charts' },
-  { id: 'projection', title: '25-year projection' },
+  { id: 'projection', title: `${HORIZON}-year projection` },
   { id: 'schedule', title: 'Custom draw schedule' },
   { id: 'realestate', title: 'Real estate' },
   { id: 'flow', title: 'Money flow' },
@@ -79,6 +79,15 @@ export default function CalculatorView(p: Props) {
   const set = <K extends keyof Inputs>(k: K, v: Inputs[K]) => p.setInputs((prev) => ({ ...prev, [k]: v }));
   const st = STATES.find((s) => s.code === inp.state)!;
   const tg = STATES.find((s) => s.code === inp.target)!;
+
+  const applyLeaveTarget = (v: string) => {
+    p.setInputs((prev) => {
+      if (v === 'max') return { ...prev, leaveTarget: v };
+      const target = v === '0' ? 0 : r.core * (+v / 100);
+      const solved = solveSpendForTarget({ ...prev, leaveTarget: v }, asm, target);
+      return { ...prev, leaveTarget: v, spend: solved, flatDraw: true, drawOverrides: {} };
+    });
+  };
 
   const share = async () => {
     const url = `${location.origin}${location.pathname}#s=${btoa(JSON.stringify({ v: 3, inputs: inp, assumptions: asm }))}`;
@@ -289,6 +298,21 @@ export default function CalculatorView(p: Props) {
 
         {more && (
         <>
+        <Field label="How much should be left at the end?" help="Choose 'Spend it all' and we solve the biggest yearly check that uses the stack up by the last year. Anything else keeps more compounding. Clears the custom draw schedule when you change it.">
+          <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.leaveTarget} onChange={(e) => applyLeaveTarget(e.target.value)}>
+            <option value="max">As much as possible</option>
+            <option value="75">Leave 75% of the core</option>
+            <option value="50">Leave half the core</option>
+            <option value="25">Leave 25% of the core</option>
+            <option value="0">Spend it all (or close to it)</option>
+          </select>
+        </Field>
+        {inp.leaveTarget !== 'max' && (
+          <p className="rounded-md bg-accent px-3 py-2 text-[13.5px] leading-relaxed text-accent-foreground">
+            That works out to <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span>, leaving {inp.leaveTarget === '0' ? 'nothing' : `${inp.leaveTarget}% of the core`} at the end.
+          </p>
+        )}
+
         <Field label="State you might move to" help="Pick a 0% income-tax state (WY, NV, TX, FL…) if you plan to relocate.">
           <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.target} onChange={(e) => set('target', e.target.value)}>
             {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}{s.noTax ? ' — 0% tax' : ''}</option>)}
@@ -564,7 +588,7 @@ function SleeveCard({ inp, setInputs, amount }: { inp: Inputs; setInputs: Props[
 function ProjectionTable({ r, inp, asm, scenarios }: { r: StackResult; inp: Inputs; asm: Assumptions; scenarios: (ScenarioSlot | null)[] }) {
   return (
     <details className="hairline-card p-5">
-      <summary className="cursor-pointer font-display text-lg font-semibold">25-year projection, year by year</summary>
+      <summary className="cursor-pointer font-display text-lg font-semibold">{HORIZON}-year projection, year by year</summary>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
