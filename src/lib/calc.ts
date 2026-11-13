@@ -41,7 +41,7 @@ export interface Inputs {
   preMoveWindow: 'within10' | 'after10'; // when pre-move gains are realized
   dial: number; // 0 = max compounding, 100 = max tax-free income
   manual: { a: number; b: number; c: number }; // fractions summing to 1
-  drawOverrides: Record<number, number>; // year (1-25) -> custom tax-free draw; overrides the spend target
+  drawOverrides: Record<number, number>; // year (1-30) -> custom tax-free draw; overrides the spend target
   flatDraw: boolean; // true = same dollar amount every year (no inflation growth)
   leaveTarget: string; // 'max' | '75' | '50' | '25' | '0' — target leftover at the horizon
   sleeve: string | null; // one optional library item; a new choice replaces the old one
@@ -342,7 +342,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   // into the equity engine.
   const projection: ProjectionRow[] = [];
   let muniB = muni, ppliB = ppli, eqB = equity, slB = sleeveAmount;
-  let cumCash = 0;
+  let cumCash = inp.spend; // year-1 living reserve is spent in year 1, independent of any override purchases
   let depletedYear: number | null = null;
   let plannedDrawY2 = 0;
   let reinvestY2 = 0;
@@ -398,7 +398,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     // ~40% of the dip is embedded gain, taxed at LTCG+NIIT+state (PR rate if applicable).
     const principalDip = Math.max(0, need - discCap);
     const gainDrag = prMode ? prRate : asm.ltcgRate + fsr;
-    const dipTax = principalDip * 0.4 * gainDrag;
+    const dipTax = Math.max(0, principalDip - muniExtra) * 0.4 * gainDrag; // only equity/sleeve principal has embedded gains; muni par and PPLI basis are not taxed
 
     const outTotal = coupons + ppliDrawAmt + eqDrawAmt + slDrawAmt + muniExtra;
     const cash = Math.min(desired, outTotal);
@@ -413,7 +413,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const adminBase = inp.annualAdmin ?? 0; // explicit 0 means no admin fee
     const typedIns = (inp.ppliFee || 0) > 0;
     const inflate = Math.pow(1 + asm.inflation, y - 1);
-    const feeBill = adminBase * inflate + (typedIns ? inp.ppliFee * inflate : newPpli * AVG_PPLI_FEE_RATE);
+    const feeBill = adminBase * inflate + (inp.ppliFee === undefined ? newPpli * AVG_PPLI_FEE_RATE : inp.ppliFee * inflate);
     let fees = feeBill;
     const fromPpli = Math.min(fees, newPpli); newPpli -= fromPpli; fees -= fromPpli;
     const fromEq = Math.min(fees, newEq); newEq -= fromEq; fees -= fromEq;
@@ -421,7 +421,8 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const fromMuni = Math.min(fees, newMuni); newMuni -= fromMuni; fees -= fromMuni;
     const feesPaid = feeBill - fees;
 
-    const end = Math.max(0, newMuni + newPpli + newEq + newSl - dipTax);
+    newEq = Math.max(0, newEq - dipTax); // debit the tax from the carried balance so end(y) === begin(y+1)
+    const end = Math.max(0, newMuni + newPpli + newEq + newSl);
     if (end <= 0 && depletedYear === null) depletedYear = y;
 
     projection.push({ year: y, begin, cash, reinvested, growth, fees: feesPaid + dipTax, capacity: coupons + ppliCap + eqCap + slCap, end });
