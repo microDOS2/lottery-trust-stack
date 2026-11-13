@@ -75,7 +75,7 @@ export default function Terrain3D({ inputs, asm, markers }: Props) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
-    controls.autoRotate = true;
+    controls.autoRotate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     controls.autoRotateSpeed = 0.6;
     controls.maxPolarAngle = Math.PI / 2.15;
     controls.minDistance = 18;
