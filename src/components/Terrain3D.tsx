@@ -27,7 +27,7 @@ export default function Terrain3D({ inputs, asm, markers }: Props) {
   // Precompute the surface grid once per inputs/assumptions.
   const grid = useMemo(() => {
     const dials = 21;
-    const years = 26;
+    const years = 31;
     const h: number[][] = [];
     for (let di = 0; di < dials; di++) {
       const dial = (di / (dials - 1)) * 100;
@@ -150,7 +150,7 @@ export default function Terrain3D({ inputs, asm, markers }: Props) {
     const markerObjs: THREE.Object3D[] = [];
     for (const m of markers) {
       const x = (m.dial / 100) * 44 - 22;
-      const y = yOf(m.dial, 25);
+      const y = yOf(m.dial, 30);
       const color = m.best ? '#4C7A3F' : '#2A1A0E';
       const sph = new THREE.Mesh(
         new THREE.SphereGeometry(m.best ? 0.55 : 0.4, 24, 24),
