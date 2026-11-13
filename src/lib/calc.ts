@@ -153,7 +153,8 @@ export function drawForYear(inp: Inputs, asm: Assumptions, y: number): number {
 export function resolveWeights(inp: Inputs, _core: number): Weights {
   if (inp.mode === 'manual') {
     const { a, b, c } = inp.manual;
-    return { a: Math.max(0, a), b: Math.max(0, b), c: Math.max(0, c) };
+    const t = a + b + c || 1; // always normalize manual weights so money can't silently vanish
+    return { a: a / t, b: b / t, c: c / t };
   }
   const growth: Weights = { a: 0.2, b: 0.25, c: 0.55 };
   const balanced: Weights = { a: 0.25, b: 0.25, c: 0.5 };
@@ -360,7 +361,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const eqCap = eqB * asm.eqDraw;
     const slCap = slB * slDrawRate;
     const discCap = ppliCap + eqCap + slCap;
-    const desired = y === 1 ? 0 : drawForYear(inp, asm, y);
+    const desired = y === 1 && inp.drawOverrides[y] == null ? 0 : drawForYear(inp, asm, y);
 
     let ppliDrawAmt = 0;
     let eqDrawAmt = 0;
@@ -393,6 +394,12 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
       if (extra > 1 && depletedYear === null) depletedYear = y;
     }
 
+    // Approximate tax on liquidation gains when spending exceeds sustainable capacity:
+    // ~40% of the dip is embedded gain, taxed at LTCG+NIIT+state (PR rate if applicable).
+    const principalDip = Math.max(0, need - discCap);
+    const gainDrag = prMode ? prRate : asm.ltcgRate + fsr;
+    const dipTax = principalDip * 0.4 * gainDrag;
+
     const outTotal = coupons + ppliDrawAmt + eqDrawAmt + slDrawAmt + muniExtra;
     const cash = Math.min(desired, outTotal);
     const reinvested = outTotal - cash;
@@ -403,7 +410,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     let newEq = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt + reinvested);
     const growth = ppliB * ppliRate + eqB * asm.eqGrowth + slB * slGrowth;
 
-    const adminBase = (inp.annualAdmin || 0) > 0 ? inp.annualAdmin : AVG_ADMIN;
+    const adminBase = inp.annualAdmin ?? 0; // explicit 0 means no admin fee
     const typedIns = (inp.ppliFee || 0) > 0;
     const inflate = Math.pow(1 + asm.inflation, y - 1);
     const feeBill = adminBase * inflate + (typedIns ? inp.ppliFee * inflate : newPpli * AVG_PPLI_FEE_RATE);
@@ -414,10 +421,10 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const fromMuni = Math.min(fees, newMuni); newMuni -= fromMuni; fees -= fromMuni;
     const feesPaid = feeBill - fees;
 
-    const end = newMuni + newPpli + newEq + newSl;
+    const end = Math.max(0, newMuni + newPpli + newEq + newSl - dipTax);
     if (end <= 0 && depletedYear === null) depletedYear = y;
 
-    projection.push({ year: y, begin, cash, reinvested, growth, fees: feesPaid, capacity: coupons + ppliCap + eqCap + slCap, end });
+    projection.push({ year: y, begin, cash, reinvested, growth, fees: feesPaid + dipTax, capacity: coupons + ppliCap + eqCap + slCap, end });
     cumCash += cash;
     if (y === 2) { plannedDrawY2 = cash; reinvestY2 = reinvested; }
     muniB = newMuni; ppliB = newPpli; eqB = newEq; slB = newSl;
@@ -432,6 +439,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   const gainDrag = prMode ? prRate : asm.ltcgRate + fsr; // PR removes federal tax on post-move gains
   const baseline: ProjectionRow[] = [];
   let bal = core;
+  let basis = core;
   let baselineDepletedYear: number | null = null;
 
   for (let y = 1; y <= HORIZON; y++) {
@@ -441,28 +449,29 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
       if (baselineDepletedYear === null) baselineDepletedYear = y;
       continue;
     }
-    const desired = y === 1 ? 0 : drawForYear(inp, asm, y);
+    const desired = y === 1 && inp.drawOverrides[y] == null ? 0 : drawForYear(inp, asm, y);
     const slW = core > 0 ? sleeveAmount / core : 0;
     const eqW = Math.max(0, w.c - slW);
-    const interestNet = begin * w.a * asm.muniYield * (1 - ordRate);
+    const interestNet = begin * w.a * asm.muniYield; // muni interest is federally tax-free in any account
     const divNet = begin * eqW * asm.divYield * (1 - divDrag);
     const sleeveCash = begin * slW * slDivRate * (1 - ordRate);
     const autoNet = interestNet + divNet + sleeveCash;
     const surplus = Math.max(0, autoNet - desired);
     const need = Math.max(0, desired - autoNet);
-    const gainShare = Math.min(0.95, Math.max(0, 1 - core / begin));
+    const gainShare = Math.min(0.95, Math.max(0, 1 - basis / begin));
+    basis += surplus; // reinvested, already-taxed surplus becomes new basis
     let grossW = need > 0 ? need / Math.max(0.05, 1 - gainShare * gainDrag) : 0;
     grossW = Math.min(grossW, begin); // can't sell more than you have
     const cash = Math.min(desired, autoNet + grossW * (1 - gainShare * gainDrag));
     const appreciation = begin * (w.b * asm.ppliGrowth + eqW * asm.eqGrowth + slW * slGrowth);
     const end = Math.max(0, begin + appreciation + surplus - grossW);
-    if (end <= 0 && baselineDepletedYear === null) baselineDepletedYear = y;
+    if ((end <= 0 || cash < desired * 0.99) && baselineDepletedYear === null) baselineDepletedYear = y;
     baseline.push({ year: y, begin, cash, reinvested: surplus, growth: appreciation, fees: 0, capacity: 0, end });
     bal = end;
   }
 
-  const stackEnd = projection[24]?.end ?? 0;
-  const baselineEnd = baseline[24]?.end ?? 0;
+  const stackEnd = projection[HORIZON - 1]?.end ?? 0;
+  const baselineEnd = baseline[HORIZON - 1]?.end ?? 0;
 
   const preMoveGainsTax = prMode
     ? inp.preMoveGains * (inp.preMoveWindow === 'within10' ? asm.ltcgRate : 0.05)
@@ -485,7 +494,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
  */
 export function solveSpendForTarget(inp: Inputs, asm: Assumptions, target: number): number {
   const endFor = (spend: number) =>
-    computeStack({ ...inp, spend, flatDraw: true, drawOverrides: {} }, asm).stackEnd;
+    computeStack({ ...inp, spend, flatDraw: true, drawOverrides: {}, laterSpend: 0 }, asm).stackEnd;
   let lo = 0;
   let hi = Math.max(1, inp.spend > 0 ? inp.spend * 4 : 2_000_000);
   // If even zero draws can't reach the target (shouldn't happen), return 0.
