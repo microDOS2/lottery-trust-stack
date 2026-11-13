@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { STRATEGIES, COUNSEL_NOTES } from '../lib/content';
 import { fmt, PPLI_QP_MIN, type Assumptions, type Inputs } from '../lib/calc';
 import { COMBOS, ESTATE_EXEMPTION, describeCombo, effectOf, needsDollars, previewInputs, suggestion } from '../lib/combine';
-import { Explainer, SectionTitle } from '../components/widgets';
+import { Explainer, SectionTitle, Chips } from '../components/widgets';
 
 interface Props {
   inputs: Inputs;
@@ -296,6 +296,7 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                     onChange={(e) => setDollars(s.id, +e.target.value || 0)}
                     className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num"
                   />
+                  <Chips chips={[{label:'5% of core',value:Math.round(core*0.05)},{label:'10% of core',value:Math.round(core*0.1)},{label:'25% of core',value:Math.round(core*0.25)}]} value={dollars[s.id]} onChange={(v)=>setDollars(s.id, v)} hint="How much of your core to put into this strategy. 5–10% is a sensible sleeve; 25% is the concentration warning line." />
                   {sug && (
                     <button
                       type="button"
