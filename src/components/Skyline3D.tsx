@@ -11,6 +11,7 @@ interface PillarScenario {
 
 interface Props {
   scenarios: PillarScenario[];
+  milestones?: string[];
 }
 
 /**
@@ -43,7 +44,7 @@ function SkylineSVG({ scenarios }: Props) {
     </svg>
   );
 }
-export default function Skyline3D({ scenarios }: Props) {
+export default function Skyline3D({ scenarios, milestones = ['Year 1', 'Year 10', 'Year 30'] }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -103,7 +104,7 @@ export default function Skyline3D({ scenarios }: Props) {
     scene.add(gridHelper);
 
     const maxV = Math.max(1, ...scenarios.flatMap((s) => s.values));
-    const yearLabels = ['Year 1', 'Year 10', 'Year 30'];
+    const yearLabels = milestones;
     const textSprite = (text: string, x: number, y: number, z: number, color = '#4A3B2E', big = false) => {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 96;
@@ -137,7 +138,7 @@ export default function Skyline3D({ scenarios }: Props) {
         scene.add(cap);
         textSprite(fmtCompact(v), x, h + 1.6, z, s.color, true);
         textSprite(s.letter, x, 0.7, z + 2.1, '#4A3B2E');
-        if (yi === 0) textSprite(yearLabels[yi], x, 0.5, z + 4.4, '#6B6359');
+        if (yearLabels[yi]) textSprite(yearLabels[yi], x, 0.5, z + 4.4, '#6B6359');
       });
       // year labels on the back of the last scenario row for years 10 and 30
       if (si === scenarios.length - 1) {
