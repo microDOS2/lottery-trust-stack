@@ -3,6 +3,7 @@ import { STATES } from '../lib/taxdata';
 import { computeAnnuity, fmtCompact, pct } from '../lib/calc';
 import type { Filing } from '../lib/taxdata';
 import { AnnuityChart } from '../components/viz';
+import Skyline3D from '../components/Skyline3D';
 import { SectionTitle, Stat, Field, Tip } from '../components/widgets';
 
 export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing; onNext?: (cash: number) => void; onUseCash?: (cash: number) => void }) {
@@ -19,6 +20,7 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
   });
   const r = useMemo(() => computeAnnuity(a), [a]);
   const lumpWins = r.winner === 'lump';
+  const [view3D, setView3D] = useState(true);
   const hasCash = a.cash > 0;
   const hasAnnuity = a.advertised > 0;
   const canCompare = hasCash && hasAnnuity;
@@ -97,7 +99,19 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
               Both paths reinvest everything at {pct(a.investReturn)}. Final: lump {fmtCompact(r.lumpEnd)} vs annuity {fmtCompact(r.annuityEnd)}.
               Each annuity check uses 2026 federal brackets. State tax is the top marginal rate on the payment above the federal standard deduction. In a graduated-bracket state that overstates tax on smaller checks.
             </p>
-            <AnnuityChart yearly={r.yearly} />
+            <div className="mb-2 flex justify-end">
+              <button onClick={() => setView3D(!view3D)} className="rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer">
+                {view3D ? '2D' : '3D'}
+              </button>
+            </div>
+            {view3D ? (
+              <Skyline3D scenarios={[
+                { letter: 'Lump sum', color: '#E5604A', values: [r.lumpEnd] },
+                { letter: 'Annuity', color: '#7B6556', values: [r.annuityEnd] },
+              ]} />
+            ) : (
+              <AnnuityChart yearly={r.yearly} />
+            )}
           {(!hasCash && !hasAnnuity) && (
             <p className="mt-3 text-sm text-muted-foreground">Type the cash amount. Add the annuity total only if you want the comparison.</p>
           )}
