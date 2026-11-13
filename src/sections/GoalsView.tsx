@@ -15,6 +15,7 @@ interface Props {
   saveScenario: (i: number) => void;
   loadScenario: (i: number) => void;
   onApplyScenario: () => void;
+  onStartOver: () => void;
 }
 
 const SHORT = new Set<string>(QUIZ_SHORT);
@@ -29,7 +30,7 @@ function stretches(age: number): { short: string; middle: string; long: string }
   return { short: `the next 3 years, until you are ${age + 3}`, middle: `the next 10 years, until you are ${age + 10}`, long: `the years after you are ${age + 10}` };
 }
 
-export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScenario, loadScenario, onApplyScenario }: Props) {
+export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScenario, loadScenario, onApplyScenario, onStartOver }: Props) {
   const [answers, setAnswersRaw] = useState<Record<string, number>>(() => {
     try { return JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}'); } catch { return {}; }
   });
@@ -70,7 +71,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       />
       <button
         type="button"
-        onClick={() => { setAnswers(() => ({})); setAge(0); setInputs(() => ({ ...inputs, amount: 0, spend: 0, debt: 0, entity4: 0, venture: 0, rental: 0, gift: 0, laterSpend: 0, ppliFee: 0, setupCost: 0, annualAdmin: 0 })); }}
+        onClick={onStartOver}
         className="mb-4 rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 cursor-pointer"
       >
         Clear and start over
@@ -231,13 +232,22 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
             {set?.preface.map((line) => <li key={line}>{line}</li>)}
             {outcome.whys.map((w) => <li key={w}>{w}</li>)}
           </ul>
-          <button
-            type="button"
-            onClick={() => { setInputs(() => outcome.inputs); onApplyScenario(); }}
-            className="mt-4 inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer"
-          >
-            Open this in the calculator
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => { setInputs(() => outcome.inputs); onApplyScenario(); }}
+              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer"
+            >
+              Fine-tune this plan
+            </button>
+            <button
+              type="button"
+              onClick={() => { const i = scenarios.findIndex((s) => !s); if (i >= 0) { saveScenario(i); } }}
+              className="inline-flex items-center rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20 cursor-pointer"
+            >
+              Save & compare it
+            </button>
+          </div>
         </article>
       )}
     </div>
