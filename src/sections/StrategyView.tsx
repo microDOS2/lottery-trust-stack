@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { STRATEGIES, COUNSEL_NOTES } from '../lib/content';
+import { STRATEGIES, COUNSEL_NOTES, DEEP_STRATEGIES } from '../lib/content';
 import { fmt, PPLI_QP_MIN, type Assumptions, type Inputs } from '../lib/calc';
 import { COMBOS, ESTATE_EXEMPTION, describeCombo, effectOf, needsDollars, previewInputs, suggestion } from '../lib/combine';
 import { Explainer, SectionTitle, Chips } from '../components/widgets';
@@ -205,7 +205,7 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
       </section>
 
       <section className="space-y-4">
-        {STRATEGIES.map((s) => {
+        {[...STRATEGIES, ...DEEP_STRATEGIES].map((s) => {
           const on = chosen.includes(s.id);
           const sug = suggestion(s.id, core);
           const counsel = COUNSEL_NOTES[s.id];
