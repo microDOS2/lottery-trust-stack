@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from 'recharts';
 import { fmt, fmtCompact, pct, HORIZON, type Assumptions, type Inputs } from '../lib/calc';
 import { runMonteCarlo, runSensitivity, MC_TRIALS, TORNADO_DELTA } from '../lib/analysis';
@@ -12,15 +12,22 @@ interface Props {
 const ppLabel = `${(TORNADO_DELTA * 100).toFixed(1)}%`;
 
 export default function AnalysisView({ inputs, asm }: Props) {
+  const [preset, setPreset] = useState<string | null>(null);
+  const asmFor = (key: keyof Assumptions, value: number) => ({ ...asm, [key]: value });
+  const PRESETS: Array<{ id: string; label: string; note: string; apply: () => Assumptions }> = [
+    { id: 'crash', label: '2008-style crash', note: 'Stocks −35% in year 1, then normal. Shows what a bad start does to compounding.', apply: () => asmFor('eqGrowth', 0.05) },
+    { id: 'lowmuni', label: 'Muni yields halve', note: 'Tax-free bond interest drops to ~2.1%. Tests the income floor.', apply: () => asmFor('muniYield', 0.02125) },
+    { id: 'inflation', label: '1970s inflation', note: 'Inflation at 6%. Your spending target grows much faster.', apply: () => asmFor('inflation', 0.06) },
+  ];
   const hasPrize = inputs.amount > 0;
-  const sens = useMemo(() => (hasPrize ? runSensitivity(inputs, asm) : null), [hasPrize, inputs, asm]);
+  const sens = useMemo(() => (hasPrize ? runSensitivity(inputs, preset ? PRESETS.find((p) => p.id === preset)!.apply() : asm) : null), [hasPrize, inputs, asm]);
   const mc = useMemo(() => (hasPrize ? runMonteCarlo(inputs, asm, MC_TRIALS) : null), [hasPrize, inputs, asm]);
 
   if (!hasPrize || !sens || !mc || mc.trials === 0) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
         <SectionTitle
-          num="A"
+          num="10"
           title="Analysis"
           blurb="Two stress tests for your plan: which guesses matter most, and how the plan holds up when markets don't cooperate."
         />
@@ -52,6 +59,23 @@ export default function AnalysisView({ inputs, asm }: Props) {
           <li><strong className="text-foreground">What if markets misbehave?</strong> replays your plan {mc.trials} times with stock returns bouncing around year to year, the way real markets do. You get a bad case, a typical case, a good case, and the share of runs where the money lasts all {HORIZON} years.</li>
         </ul>
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        {PRESETS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPreset(preset === p.id ? null : p.id)}
+            className={`rounded-full border px-3 py-1.5 text-sm cursor-pointer ${preset === p.id ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:border-primary/50'}`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      {preset && (
+        <p className="rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">
+          {PRESETS.find((p) => p.id === preset)?.note} (applied to the analysis below)
+        </p>
+      )}
 
       {/* ---------- Sensitivity ---------- */}
       <div className="hairline-card p-6 md:p-8">
