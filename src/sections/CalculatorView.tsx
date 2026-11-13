@@ -7,7 +7,9 @@ import {
 import { Stat, Field, SectionTitle, Tip, Explainer, Limit } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
 import { useExplain } from '../explainNav';
-import { AllocationDonut, ProjectionChart, FlowDiagram } from '../components/viz';
+import { AllocationDonut, ProjectionChart } from '../components/viz';
+import FlowLive from '../components/FlowLive';
+import type { EntityItem } from '../lib/entities';
 import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/CompareCharts';
 import Skyline3D from '../components/Skyline3D';
 import { STRATEGIES } from '../lib/content';
@@ -22,6 +24,7 @@ export interface ScenarioSlot {
 }
 
 interface Props {
+  entities: EntityItem[];
   inputs: Inputs;
   setInputs: (fn: (p: Inputs) => Inputs) => void;
   asm: Assumptions;
@@ -190,7 +193,7 @@ export default function CalculatorView(p: Props) {
           <div className="hairline-card p-5">
             <h3 className="font-display text-lg font-semibold">The money flow</h3>
             <p className="mt-1 mb-3 text-sm text-muted-foreground">One wire in, four destinations. Everything after Trust #1 is engineered to be tax-free or tax-deferred.</p>
-            <FlowDiagram />
+            <FlowLive result={r} entities={p.entities} />
           </div>
         );
       case 'compare':
