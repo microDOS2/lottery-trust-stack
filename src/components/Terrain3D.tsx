@@ -46,6 +46,12 @@ export default function Terrain3D({ inputs, asm, markers }: Props) {
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    // Pre-check WebGL so unsupported browsers go straight to the fallback without console noise.
+    try {
+      const probe = document.createElement('canvas');
+      const gl = probe.getContext('webgl2') || probe.getContext('webgl');
+      if (!gl) { setFailed(true); return; }
+    } catch { setFailed(true); return; }
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
