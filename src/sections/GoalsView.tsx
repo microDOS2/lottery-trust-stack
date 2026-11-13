@@ -48,7 +48,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
     if (inputs.dial !== dial) setInputs((p) => ({ ...p, dial, mode: 'balanced' }));
   }, [answers.market, inputs.mode, inputs.dial, setInputs]);
   const answered = Object.keys(answers).length;
-  const ready = inputs.amount > 0 && age > 0 && answered === QUIZ.length && inputs.spend > 0;
+  const ready = inputs.amount > 0 && age > 0 && answered === QUIZ.length;
   const set = useMemo(
     () => (ready ? buildBestPlans(answers, inputs, asm) : null),
     [ready, answers, inputs, asm],
@@ -265,6 +265,34 @@ Common mistake: comparing a policy's charges to a brokerage account without also
           </label>
         ) : null,
       }} />
+
+      {answered > 0 && (
+        <div className="sticky bottom-4 z-30 no-print">
+          <div className="hairline-card flex flex-wrap items-center justify-between gap-3 border-primary/40 bg-card/95 p-4 shadow-lg backdrop-blur">
+            <div className="text-sm text-muted-foreground">
+              {ready ? (
+                <span><strong className="text-foreground">All questions answered.</strong> Next: fine-tune the plan, or save it and compare.</span>
+              ) : (
+                <span>
+                  Still to go: {[
+                    age <= 0 ? 'your age' : null,
+                    inputs.amount <= 0 ? 'the cash amount' : null,
+                    answered < QUIZ.length ? `${QUIZ.length - answered} more question${QUIZ.length - answered === 1 ? '' : 's'}` : null,
+                  ].filter(Boolean).join(' · ')}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              disabled={!ready}
+              onClick={() => { if (outcome) setInputs(() => outcome.inputs); onApplyScenario(); }}
+              className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+            >
+              Continue to Fine-tune →
+            </button>
+          </div>
+        </div>
+      )}
 
       {outcome && (
         <article data-tour="result" className="hairline-card border-success/40 p-6">
