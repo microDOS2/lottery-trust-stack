@@ -161,7 +161,7 @@ export interface EngineNotice {
 
 export default function Home() {
   const [view, setView] = useState<View>(() => (explainSectionFromHash() !== null ? 'explain' : location.hash.startsWith('#s=') ? 'calc' : 'goals'));
-  const [explainAt] = useState<string | null>(() => explainSectionFromHash() || null);
+  const [explainAt, setExplainAt] = useState<string | null>(() => explainSectionFromHash() || null);
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
   const [scenarios, setScenarios] = useState<(ScenarioSlot | null)[]>(() => {
@@ -314,7 +314,11 @@ export default function Home() {
   }, [view, explainAt]);
 
   const openExplain = (id?: string) => {
-    openExplainTab(id);
+    if (id) {
+      const el = document.getElementById(id);
+      if (el) setExplainAt(id);
+    }
+    setView('explain');
   };
 
   return (
@@ -494,7 +498,7 @@ export default function Home() {
     </div>
     {!welcomed && (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[hsl(25_55%_10%/0.35)] px-4 py-6 backdrop-blur-sm no-print"
+        className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[hsl(25_55%_10%/0.35)] px-4 py-6 backdrop-blur-sm no-print"
         onClick={dismissWelcome}
         onKeyDown={(e) => { if (e.key === 'Escape') dismissWelcome(); }}
         tabIndex={-1}
