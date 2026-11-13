@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, LEGACY_ASSUMPTIONS, computeStack, type Inputs, type Assumptions } from '../lib/calc';
 import CalculatorView, { type ScenarioSlot } from '../sections/CalculatorView';
 import GoalsView from '../sections/GoalsView';
@@ -214,6 +214,25 @@ export default function Home() {
 
   const result = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
 
+  // Customary fee defaults, applied once when money is first entered. User edits win forever after.
+  const feesAutoFilled = useRef(false);
+  useEffect(() => {
+    feesAutoFilled.current = false;
+  }, []);
+  useEffect(() => {
+    if (feesAutoFilled.current || result.core <= 0) return;
+    const amount = inputs.amount;
+    const setup = amount < 10_000_000 ? 50_000 : amount <= 50_000_000 ? 75_000 : 125_000;
+    const admin = Math.max(15_000, Math.round(result.core * 0.0025));
+    const ppli = Math.round(result.ppli * 0.008);
+    if (inputs.setupCost === setup && inputs.annualAdmin === admin && inputs.ppliFee === ppli) {
+      feesAutoFilled.current = true;
+      return;
+    }
+    feesAutoFilled.current = true;
+    setInputsRaw((p) => ({ ...p, setupCost: setup, annualAdmin: admin, ppliFee: ppli }));
+  }, [result.core, result.ppli, inputs.amount, inputs.setupCost, inputs.annualAdmin, inputs.ppliFee]);
+
   const saveScenario = (i: number) => {
     const r = computeStack(inputs, asm);
     const slot: ScenarioSlot = {
@@ -240,6 +259,7 @@ export default function Home() {
   };
 
   const globalReset = () => {
+    feesAutoFilled.current = false;
     if (!window.confirm('Start completely over? This clears your numbers, quiz answers, saved scenarios, and layout. It cannot be undone.')) return;
     setInputsRaw(DEFAULT_INPUTS);
     setAsm(DEFAULT_ASSUMPTIONS);
