@@ -269,7 +269,7 @@ Common mistake: comparing a policy's charges to a brokerage account without also
       <Group heading={`Down the road — ${span.long}`} questions={QUIZ.filter((q) => LONG.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
         later: answers.later === 1 ? (
           <label className="mt-3 block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly amount from year 11 on <Explainer text="Replaces the first yearly amount from year 11 through year 25. Years 2 through 10 keep the first amount. Nothing changes until you type it." /></span>
+            <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly amount from year 11 on <Explainer text="Replaces the first yearly amount from year 11 through year 30. Years 2 through 10 keep the first amount. Nothing changes until you type it." /></span>
             <input type="number" min={0} step={1} value={inputs.laterSpend || ''} onChange={(e) => setNum('laterSpend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
             <Limit>From year 11 through year 30. Years 2 through 10 stay on the first yearly amount.</Limit>
           </label>
