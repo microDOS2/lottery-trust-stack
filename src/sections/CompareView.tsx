@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
+import { computeStack, fmtCompact, solveSpendForTarget, DEFAULT_INPUTS, type Assumptions, type Inputs } from '../lib/calc';
 import { SectionTitle } from '../components/widgets';
 import { ScenarioLines, ScenarioBars, useScenarioResults, type ScenarioWithResult } from '../components/CompareCharts';
 import { Crown, ArrowUpRight, Trash2 } from 'lucide-react';
@@ -34,10 +34,7 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
       />
 
       {saved.length === 0 ? (
-        <div className="hairline-card p-6 text-[15px] text-muted-foreground">
-          Nothing saved yet. On the Calculator or Goals &amp; Fit page, hit <strong>Save as A</strong> — then come back here.
-          Saving a few different setups is the whole point: see which life each one buys.
-        </div>
+        <ExampleSkyline asm={asm} />
       ) : (
         <>
           <div className="overflow-x-auto hairline-card p-5">
@@ -132,6 +129,30 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** Two clearly-labeled example setups so the chart teaches itself before the user saves anything. */
+function ExampleSkyline({ asm }: { asm: Assumptions }) {
+  const grow = computeStack({ ...DEFAULT_INPUTS, amount: 100_000_000, spend: 500_000, dial: 0 }, asm);
+  const spendAll = computeStack(
+    { ...DEFAULT_INPUTS, amount: 100_000_000, spend: solveSpendForTarget({ ...DEFAULT_INPUTS, amount: 100_000_000 }, asm, 0), flatDraw: true },
+    asm,
+  );
+  return (
+    <div className="hairline-card p-5">
+      <h3 className="font-display text-lg font-semibold">Two example setups, as a skyline</h3>
+      <p className="mt-1 mb-3 text-sm text-muted-foreground">
+        Examples, not your numbers: one setup leaves the money growing, the other spends it all by the last year.
+        Taller pillar = more money. Save your own setups and they replace these.
+      </p>
+      <Skyline3D
+        scenarios={[
+          { letter: 'A · leave it growing', color: '#4C7A3F', values: [grow.core, grow.projection[9]?.end ?? 0, grow.stackEnd] },
+          { letter: 'B · spend it all', color: '#E5604A', values: [spendAll.core, spendAll.projection[9]?.end ?? 0, spendAll.stackEnd] },
+        ]}
+      />
     </div>
   );
 }
