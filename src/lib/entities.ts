@@ -30,7 +30,7 @@ export const PPLI_WRAP_NOTE =
 export const PASSPORTS: Array<{ name: string; cost: string; time: string; note: string }> = [
   {
     name: 'Caribbean citizenship-by-investment (St. Kitts, Antigua, Dominica, Grenada, St. Lucia)',
-    cost: '≈ $100K–$250K donation + fees',
+    cost: '≈ $200K–$250K donation + fees (St. Kitts minimum $250K, Dominica $200K)',
     time: '≈ 4–9 months',
     note: 'A second passport for visa-free travel to ~140+ countries. No US tax benefit. St. Kitts is the oldest program; due diligence is real but straightforward for a clean lottery win.',
   },
@@ -54,7 +54,7 @@ export const PASSPORTS: Array<{ name: string; cost: string; time: string; note: 
   },
   {
     name: 'Greece golden visa (residency, not citizenship)',
-    cost: '≈ €250K–€500K real estate',
+    cost: '≈ €250K–€800K real estate (€800K in Athens, Thessaloniki, and the islands)',
     time: '≈ 2–4 months',
     note: 'EU residency with property you can rent out. Citizenship only after 7 years of actual residence. Useful for a European base and rental income.',
   },
