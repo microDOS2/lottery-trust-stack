@@ -3,10 +3,11 @@ import { STATES } from '../lib/taxdata';
 import { computeAnnuity, fmtCompact, pct } from '../lib/calc';
 import type { Filing } from '../lib/taxdata';
 import { AnnuityChart } from '../components/viz';
-import Skyline3D from '../components/Skyline3D';
+import Lazy3D from '../components/Lazy3D';
 import { SectionTitle, Stat, Field, Tip, Chips } from '../components/widgets';
 
-export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing; onNext?: (cash: number) => void; onUseCash?: (cash: number) => void }) {
+export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing;
+  defaultAmount?: number; onNext?: (cash: number) => void; onUseCash?: (cash: number) => void }) {
   const [more, setMore] = useState(false);
   const [a, setA] = useState({
     advertised: 0,
@@ -106,7 +107,7 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
               </button>
             </div>
             {view3D ? (
-              <Skyline3D scenarios={[
+              <Lazy3D scenarios={[
                 { letter: 'Lump sum', color: '#E5604A', values: [r.lumpEnd] },
                 { letter: 'Annuity', color: '#7B6556', values: [r.annuityEnd] },
               ]} />
@@ -140,7 +141,7 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
               <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14px] text-muted-foreground">
                 <li>Funds the entire 4-entity stack immediately — PPLI, munis, equities, the LLC</li>
                 <li>One tax event, then the engines shield everything after</li>
-                <li>Step-up in basis at death; the annuity dies with you</li>
+                <li>Step-up in basis at death. The annuity's remaining payments continue to your estate — the real issue is estate-tax liquidity on their present value, not forfeiture.</li>
                 <li>Protection against a state changing the rules later</li>
               </ul>
             </div>
