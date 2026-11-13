@@ -197,7 +197,7 @@ export const QUIZ: QuizQuestion[] = [
   },
   {
     id: 'family', group: 'short',
-    text: 'Besides you, who else will be leaning on this money?',
+    text: 'Besides you, who else depends on this money?',
     why: 'Every person relying on it is another life the yearly amount has to cover. It also changes what "leaving something behind" should mean.',
     options: [
       { label: 'Just me', note: 'The yearly amount only has to cover you.', weights: {} },
