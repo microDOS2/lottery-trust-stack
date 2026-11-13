@@ -53,7 +53,7 @@ export function Explainer({ text, more }: { text: string; more?: string }) {
           <Info className="h-3.5 w-3.5" />
         </button>
       </TooltipTrigger>
-      <TooltipContent className="max-w-[280px] text-sm leading-relaxed" side="top">
+      <TooltipContent className="max-w-[400px] whitespace-pre-line text-sm leading-relaxed" side="top">
         {text}
         <MoreLink more={more} />
       </TooltipContent>
