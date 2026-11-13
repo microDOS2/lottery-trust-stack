@@ -9,11 +9,13 @@ import { GuideView, GlossaryView } from '../sections/GuideView';
 import ExplainView from '../sections/ExplainView';
 import { ExplainNav, explainSectionFromHash, openExplainTab } from '../explainNav';
 import { Tip } from '../components/widgets';
-import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText, Columns3, GraduationCap } from 'lucide-react';
+import { Landmark, TrendingUp, Library, Scale, Map, BookOpen, Compass, ScrollText, Columns3, GraduationCap, Globe2 } from 'lucide-react';
 import Tour from '../components/Tour';
 import CompareView from '../sections/CompareView';
+import EntitiesView from '../sections/EntitiesView';
+import type { EntityItem } from '../lib/entities';
 
-type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain' | 'compare';
+type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain' | 'compare' | 'entities';
 
 /** Bump when saved shapes change. A mismatched version is discarded instead of crashing the page. */
 const SCHEMA_VERSION = 7;
@@ -77,6 +79,7 @@ const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
   { id: 'goals', label: 'Start here', icon: Compass },
   { id: 'calc', label: 'Fine-tune', icon: Landmark },
   { id: 'compare', label: 'Compare & decide', icon: Columns3 },
+  { id: 'entities', label: 'Entities & Assets', icon: Globe2 },
   { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
   { id: 'guide', label: 'First-Year Guide', icon: Map },
   { id: 'library', label: 'Strategy Library', icon: Library },
@@ -89,6 +92,7 @@ const NAV_TIP: Record<View, string> = {
   annuity: 'Compare the cash you could take now with 30 years of checks.',
   goals: 'Type the cash, answer the questions, and get five plans with the reason for each.',
   compare: 'Every saved setup, side by side: yearly cash, fees, and the 25-year pile.',
+  entities: 'Multiple LLCs, foreign trusts, and second passports — with honest tax notes.',
   calc: 'State, prize, and what you want to spend. The numbers on the right use the middle rates.',
   guide: 'What to do in the first year, in order.',
   library: 'Extra ideas. Each row says whether it changes the chart or is only a note.',
@@ -184,6 +188,16 @@ export default function Home() {
   });
   const [notice, setNotice] = useState<EngineNotice | null>(null);
   const [touring, setTouring] = useState(false);
+  const [entities, setEntitiesRaw] = useState<EntityItem[]>(() => {
+    try { return JSON.parse(localStorage.getItem('lotteryStack.entities') ?? '[]'); } catch { return []; }
+  });
+  const setEntities = (fn: (p: EntityItem[]) => EntityItem[]) => {
+    setEntitiesRaw((prev) => {
+      const next = fn(prev);
+      try { localStorage.setItem('lotteryStack.entities', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [welcomed, setWelcomed] = useState<boolean>(() => {
     try { return localStorage.getItem('lotteryStack.welcomed') === '1'; } catch { return false; }
   });
@@ -365,6 +379,7 @@ export default function Home() {
       <main className="mx-auto max-w-7xl px-4 py-8 md:px-6">
         {view === 'calc' && (
           <CalculatorView
+            entities={entities}
             inputs={inputs}
             setInputs={setInputs}
             asm={asm}
@@ -416,6 +431,9 @@ export default function Home() {
               setView('calc');
             }}
           />
+        )}
+        {view === 'entities' && (
+          <EntitiesView entities={entities} setEntities={setEntities} setInputs={setInputs} />
         )}
         {view === 'guide' && <GuideView />}
         {view === 'glossary' && <GlossaryView />}
