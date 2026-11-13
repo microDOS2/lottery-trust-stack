@@ -79,11 +79,11 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
                   ['Invested in the stack', (r: ReturnType<typeof computeStack>) => fmtCompact(r.core)],
                   ['Safe to take per year', (r: ReturnType<typeof computeStack>) => fmtCompact(r.capacity)],
                   ['Planned draw, year 2', (r: ReturnType<typeof computeStack>) => fmtCompact(r.plannedDrawY2)],
-                  ['Fees over 25 years', (r: ReturnType<typeof computeStack>) => fmtCompact(r.projection.reduce((a, b) => a + b.fees, 0))],
+                  ['Fees over 30 years', (r: ReturnType<typeof computeStack>) => fmtCompact(r.projection.reduce((a, b) => a + b.fees, 0))],
                   ['Pile at year 10', (r: ReturnType<typeof computeStack>) => fmtCompact(r.projection[9]?.end ?? 0)],
-                  ['Pile at year 25', (r: ReturnType<typeof computeStack>) => fmtCompact(r.stackEnd)],
+                  ['Pile at year 30', (r: ReturnType<typeof computeStack>) => fmtCompact(r.stackEnd)],
                   ['Edge over a taxable account', (r: ReturnType<typeof computeStack>) => r.advantage < 0 ? `${fmtCompact(r.advantage)} (the stack carries fees; what it buys instead is tax-free income, privacy, and protection)` : fmtCompact(r.advantage)],
-                  ['Total drawn over 25 years', (r: ReturnType<typeof computeStack>) => fmtCompact(r.cumCash)],
+                  ['Total drawn over 30 years', (r: ReturnType<typeof computeStack>) => fmtCompact(r.cumCash)],
                 ] as const).map(([label, fn]) => (
                   <tr key={label} className="border-t border-border/60">
                     <td className="py-2 pr-4 font-sans text-muted-foreground">{label}</td>
