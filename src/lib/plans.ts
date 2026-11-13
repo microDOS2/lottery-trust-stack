@@ -14,6 +14,33 @@ export interface PlanOption {
 export interface PlanSet {
   preface: string[];
   plans: PlanOption[];
+  mix: { chosen: string[]; rationale: string[] };
+}
+
+/** Turn quiz answers into a visible strategy mix with a plain-English reason for each inclusion. */
+export function explainMix(answers: Record<string, number>, inputs: Inputs): { chosen: string[]; rationale: string[] } {
+  const chosen: string[] = [];
+  const rationale: string[] = [];
+  const add = (id: string, why: string) => { if (!chosen.includes(id)) { chosen.push(id); rationale.push(why); } };
+
+  // The base stack is always present: bonds + stocks. Insurance joins when it qualifies.
+  add('engine-a', 'The muni ladder is your reliable tax-free floor — it belongs in every mix.');
+  add('engine-c', 'Direct-indexed stocks are your growth engine — also in every mix.');
+  if (inputs.amount >= 5_000_000) {
+    add('engine-b', 'Your pool clears the $5M insurance minimum, so the PPLI wrapper is available to you.');
+  }
+
+  if (answers.live === 2) add('pr-act60', 'You said you could actually live in Puerto Rico — Act 60 is in your mix.');
+  else if (answers.live === 1) rationale.push('You are open to a 0% income-tax state. That is a residency setting, not a strategy card.');
+  if (answers.worry === 1) add('real-estate', 'You worry about being found. The anonymous LLC keeps your name off property and titles.');
+  if (answers.sue === 1 || answers.hold >= 1) rationale.push('You want assets harder to take. The DAPT and the insurance trust are already in the base stack; umbrella insurance is the cheap add-on.');
+  if (answers.business === 1) add('qsbs', 'You plan a business. QSBS startup stock can exclude up to $15M of gain after 5 years.');
+  if (answers.reinvest === 1) add('oz', 'You want the surplus working somewhere sheltered — Opportunity Zone funds defer gains and erase 10-year appreciation.');
+  if (answers.give === 1 || answers.give === 2 || answers.giving === 0 || answers.giving === 1) add('charitable', 'You plan to give. A DAF or a charitable remainder trust does it tax-efficiently.');
+  if (answers.estate === 0) add('legacy', 'Your estate clears the $15M exclusion. The dynasty-trust layer becomes the priority.');
+  if (answers.foreign === 0) add('foreign-trust', 'You asked about offshore trusts. Read the reality check: protection yes, tax savings no.');
+  if (answers.renounce === 1) add('expatriation', 'You would consider renouncing. That is the exit-tax module — a life decision, not a tax play.');
+  return { chosen, rationale };
 }
 
 function year10(result: StackResult): number {
@@ -103,8 +130,10 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
     flatDraw: answers.spendpattern === 0,
     drawOverrides: {},
   };
-  const result = computeStack(planInputs, asm);
-  const score = scoreScenario(planInputs, result, profile, [result]).total;
+  const mix = explainMix(answers, planInputs);
+  const planWithMix = { ...planInputs, chosen: mix.chosen };
+  const result = computeStack(planWithMix, asm);
+  const score = scoreScenario(planWithMix, result, profile, [result]).total;
   const here = stateByCode(inputs.state);
   const preface = [
     answers.claim === 1
@@ -114,11 +143,12 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
   void QUIZ;
   return {
     preface,
+    mix,
     plans: [{
       id: 'outcome',
       name: 'What the money can do',
-      whys: outcomeLines(planInputs, result, answers),
-      inputs: planInputs,
+      whys: outcomeLines(planWithMix, result, answers),
+      inputs: planWithMix,
       result,
       score,
     }],
