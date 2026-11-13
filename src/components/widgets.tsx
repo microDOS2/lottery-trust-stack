@@ -50,7 +50,7 @@ export function Explainer({ text, more }: { text: string; more?: string }) {
           aria-label="What does this mean?"
           className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 hover:text-primary transition-colors cursor-help"
         >
-          <Info className="h-3.5 w-3.5" />
+          <Info className="h-4 w-4" />
         </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-[400px] whitespace-pre-line text-sm leading-relaxed" side="top">
@@ -126,7 +126,7 @@ export function GuidedNumber({
               key={c.label}
               type="button"
               onClick={() => onChange(c.value)}
-              className={`rounded-full border px-2.5 py-0.5 font-mono text-[11px] cursor-pointer ${
+              className={`rounded-full border px-2.5 py-2 font-mono text-[12px] min-h-[36px] cursor-pointer ${
                 value === c.value ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:border-primary/50'
               }`}
             >
@@ -156,7 +156,7 @@ export function Chips({ chips, value, onChange, hint }: {
             key={c.label}
             type="button"
             onClick={() => onChange(c.value)}
-            className={`rounded-full border px-2.5 py-0.5 font-mono text-[11px] cursor-pointer ${
+            className={`rounded-full border px-2.5 py-2 font-mono text-[12px] min-h-[36px] cursor-pointer ${
               value === c.value ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:border-primary/50'
             }`}
           >
