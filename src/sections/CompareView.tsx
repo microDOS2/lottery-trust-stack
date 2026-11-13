@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { computeStack, fmtCompact, solveSpendForTarget, DEFAULT_INPUTS, type Assumptions, type Inputs } from '../lib/calc';
+import { profileFromAnswers, scoreAll } from '../lib/quiz';
 import { SectionTitle } from '../components/widgets';
 import { ScenarioLines, ScenarioBars, useScenarioResults, type ScenarioWithResult } from '../components/CompareCharts';
 import { Crown, ArrowUpRight, Trash2 } from 'lucide-react';
-import Skyline3D from '../components/Skyline3D';
+import Lazy3D from '../components/Lazy3D';
 import type { ScenarioSlot } from './CalculatorView';
 
 interface Props {
@@ -22,6 +23,14 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
     [scenarios],
   );
   const withResults = useScenarioResults(saved, asm);
+  const fitScores = useMemo(() => {
+    try {
+      const answers = JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}');
+      if (Object.keys(answers).length === 0 || saved.length === 0) return null;
+      return scoreAll(saved.map((s) => ({ letter: s.letter, inputs: s.inputs })), profileFromAnswers(answers), asm);
+    } catch { return null; }
+  }, [saved, asm]);
+  const bestFit = fitScores?.[0];
   const bestEnd = Math.max(0, ...withResults.map((s) => s.result.stackEnd));
   const bestLetter = withResults.find((s) => s.result.stackEnd === bestEnd)?.letter;
 
@@ -37,6 +46,17 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
         <ExampleSkyline asm={asm} />
       ) : (
         <>
+          {bestFit && (
+            <div className="rounded-lg border border-success/40 bg-[hsl(var(--success-tint))] p-4">
+              <strong className="font-display text-lg">Scenario {bestFit.letter} fits your answers best</strong>
+              <span className="ml-2 font-num text-sm stat-good">score {bestFit.score.total}/100</span>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {bestFit.score.parts.length > 0
+                  ? `It scores highest on what you said matters most — ${bestFit.score.parts.slice().sort((a,b)=>b.weight-a.weight).slice(0,2).map((pp)=>pp.label.toLowerCase()).join(' and ')}.`
+                  : 'It matches your answers best on the numbers.'}
+              </p>
+            </div>
+          )}
           <div className="overflow-x-auto hairline-card p-5">
             <table className="w-full min-w-[760px] text-sm">
               <thead>
@@ -53,6 +73,7 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
                 </tr>
               </thead>
               <tbody className="font-num text-[13px]">
+                {bestFit && null}
                 {([
                   ['After-tax pool', (r: ReturnType<typeof computeStack>) => fmtCompact(r.net)],
                   ['Invested in the stack', (r: ReturnType<typeof computeStack>) => fmtCompact(r.core)],
@@ -61,7 +82,7 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
                   ['Fees over 25 years', (r: ReturnType<typeof computeStack>) => fmtCompact(r.projection.reduce((a, b) => a + b.fees, 0))],
                   ['Pile at year 10', (r: ReturnType<typeof computeStack>) => fmtCompact(r.projection[9]?.end ?? 0)],
                   ['Pile at year 25', (r: ReturnType<typeof computeStack>) => fmtCompact(r.stackEnd)],
-                  ['Edge over a taxable account', (r: ReturnType<typeof computeStack>) => fmtCompact(r.advantage)],
+                  ['Edge over a taxable account', (r: ReturnType<typeof computeStack>) => r.advantage < 0 ? `${fmtCompact(r.advantage)} (the stack carries fees; what it buys instead is tax-free income, privacy, and protection)` : fmtCompact(r.advantage)],
                   ['Total drawn over 25 years', (r: ReturnType<typeof computeStack>) => fmtCompact(r.cumCash)],
                 ] as const).map(([label, fn]) => (
                   <tr key={label} className="border-t border-border/60">
@@ -110,7 +131,7 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
 
           <div className="hairline-card p-5">
             <h3 className="font-display text-lg font-semibold">Your setups as a skyline</h3>
-            <Skyline3D scenarios={withResults.map((s, i) => ({
+            <Lazy3D scenarios={withResults.map((s, i) => ({
               letter: s.letter,
               color: ['#E5604A', '#4C7A3F', '#D9A441', '#7B6556', '#5B7C99'][i % 5],
               values: [s.result.core, s.result.projection[9]?.end ?? 0, s.result.stackEnd],
@@ -147,7 +168,7 @@ function ExampleSkyline({ asm }: { asm: Assumptions }) {
         Examples, not your numbers: one setup leaves the money growing, the other spends it all by the last year.
         Taller pillar = more money. Save your own setups and they replace these.
       </p>
-      <Skyline3D
+      <Lazy3D
         scenarios={[
           { letter: 'A · leave it growing', color: '#4C7A3F', values: [grow.core, grow.projection[9]?.end ?? 0, grow.stackEnd] },
           { letter: 'B · spend it all', color: '#E5604A', values: [spendAll.core, spendAll.projection[9]?.end ?? 0, spendAll.stackEnd] },
