@@ -16,6 +16,7 @@ interface Props {
   loadScenario: (i: number) => void;
   onApplyScenario: () => void;
   onStartOver: () => void;
+  onOpenLibrary: () => void;
 }
 
 const SHORT = new Set<string>(QUIZ_SHORT);
@@ -30,7 +31,7 @@ function stretches(age: number): { short: string; middle: string; long: string }
   return { short: `the next 3 years, until you are ${age + 3}`, middle: `the next 10 years, until you are ${age + 10}`, long: `the years after you are ${age + 10}` };
 }
 
-export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScenario, loadScenario, onApplyScenario, onStartOver }: Props) {
+export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScenario, loadScenario, onApplyScenario, onStartOver, onOpenLibrary }: Props) {
   const [answers, setAnswersRaw] = useState<Record<string, number>>(() => {
     try { return JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}'); } catch { return {}; }
   });
@@ -302,6 +303,29 @@ Common mistake: comparing a policy's charges to a brokerage account without also
             {set?.preface.map((line) => <li key={line}>{line}</li>)}
             {outcome.whys.map((w) => <li key={w}>{w}</li>)}
           </ul>
+
+          {set?.mix && (
+            <div className="mt-5 rounded-lg border border-primary/30 bg-accent/40 p-4">
+              <h4 className="font-display text-base font-semibold">How your answers shaped the mix</h4>
+              <ul className="mt-2 space-y-1.5 text-[14px] leading-relaxed text-muted-foreground">
+                {set.mix.rationale.map((line) => <li key={line}>→ {line}</li>)}
+              </ul>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {set.mix.chosen.map((id) => (
+                  <span key={id} className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] font-medium text-primary">
+                    {id === 'engine-a' ? 'Munis' : id === 'engine-b' ? 'PPLI' : id === 'engine-c' ? 'Stocks' : id}
+                  </span>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setInputs(() => ({ ...outcome.inputs, chosen: set.mix!.chosen })); onOpenLibrary(); }}
+                className="mt-3 text-sm font-medium text-primary hover:underline cursor-pointer"
+              >
+                See this mix in the Strategy Library →
+              </button>
+            </div>
+          )}
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
