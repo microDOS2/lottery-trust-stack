@@ -93,3 +93,78 @@ export function SectionTitle({ num, title, blurb }: { num: string; title: ReactN
     </div>
   );
 }
+
+
+/** A number input that never makes the user guess: example placeholder, quick-pick amounts, and a why-line. */
+export function GuidedNumber({
+  label, value, onChange, placeholder, hint, chips, className = '',
+}: {
+  label: string;
+  value?: number;
+  onChange: (v: number | undefined) => void;
+  placeholder?: string;
+  hint?: string;
+  chips?: Array<{ label: string; value: number }>;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <span className="mb-1.5 block text-[14px] font-medium">{label}</span>
+      <input
+        type="number"
+        min={0}
+        step={1000}
+        value={value ?? ''}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value === '' ? undefined : Math.max(0, +e.target.value))}
+        className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num"
+      />
+      {chips && chips.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {chips.map((c) => (
+            <button
+              key={c.label}
+              type="button"
+              onClick={() => onChange(c.value)}
+              className={`rounded-full border px-2.5 py-0.5 font-mono text-[11px] cursor-pointer ${
+                value === c.value ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:border-primary/50'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {hint && <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
+
+/** One-click preset amounts with an optional why-line, for fields that shouldn't require knowing customary numbers. */
+export function Chips({ chips, value, onChange, hint }: {
+  chips: Array<{ label: string; value: number }>;
+  value?: number;
+  onChange: (v: number) => void;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {chips.map((c) => (
+          <button
+            key={c.label}
+            type="button"
+            onClick={() => onChange(c.value)}
+            className={`rounded-full border px-2.5 py-0.5 font-mono text-[11px] cursor-pointer ${
+              value === c.value ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:border-primary/50'
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+      {hint && <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
