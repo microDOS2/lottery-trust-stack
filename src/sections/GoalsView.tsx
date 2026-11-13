@@ -3,7 +3,7 @@ import { QUIZ, QUIZ_LONG, QUIZ_MIDDLE, QUIZ_PROTECT, QUIZ_SHORT, type QuizQuesti
 import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
 import { STATES } from '../lib/taxdata';
 import { buildBestPlans } from '../lib/plans';
-import { Explainer, Limit, SectionTitle, Tip } from '../components/widgets';
+import { Explainer, Limit, SectionTitle, Tip, Chips } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
 import type { ScenarioSlot } from './CalculatorView';
 
@@ -118,6 +118,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
           <label className="block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">Lottery cash amount <Explainer text="The check you could take, or what is left if the tax is already paid. Not the advertised jackpot." more="trade" /></span>
             <input type="number" min={0} step={100000} value={inputs.amount || ''} onChange={(e) => setNum('amount', +e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'$5M',value:5000000},{label:'$18M',value:18000000},{label:'$100M',value:100000000}]} value={inputs.amount} onChange={(v)=>setNum('amount',v)} hint="The check you could take, or what is left after tax. Examples: $5M, $18M, $100M." />
           </label>
           <label className="block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">State you live in now <Explainer text="This state taxes the lottery check. Moving later does not change that." more="move" /></span>
@@ -134,6 +135,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">How much do you want available each year to live the way you want? <Explainer text="This is the check the result tests. Include anyone you support and any care cost. A bigger number runs out sooner." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">This is the amount that buys freedom from the worry. Include anyone who depends on you, and any care cost. The result checks whether the money can pay it without running out.</p>
         <input type="number" min={0} step={1} value={inputs.spend || ''} onChange={(e) => setNum('spend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'$100K/yr',value:100000},{label:'$400K/yr',value:400000},{label:'$1M/yr',value:1000000}]} value={inputs.spend} onChange={(v)=>setNum('spend',v)} hint="What you want to live on each year. The page checks whether the money can pay it without running out." />
         <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
           {inputs.amount <= 0 ? 'Enter a cash amount first.' : `As things stand, the money can pay ${fmtCompact(preview.capacity)} a year.`}
         </span>
@@ -143,12 +145,14 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Debts to clear before anything else <Explainer text="Paid from the cash after tax, before anything is invested. Nothing is paid until you type it. It does not change the tax." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the dollars. Nothing is paid until you do.</p>
         <input type="number" min={0} step={1} value={inputs.debt || ''} onChange={(e) => setNum('debt', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'None',value:0},{label:'$250K',value:250000},{label:'$1M',value:1000000}]} value={inputs.debt} onChange={(v)=>setNum('debt',v)} hint="Paid off first, before anything is invested. Leave blank if you have no debts to clear." />
       </label>
 
       <label className="hairline-card block p-6">
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a home, a boat, or anything else you want to pay for soon <Explainer text="Set aside and not invested. Nothing is set aside until you type it. There is no automatic home amount." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is set aside until you do. That cash is not invested.</p>
         <input type="number" min={0} step={1} value={inputs.entity4 || ''} onChange={(e) => setNum('entity4', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'$500K',value:500000},{label:'$1.5M',value:1500000},{label:'$3M',value:3000000}]} value={inputs.entity4} onChange={(v)=>setNum('entity4',v)} hint="Cash set aside for a home, a boat, or a big purchase soon. This money is not invested." />
       </label>
 
       <Group heading={`Your everyday life — ${span.middle}`} questions={QUIZ.filter((q) => MIDDLE.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
@@ -180,6 +184,7 @@ What to type: only what you can genuinely afford to lose — for most winners th
 Common mistake: funding the dream business with the whole pile and then needing to sell stocks to live on." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
         <input type="number" min={0} step={1} value={inputs.venture || ''} onChange={(e) => setNum('venture', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'$250K',value:250000},{label:'$1M',value:1000000},{label:'$5M',value:5000000}]} value={inputs.venture} onChange={(v)=>setNum('venture',v)} hint="Only what you can genuinely afford to lose — 5–10% of the pool is a sensible cap for most winners." />
       </label>
       <label className="block">
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a rental <Explainer text="Money for an investment property — a rental house, a duplex, a small building. It comes out before investing, so it does not count as part of the stack that pays you every year.
@@ -193,6 +198,7 @@ What to type: the full purchase price plus closing costs. Example: a $600,000 re
 Common mistake: typing the property price but forgetting the carrying costs — taxes, insurance, and repairs run roughly 1% of the property value a year." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
         <input type="number" min={0} step={1} value={inputs.rental || ''} onChange={(e) => setNum('rental', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'$500K',value:500000},{label:'$1M',value:1000000},{label:'$2.5M',value:2500000}]} value={inputs.rental} onChange={(v)=>setNum('rental',v)} hint="Full purchase price plus closing costs. If you mean your own home, use the home box above instead." />
       </label>
 
       <label className="block">
@@ -207,6 +213,7 @@ What to type: the estimate already shown, or the real quote from your attorney. 
 Common mistake: leaving it at $0, which tells the model the structure is free — and quietly makes every later number too optimistic." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Legal, trustee, and professional fees to set up the trusts. Nothing is taken until you type it.</p>
         <input type="number" min={0} step={1} value={inputs.setupCost || ''} onChange={(e) => setNum('setupCost', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'$50K',value:50000},{label:'$75K',value:75000},{label:'$125K',value:125000}]} value={inputs.setupCost} onChange={(v)=>setNum('setupCost',v)} hint="Already set to the customary tier for your prize. Change it only if you have a real quote from your attorney." />
       </label>
       <label className="block">
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly fees to keep it running <Explainer text="What it costs to keep the structure alive every year: the trustee company that administers the DAPT, the CPA who files the trust returns, the registered agent for the LLC, and small account fees.
@@ -220,6 +227,7 @@ What to type: the prefilled estimate, or your actual quotes. If you keep it simp
 Common mistake: forgetting that a 0.25% fee on a $60 million core is $150,000 a year, not a rounding error." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Trustee, CPA, and carrier fees each year. Nothing is taken until you type it.</p>
         <input type="number" min={0} step={1} value={inputs.annualAdmin || ''} onChange={(e) => setNum('annualAdmin', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'$15K/yr',value:15000},{label:'$25K/yr',value:25000},{label:'$50K/yr',value:50000}]} value={inputs.annualAdmin} onChange={(v)=>setNum('annualAdmin',v)} hint="Trustee + CPA + agent, typically about 0.25% of the invested core per year. The prefilled number is that estimate." />
       </label>
       <label className="block">
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Insurance charge, dollars a year <Explainer text="The insurance company's annual charge for holding your PPLI policy — the cost of insurance and the administrative load. It is the price of the tax-free compounding the policy gives you.
@@ -235,6 +243,7 @@ What to type: the prefilled estimate, or the actual charge from the carrier's il
 Common mistake: comparing a policy's charges to a brokerage account without also counting the 23.8% plus state tax the account pays on every gain." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Leave this blank if you do not want a charge taken out. The policy growth rate is before this charge.</p>
         <input type="number" min={0} step={1} value={inputs.ppliFee || ''} onChange={(e) => setNum('ppliFee', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'0% (no policy)',value:0},{label:'0.5% of policy',value:Math.round(preview.ppli*0.005)},{label:'0.8% (typical)',value:Math.round(preview.ppli*0.008)},{label:'1.2% of policy',value:Math.round(preview.ppli*0.012)}]} value={inputs.ppliFee} onChange={(v)=>setNum('ppliFee',v)} hint="Typical: 0.8% of your policy — on a $15M policy that is $120K/yr. Leave blank only if you are not using the insurance wrapper at all." />
         <Limit>Minimum: $5,000,000 in the insurance box. If this result is under that, the box still shows its number. The number is not erased.</Limit>
       </label>
 
