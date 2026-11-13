@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ENTITY_NOTES, JURISDICTIONS, PASSPORTS, PASSPORT_HONEST_NOTE, PPLI_WRAP_NOTE, type EntityItem } from '../lib/entities';
-import { SectionTitle } from '../components/widgets';
+import { SectionTitle, Chips } from '../components/widgets';
 import { fmtCompact, HORIZON, type Inputs } from '../lib/calc';
 import { Plus, Trash2, Ship, Globe2, Landmark } from 'lucide-react';
 
@@ -71,6 +71,7 @@ export default function EntitiesView({ entities, setEntities, setInputs }: Props
           <input type="number" min={0} step={50000} placeholder="Amount ($)" value={form.amount || ''}
             onChange={(e) => setForm({ ...form, amount: +e.target.value || 0 })}
             className="rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          <Chips chips={[{label:'$500K',value:500000},{label:'$1M',value:1000000},{label:'$2.5M',value:2500000},{label:'$5M',value:5000000}]} value={form.amount} onChange={(v)=>setForm({ ...form, amount: v })} hint="What the asset or entity costs. For a sailboat, ~$2.5M is a serious world cruiser." />
           <select value={form.year} onChange={(e) => setForm({ ...form, year: +e.target.value })}
             className="rounded-md border border-input bg-card px-3 py-2 text-sm">
             {Array.from({ length: HORIZON }, (_, i) => i + 1).map((y) => <option key={y} value={y}>Year {y}</option>)}
