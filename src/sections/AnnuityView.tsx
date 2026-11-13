@@ -29,7 +29,7 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <SectionTitle
-        num="02"
+        num="04"
         title={<>Annuity or <span className="sig-italic">lump sum?</span></>}
         blurb="This is a comparison only. The cash amount is what you use. Add the annuity total if you want to see it next to 30 years of checks."
       />
@@ -135,6 +135,12 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
           </div>
           </div>
 
+          <div className="hairline-card p-5">
+            <h4 className="font-display font-semibold">If someone offers to buy your annuity payments</h4>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+              Structured-settlement buyers will offer cash now for your future checks — at a discount. It is only worth considering if you need liquidity urgently, the discount is small, and you trust the payer's credit. Usually the better move is keeping the checks and using the trust stack for tax-free income instead.
+            </p>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="hairline-card p-5">
               <h4 className="font-display font-semibold stat-good">Lump sum — the case for</h4>
