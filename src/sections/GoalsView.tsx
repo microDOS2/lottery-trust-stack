@@ -168,28 +168,70 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       </label>
 
       <label className="hairline-card block p-6">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a business <Explainer text="Taken out before investing. Nothing is taken until you type it. This is not the rental and not the gift." /></span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a business <Explainer text="Money you plan to put into a business you start or buy — set aside before the rest gets invested, so the calculator never pretends it is still compounding in the stack.
+
+Why it is separate: a business is not an S&P index fund. It is illiquid, can go to zero, and can also out-return everything else you own. It deserves its own line item, not a hiding place inside the stock engine.
+
+The tax angle worth knowing: if the business is a C-corporation, its stock may qualify as QSBS — after 5 years, up to $15 million of gain per company can be federally tax-free. That is one of the few outcomes that can beat leaving the money in the stack.
+
+What to type: only what you can genuinely afford to lose — for most winners that is 5–10% of the after-tax pool, not half of it. Example: on $60 million after tax, type $3,000,000–$6,000,000 for a serious venture, $500,000 for a first experiment.
+
+Common mistake: funding the dream business with the whole pile and then needing to sell stocks to live on." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
         <input type="number" min={0} step={1} value={inputs.venture || ''} onChange={(e) => setNum('venture', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
       <label className="block">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a rental <Explainer text="Taken out before investing. Nothing is taken until you type it. This is not the business and not the gift." /></span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a rental <Explainer text="Money for an investment property — a rental house, a duplex, a small building. It comes out before investing, so it does not count as part of the stack that pays you every year.
+
+Why it is separate: a rental is not a stock. It pays rent, it appreciates slowly, and it has three quiet tax benefits the stack does not give equities: depreciation that shelters the rent on paper, 1031 exchanges that roll gains into the next property without tax, and a basis step-up at death.
+
+How it fits: this is the job of Entity #4 — the anonymous LLC owns the property, so your name stays off the county records. If you move to Puerto Rico, note the LLC cannot hold your PR primary residence; that one has to be owned directly or by a trust.
+
+What to type: the full purchase price plus closing costs. Example: a $600,000 rental house plus ~$25,000 in closing and repairs — type $625,000. If you mean your own home, not a rental, use the home/boat box above instead.
+
+Common mistake: typing the property price but forgetting the carrying costs — taxes, insurance, and repairs run roughly 1% of the property value a year." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
         <input type="number" min={0} step={1} value={inputs.rental || ''} onChange={(e) => setNum('rental', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
 
       <label className="block">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">One-time setup cost <Explainer text="Legal and trustee fees to set the trusts up. Nothing is taken until you type it. There is no built-in fee." /></span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">One-time setup cost <Explainer text="The one-time cost of building the structure properly: the attorney who drafts the trusts, the insurance work to place the PPLI policy, forming the anonymous LLC, and opening institutional custody accounts.
+
+Customary amounts: about $50,000 for a simple setup (one revocable trust and a DAPT), $75,000 for the full 4-entity stack, $125,000 or more for a very large prize with multiple entities and a policy to underwrite. The number on this page is already filled with the tier that matches your prize.
+
+Why you should not cheap out: the drafting is the protection. A badly drafted trust is just expensive paper — no asset protection, no estate benefit, possibly a tax mess. This is the one place where the cheap quote is the most expensive option.
+
+What to type: the estimate already shown, or the real quote from your attorney. It is paid once, out of the prize, before the engines are funded.
+
+Common mistake: leaving it at $0, which tells the model the structure is free — and quietly makes every later number too optimistic." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Legal, trustee, and professional fees to set up the trusts. Nothing is taken until you type it.</p>
         <input type="number" min={0} step={1} value={inputs.setupCost || ''} onChange={(e) => setNum('setupCost', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
       <label className="block">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly fees to keep it running <Explainer text="Trustee, accountant, and similar fees each year. Nothing is taken until you type it." /></span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly fees to keep it running <Explainer text="What it costs to keep the structure alive every year: the trustee company that administers the DAPT, the CPA who files the trust returns, the registered agent for the LLC, and small account fees.
+
+Customary amounts: a corporate trustee runs about $3,000–$10,000 a year flat, or 0.25%–1% of the trust assets. A CPA for a household plus trust returns is another $5,000–$25,000 a year. A registered agent is $100–$300. A sensible default for a full stack is about 0.25% of the invested core per year, with a floor of about $15,000 — that is what this page prefills for you.
+
+Why it matters: these fees come out of the stack every year and slow compounding, exactly like a fund expense ratio. A normal taxable account pays none of them, so the comparison chart charges them only to the stack. That is the honest price of the structure.
+
+What to type: the prefilled estimate, or your actual quotes. If you keep it simple — just a revocable trust and a brokerage account — a much smaller number is fair.
+
+Common mistake: forgetting that a 0.25% fee on a $60 million core is $150,000 a year, not a rounding error." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Trustee, CPA, and carrier fees each year. Nothing is taken until you type it.</p>
         <input type="number" min={0} step={1} value={inputs.annualAdmin || ''} onChange={(e) => setNum('annualAdmin', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
       </label>
       <label className="block">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Insurance charge, dollars a year <Explainer text="What the insurance company charges to hold the policy. Nothing is subtracted until you type it. A common charge is about 0.8% of the policy. This box does not apply that by itself." /></span>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Insurance charge, dollars a year <Explainer text="The insurance company's annual charge for holding your PPLI policy — the cost of insurance and the administrative load. It is the price of the tax-free compounding the policy gives you.
+
+Customary amount: roughly 0.5%–1.5% of the policy value a year, depending on age, health, and carrier. This page prefills 0.8%, which is a typical institutional charge. On a $15 million policy that is about $120,000 a year.
+
+Why it is separate from the yearly fees: the trustee and CPA keep the structure alive; this charge keeps the policy alive. They are different bills from different people.
+
+The thing that actually matters more than the charge: never let the policy lapse with loans outstanding. If it lapses over-loaned, every dollar of deferred gain can become taxable at once — that is the real catastrophe, not the 0.8%.
+
+What to type: the prefilled estimate, or the actual charge from the carrier's illustration. Leave it blank only if you want the model to pretend the policy is free.
+
+Common mistake: comparing a policy's charges to a brokerage account without also counting the 23.8% plus state tax the account pays on every gain." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Leave this blank if you do not want a charge taken out. The policy growth rate is before this charge.</p>
         <input type="number" min={0} step={1} value={inputs.ppliFee || ''} onChange={(e) => setNum('ppliFee', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
         <Limit>Minimum: $5,000,000 in the insurance box. If this result is under that, the box still shows its number. The number is not erased.</Limit>
