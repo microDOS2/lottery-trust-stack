@@ -74,9 +74,9 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
 }
 
 const NAV: Array<{ id: View; label: string; icon: typeof Landmark }> = [
-  { id: 'calc', label: 'Calculator', icon: Landmark },
-  { id: 'compare', label: 'Compare', icon: Columns3 },
-  { id: 'goals', label: 'Goals & Fit', icon: Compass },
+  { id: 'goals', label: 'Start here', icon: Compass },
+  { id: 'calc', label: 'Fine-tune', icon: Landmark },
+  { id: 'compare', label: 'Compare & decide', icon: Columns3 },
   { id: 'annuity', label: 'Annuity vs Lump Sum', icon: Scale },
   { id: 'guide', label: 'First-Year Guide', icon: Map },
   { id: 'library', label: 'Strategy Library', icon: Library },
@@ -146,7 +146,7 @@ export interface EngineNotice {
 }
 
 export default function Home() {
-  const [view, setView] = useState<View>(() => (explainSectionFromHash() !== null ? 'explain' : location.hash.startsWith('#s=') ? 'calc' : 'calc'));
+  const [view, setView] = useState<View>(() => (explainSectionFromHash() !== null ? 'explain' : location.hash.startsWith('#s=') ? 'calc' : 'goals'));
   const [explainAt] = useState<string | null>(() => explainSectionFromHash() || null);
   const [inputs, setInputsRaw] = useState<Inputs>(loadInputs);
   const [asm, setAsm] = useState<Assumptions>(loadAssumptions);
@@ -239,6 +239,19 @@ export default function Home() {
     setNotice(null);
   };
 
+  const globalReset = () => {
+    if (!window.confirm('Start completely over? This clears your numbers, quiz answers, saved scenarios, and layout. It cannot be undone.')) return;
+    setInputsRaw(DEFAULT_INPUTS);
+    setAsm(DEFAULT_ASSUMPTIONS);
+    setScenarios([null, null, null, null, null]);
+    setNotice(null);
+    setWelcomed(false);
+    setView('goals');
+    try {
+      ['lotteryStack.inputs', 'lotteryStack.assumptions', 'lotteryStack.scenarios', 'lotteryStack.quizAnswers', 'lotteryStack.layout', 'lotteryStack.welcomed'].forEach((k) => localStorage.removeItem(k));
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     if (view !== 'explain' || !explainAt) return;
     const t = window.setTimeout(() => {
@@ -299,7 +312,7 @@ export default function Home() {
         </div>
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 pb-2 md:px-6 no-print">
           <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground" aria-label="Your path">
-            {([['calc', '1 · Your numbers'], ['compare', '2 · Compare setups'], ['goals', '3 · Find your fit']] as const).map(([id, label], i) => (
+            {([['goals', '1 · Start here'], ['calc', '2 · Fine-tune'], ['compare', '3 · Compare & decide']] as const).map(([id, label], i) => (
               <span key={id} className="flex items-center gap-1.5">
                 {i > 0 && <span className="text-border">→</span>}
                 <button onClick={() => setView(id)} className={`rounded-full px-2.5 py-0.5 cursor-pointer ${view === id ? 'bg-accent font-semibold text-accent-foreground' : 'hover:text-foreground'}`}>{label}</button>
@@ -318,6 +331,12 @@ export default function Home() {
               className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[12px] font-semibold text-primary-foreground cursor-pointer"
             >
               <GraduationCap className="h-3.5 w-3.5" /> Take the tour
+            </button>
+            <button
+              onClick={globalReset}
+              className="rounded-full border border-input bg-card px-3 py-1 text-[12px] font-medium text-muted-foreground hover:border-destructive hover:text-destructive cursor-pointer"
+            >
+              Start over
             </button>
           </div>
         </div>
@@ -360,6 +379,7 @@ export default function Home() {
             saveScenario={saveScenario}
             loadScenario={loadScenario}
             onApplyScenario={() => setView('calc')}
+            onStartOver={globalReset}
           />
         )}
         {view === 'library' && (
