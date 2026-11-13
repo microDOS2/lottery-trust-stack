@@ -400,6 +400,7 @@ export default function Home() {
             loadScenario={loadScenario}
             onApplyScenario={() => setView('calc')}
             onStartOver={globalReset}
+            onOpenLibrary={() => setView('library')}
           />
         )}
         {view === 'library' && (
