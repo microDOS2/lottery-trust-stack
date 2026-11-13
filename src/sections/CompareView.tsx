@@ -3,6 +3,7 @@ import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/
 import { SectionTitle } from '../components/widgets';
 import { ScenarioLines, ScenarioBars, useScenarioResults, type ScenarioWithResult } from '../components/CompareCharts';
 import { Crown, ArrowUpRight, Trash2 } from 'lucide-react';
+import Skyline3D from '../components/Skyline3D';
 import type { ScenarioSlot } from './CalculatorView';
 
 interface Props {
@@ -108,6 +109,15 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div className="hairline-card p-5">
+            <h3 className="font-display text-lg font-semibold">Your setups as a skyline</h3>
+            <Skyline3D scenarios={withResults.map((s, i) => ({
+              letter: s.letter,
+              color: ['#E5604A', '#4C7A3F', '#D9A441', '#7B6556', '#5B7C99'][i % 5],
+              values: [s.result.core, s.result.projection[9]?.end ?? 0, s.result.stackEnd],
+            }))} />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
