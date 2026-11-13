@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { fmt, fmtCompact, pct } from '../lib/calc';
+import { Chips } from '../components/widgets';
 import { Explainer } from '../components/widgets';
 
 interface Props {
@@ -48,6 +49,7 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
             <span className="font-num text-muted-foreground">{fmtCompact(price)}</span>
           </div>
           <input type="number" min={0} step={1000} value={price || ''} onChange={(e) => setPrice(Math.max(0, +e.target.value || 0))} className="mt-1 w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm font-num" />
+          <Chips chips={[{label:'$500K',value:500000},{label:'$1M',value:1000000},{label:'$2.5M',value:2500000},{label:'$5M',value:5000000}]} value={price} onChange={(v)=>setPrice(v)} hint="Full purchase price plus closing costs." />
           <p className="mt-2 text-[15px] leading-snug text-muted-foreground">There is no legal limit on how much real estate you can buy. This box has no stop.</p>
         </div>
         <div>
