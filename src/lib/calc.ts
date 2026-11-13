@@ -411,7 +411,6 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     const growth = ppliB * ppliRate + eqB * asm.eqGrowth + slB * slGrowth;
 
     const adminBase = inp.annualAdmin ?? 0; // explicit 0 means no admin fee
-    const typedIns = (inp.ppliFee || 0) > 0;
     const inflate = Math.pow(1 + asm.inflation, y - 1);
     const feeBill = adminBase * inflate + (inp.ppliFee === undefined ? newPpli * AVG_PPLI_FEE_RATE : inp.ppliFee * inflate);
     let fees = feeBill;
