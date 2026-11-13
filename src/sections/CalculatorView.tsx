@@ -4,7 +4,7 @@ import {
   fmt, fmtCompact, pct, PPLI_QP_MIN, HORIZON, solveSpendForTarget, SLEEVE_MATH, SLEEVE_PCT_MAX,
   type Inputs, type Assumptions, type StackResult,
 } from '../lib/calc';
-import { Stat, Field, SectionTitle, Tip, Explainer, Limit } from '../components/widgets';
+import { Stat, Field, SectionTitle, Tip, Explainer, Limit, Chips } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
 import { useExplain } from '../explainNav';
 import { AllocationDonut, ProjectionChart } from '../components/viz';
@@ -296,6 +296,7 @@ export default function CalculatorView(p: Props) {
 
         <div data-tour="amount"><Field label="Prize amount ($)" tip="The cash option, or what is left if tax is already paid. Not the advertised jackpot." more="assumptions" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.amount || ''} min={0} step={100000} onChange={(e) => set('amount', +e.target.value || 0)} />
+          <Chips chips={[{label:'$5M',value:5000000},{label:'$18M',value:18000000},{label:'$100M',value:100000000}]} value={inp.amount} onChange={(v)=>set('amount',v)} hint="Examples: $5M, $18M, $100M. Type the gross cash option or the net pool, matching Before/After tax." />
         </Field>
 
         <div className="flex gap-2">
@@ -316,6 +317,7 @@ export default function CalculatorView(p: Props) {
 
         <div data-tour="spend"><Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than what the investments can pay, the pile gets spent." more="trade" help="The exact amount, in dollars.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend || ''} min={0} step={1} onChange={(e) => set('spend', +e.target.value || 0)} />
+          <Chips chips={[{label:'$100K/yr',value:100000},{label:'$400K/yr',value:400000},{label:'$1M/yr',value:1000000}]} value={inp.spend} onChange={(v)=>set('spend',v)} hint="What you want to live on each year. The sustainability check compares this to what the engines can pay." />
         </Field></div>
 
         <p className="rounded-md bg-secondary px-3 py-2 text-[13.5px] leading-relaxed">
@@ -363,17 +365,21 @@ export default function CalculatorView(p: Props) {
 
         <Field label="Entity #4 property / vehicle reserve" help={inp.residency === 'pr' ? "LLC can hold investment property — but not your PR primary residence (2026 rules require direct/trust ownership)." : "Cash carved out for the anonymous LLC to buy a home or vehicles. $0 if none."}>
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.entity4 || ''} min={0} step={50000} onChange={(e) => set('entity4', +e.target.value || 0)} />
+          <Chips chips={[{label:'$500K',value:500000},{label:'$1.5M',value:1500000},{label:'$3M',value:3000000}]} value={inp.entity4} onChange={(v)=>set('entity4',v)} hint="Cash for the anonymous LLC to buy property or vehicles. Leave at $0 if you are not buying anything yet." />
         </Field>
 
         <Field label="Structure setup costs ($)" help="One-time year-1 legal and professional work: trusts drafted, PPLI placed, LLC formed, custody opened. Realistic range $50–150K.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.setupCost || ''} min={0} step={5000} onChange={(e) => set('setupCost', +e.target.value || 0)} />
+          <Chips chips={[{label:'$50K',value:50000},{label:'$75K',value:75000},{label:'$125K',value:125000}]} value={inp.setupCost} onChange={(v)=>set('setupCost',v)} hint="Customary setup tiers: $50K simple, $75K full stack, $125K+ for very large prizes. Edit only with a real quote." />
         </Field>
 
         <Field label="Yearly fees to keep it running" tip="Trustee, accountant, and similar fees. Nothing is taken until you type it. This is not the insurance charge." help="Leave blank for no yearly fee.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.annualAdmin || ''} min={0} step={1000} onChange={(e) => set('annualAdmin', +e.target.value || 0)} />
+          <Chips chips={[{label:'$15K/yr',value:15000},{label:'$25K/yr',value:25000},{label:'$50K/yr',value:50000}]} value={inp.annualAdmin} onChange={(v)=>set('annualAdmin',v)} hint="Trustee + CPA + agent per year, typically about 0.25% of the invested core. Drags the stack; the taxable baseline pays none." />
         </Field>
         <Field label="Insurance charge, dollars a year" tip="Taken out of the pile each year. Nothing is taken until you type it. The policy growth rate is before this charge." help="Leave blank for no charge. A common carrier charge is about 0.8% of the policy. This box does not apply that unless you type it.">
           <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.ppliFee || ''} min={0} step={1000} onChange={(e) => set('ppliFee', +e.target.value || 0)} />
+          <Chips chips={[{label:'0% (no policy)',value:0},{label:'0.5% of policy',value:Math.round(r.ppli*0.005)},{label:'0.8% (typical)',value:Math.round(r.ppli*0.008)},{label:'1.2% of policy',value:Math.round(r.ppli*0.012)}]} value={inp.ppliFee} onChange={(v)=>set('ppliFee',v)} hint="Typical: 0.8% of your policy — on a $15M policy that is $120K/yr. Leave blank only if you are not using the insurance wrapper." />
         </Field>
         <Limit>Minimum: $5,000,000 in the insurance box. This box is {fmtCompact(r.ppli)}. {r.qpOk ? 'That meets the minimum.' : 'That is under the minimum. The number was not erased. The bond box and the stock box were not changed.'}</Limit>
         <Limit>Empty fee boxes use averages. Trustee and accountant: $25,000 a year. Insurance charge: 0.8% of the insurance box each year. Both are on this page. A typed number replaces the average. Trustee dollars and a typed insurance charge rise with the inflation rate. The 0.8% already follows the insurance box, so it is not raised a second time.</Limit>
