@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { computeStack, fmtCompact, solveSpendForTarget, DEFAULT_INPUTS, type Assumptions, type Inputs } from '../lib/calc';
 import { profileFromAnswers, scoreAll } from '../lib/quiz';
 import { SectionTitle } from '../components/widgets';
@@ -31,6 +31,16 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
     } catch { return null; }
   }, [saved, asm]);
   const bestFit = fitScores?.[0];
+  const [names, setNames] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('lotteryStack.scenarioNames') ?? '{}'); } catch { return {}; }
+  });
+  const rename = (letter: string, name: string) => {
+    setNames((prev) => {
+      const next = { ...prev, [letter]: name };
+      try { localStorage.setItem('lotteryStack.scenarioNames', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const bestEnd = Math.max(0, ...withResults.map((s) => s.result.stackEnd));
   const bestLetter = withResults.find((s) => s.result.stackEnd === bestEnd)?.letter;
 
@@ -65,7 +75,13 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
                   {withResults.map((s) => (
                     <th key={s.letter} className="py-2 pr-4 text-right font-medium">
                       <span className="inline-flex items-center gap-1">
-                        {s.letter}
+                        <input
+                          value={names[s.letter] ?? ''}
+                          placeholder={s.letter}
+                          onChange={(e) => rename(s.letter, e.target.value)}
+                          className="w-16 rounded border border-transparent bg-transparent px-1 text-right font-num text-[13px] font-semibold hover:border-input focus:border-input"
+                          aria-label={`Name scenario ${s.letter}`}
+                        />
                         {s.letter === bestLetter && <Crown className="h-3.5 w-3.5 text-success" aria-label="Biggest 25-year pile" />}
                       </span>
                     </th>
