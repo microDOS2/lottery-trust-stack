@@ -43,6 +43,7 @@ export interface Inputs {
   manual: { a: number; b: number; c: number }; // fractions summing to 1
   drawOverrides: Record<number, number>; // year (1-25) -> custom tax-free draw; overrides the spend target
   flatDraw: boolean; // true = same dollar amount every year (no inflation growth)
+  leaveTarget: string; // 'max' | '75' | '50' | '25' | '0' — target leftover at the horizon
   sleeve: string | null; // one optional library item; a new choice replaces the old one
   sleevePct: number;   // fraction of core carved from Engine C when the sleeve has model rates
   chosen: string[];     // library strategies the user turned on
@@ -110,6 +111,7 @@ export const DEFAULT_INPUTS: Inputs = {
   manual: { a: 0.25, b: 0.25, c: 0.5 },
   drawOverrides: {},
   flatDraw: false,
+  leaveTarget: 'max',
   sleeve: null,
   sleevePct: 0,
   chosen: [],
@@ -363,6 +365,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     let ppliDrawAmt = 0;
     let eqDrawAmt = 0;
     let slDrawAmt = 0;
+    let muniExtra = 0;
     const need = Math.max(0, desired - coupons);
     if (need <= discCap) {
       ppliDrawAmt = discCap > 0 ? (need * ppliCap) / discCap : 0;
@@ -382,14 +385,19 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
       const ppliRoom = Math.max(0, ppliB * (1 + ppliRate) - ppliDrawAmt);
       const takePpli = Math.min(extra, ppliRoom);
       ppliDrawAmt += takePpli; extra -= takePpli;
+      if (extra > 0) {
+        // last resort: sell muni principal too, so a spend-down can actually reach zero
+        muniExtra = Math.min(extra, muniB);
+        extra -= muniExtra;
+      }
       if (extra > 1 && depletedYear === null) depletedYear = y;
     }
 
-    const outTotal = coupons + ppliDrawAmt + eqDrawAmt + slDrawAmt;
+    const outTotal = coupons + ppliDrawAmt + eqDrawAmt + slDrawAmt + muniExtra;
     const cash = Math.min(desired, outTotal);
     const reinvested = outTotal - cash;
 
-    let newMuni = muniB;
+    let newMuni = Math.max(0, muniB - muniExtra);
     let newPpli = Math.max(0, ppliB * (1 + ppliRate) - ppliDrawAmt);
     let newSl = Math.max(0, slB * (1 + slGrowth) - slDrawAmt);
     let newEq = Math.max(0, eqB * (1 + asm.eqGrowth) - eqDrawAmt + reinvested);
@@ -469,6 +477,26 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
     depletedYear, baselineDepletedYear,
     projection, baseline, stackEnd, baselineEnd, advantage: stackEnd - baselineEnd, cumCash,
   };
+}
+
+/**
+ * Solve for the flat annual draw that lands the stack on a target leftover at the horizon.
+ * "Spend it all" = target 0. Uses the engine's own mechanics (fees, coupons, admin drag).
+ */
+export function solveSpendForTarget(inp: Inputs, asm: Assumptions, target: number): number {
+  const endFor = (spend: number) =>
+    computeStack({ ...inp, spend, flatDraw: true, drawOverrides: {} }, asm).stackEnd;
+  let lo = 0;
+  let hi = Math.max(1, inp.spend > 0 ? inp.spend * 4 : 2_000_000);
+  // If even zero draws can't reach the target (shouldn't happen), return 0.
+  if (endFor(0) < target) return 0;
+  // Widen the ceiling until the target is actually reachable (big prizes need big checks).
+  for (let i = 0; i < 12 && endFor(hi) > target; i++) hi *= 2;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (endFor(mid) > target) lo = mid; else hi = mid;
+  }
+  return Math.round((lo + hi) / 2);
 }
 
 // ---------- Annuity vs Lump Sum ----------
