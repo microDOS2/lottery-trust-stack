@@ -72,7 +72,7 @@ export default function PRPanel({ inputs, setInputs, result: r }: Props) {
         <div className="flex gap-2"><CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span><strong className="text-foreground">183+ days a year</strong> in PR, plus the closer-ties tests. Same day-count discipline as any domicile move — Puerto Rico's are enforced.</span></div>
         <div className="flex gap-2"><Home className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span><strong className="text-foreground">Buy a PR home within 2 years</strong> — and under the 2026 rules it must be owned directly or through a trust, <strong className="text-foreground">not an LLC</strong>.</span></div>
         <div className="flex gap-2"><HeartHandshake className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span><strong className="text-foreground">$15,000/year</strong> to Puerto Rican charities (raised from $10,000 for new decrees).</span></div>
-        <div className="flex gap-2"><FileCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span><strong className="text-foreground">Six-year residency lookback</strong> — you generally can't have been a PR resident in 6 of the last 10 years, plus filing fees and annual reports.</span></div>
+        <div className="flex gap-2"><FileCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" /><span><strong className="text-foreground">Rolling six-year lookback immediately before relocation (for post-2026 applicants)</strong> — you generally can't have been a PR resident in 6 of the last 10 years, plus filing fees and annual reports.</span></div>
       </div>
 
       <p className="mt-4 rounded-md bg-secondary px-3 py-2 text-[14px] leading-relaxed text-muted-foreground">
