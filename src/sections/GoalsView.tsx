@@ -42,7 +42,12 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       return next;
     });
   };
-  const [age, setAge] = useState(0);
+  const [age, setAge] = useState<number>(() => {
+    try { return Number(localStorage.getItem('lotteryStack.age') || 0) || 0; } catch { return 0; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('lotteryStack.age', String(age)); } catch { /* ignore */ }
+  }, [age]);
   useEffect(() => {
     if (answers.market === undefined || inputs.mode === 'manual') return;
     const dial = answers.market === 0 ? 100 : answers.market === 1 ? 0 : 50;
@@ -65,6 +70,11 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
+      {age === 55 && inputs.amount === 100_000_000 && (
+        <p className="rounded-md bg-accent px-3 py-2 text-[13px] text-accent-foreground">
+          Example persona: <strong>Dana, 55, Colorado</strong> — all questions pre-filled so you can see a finished result. Change anything to make it yours.
+        </p>
+      )}
       <SectionTitle
         num="01"
         title={<>Plan the life, <span className="sig-italic">short, middle, and long</span></>}
