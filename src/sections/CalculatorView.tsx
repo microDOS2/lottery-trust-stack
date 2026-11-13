@@ -11,7 +11,7 @@ import { AllocationDonut, ProjectionChart } from '../components/viz';
 import FlowLive from '../components/FlowLive';
 import type { EntityItem } from '../lib/entities';
 import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/CompareCharts';
-import Skyline3D from '../components/Skyline3D';
+import Lazy3D from '../components/Lazy3D';
 import { STRATEGIES } from '../lib/content';
 import DrawSchedule from './DrawSchedule';
 import { Slider } from '@/components/ui/slider';
@@ -142,7 +142,7 @@ export default function CalculatorView(p: Props) {
                 </button>
               </div>
               {alloc3D ? (
-                <Skyline3D milestones={['']} scenarios={[
+                <Lazy3D milestones={['']} scenarios={[
                   { letter: 'Bonds', color: '#4C7A3F', values: [r.muni] },
                   { letter: 'Insurance', color: '#E5604A', values: [r.ppli] },
                   { letter: 'Stocks', color: '#D9A441', values: [r.equity] },
@@ -158,7 +158,7 @@ export default function CalculatorView(p: Props) {
                   <h3 className="font-display text-lg font-semibold">The compounding race</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Same engines, same returns, same cash to you — but unshielded. The stack's line even carries its admin fees; the baseline pays none.
-                    Gap at year 25: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
+                    Gap at year 30: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1.5">
@@ -172,7 +172,7 @@ export default function CalculatorView(p: Props) {
                 </div>
               </div>
               {race3D ? (
-                <Skyline3D scenarios={[
+                <Lazy3D scenarios={[
                   { letter: 'Trust stack', color: '#4C7A3F', values: [r.projection[9]?.end ?? 0, r.stackEnd] },
                   { letter: 'Taxable account', color: '#9C9388', values: [r.baseline[9]?.end ?? 0, r.baselineEnd] },
                 ]} />
@@ -323,7 +323,7 @@ export default function CalculatorView(p: Props) {
         <p className="rounded-md bg-secondary px-3 py-2 text-[13.5px] leading-relaxed">
           {inp.amount <= 0
             ? 'Enter a prize amount. Everything on the right stays at zero until you do.'
-            : `You keep ${fmtCompact(r.net)} after tax. You could take about ${fmtCompact(r.capacity)} a year with no tax on that cash. In 25 years this setup would be about ${fmtCompact(r.stackEnd)}, versus ${fmtCompact(r.baselineEnd)} in a normal taxable account.`}
+            : `You keep ${fmtCompact(r.net)} after tax. You could take about ${fmtCompact(r.capacity)} a year with no tax on that cash. In 30 years this setup would be about ${fmtCompact(r.stackEnd)}, versus ${fmtCompact(r.baselineEnd)} in a normal taxable account.`}
         </p>
 
         <Tip text={more ? 'Hide the extra inputs. State, prize, and spending stay visible.' : 'Move, reserves, fees, the income-or-growth slider, and the rate assumptions.'} more="assumptions">
