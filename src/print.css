@@ -1,0 +1,112 @@
+/* Print styles for the Plan Summary page ("hand this to your attorney"). */
+
+@page {
+  margin: 0.75in;
+}
+
+@media print {
+  /* Hide anything marked no-print (print buttons, nav, etc.). */
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  .plan-summary {
+    max-width: 100% !important;
+    padding: 0 !important;
+    color: #000 !important;
+  }
+
+  /* Serif headings for a document feel. */
+  .plan-summary h1,
+  .plan-summary h2,
+  .plan-summary h3 {
+    font-family: Georgia, 'Times New Roman', serif !important;
+    color: #000 !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .plan-summary h1 { font-size: 20pt; }
+  .plan-summary h2 {
+    font-size: 13pt;
+    margin-top: 0 !important;
+    border-bottom: 1px solid #999;
+    padding-bottom: 2pt;
+  }
+
+  /* Muted helper text prints as readable gray. */
+  .plan-summary .text-muted-foreground {
+    color: #444 !important;
+  }
+
+  /* Compact tables with light rules. */
+  .plan-summary .ps-table {
+    border-collapse: collapse;
+    font-size: 10pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .plan-summary .ps-table th,
+  .plan-summary .ps-table td {
+    padding: 3pt 6pt 3pt 0 !important;
+    border-bottom: 0.5pt solid #ccc;
+    vertical-align: top;
+  }
+
+  .plan-summary .ps-table thead th {
+    border-bottom: 1pt solid #666;
+  }
+
+  /* Keep each section on one page where possible. */
+  .plan-summary .ps-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Allow long sections (checklist, assumptions) to break if they must,
+     but never leave a heading stranded at the bottom of a page. */
+  .plan-summary header.ps-section,
+  .plan-summary footer.ps-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Checklist boxes render as empty squares on paper. */
+  .plan-summary .ps-checklist {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .plan-summary .ps-checklist li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .plan-summary .ps-box {
+    border: 1.5pt solid #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Don't leave list items or rows orphaned mid-page break. */
+  .plan-summary li,
+  .plan-summary tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Links print as plain text. */
+  .plan-summary a {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+}
