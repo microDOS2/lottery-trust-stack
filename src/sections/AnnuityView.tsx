@@ -4,7 +4,7 @@ import { computeAnnuity, fmtCompact, pct } from '../lib/calc';
 import type { Filing } from '../lib/taxdata';
 import { AnnuityChart } from '../components/viz';
 import Skyline3D from '../components/Skyline3D';
-import { SectionTitle, Stat, Field, Tip } from '../components/widgets';
+import { SectionTitle, Stat, Field, Tip, Chips } from '../components/widgets';
 
 export default function AnnuityView({ defaultState, filing, onNext, onUseCash }: { defaultState: string; filing: Filing; onNext?: (cash: number) => void; onUseCash?: (cash: number) => void }) {
   const [more, setMore] = useState(false);
@@ -42,6 +42,7 @@ export default function AnnuityView({ defaultState, filing, onNext, onUseCash }:
           <Field label="Annuity total" tip="Every annuity check added together. Leave blank if you only want the cash math." more="trade" help="All the checks added together. Usually 30 payments, each 5% larger than the last. Leave blank if you only want the cash math.">
             <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={a.advertised || ''} min={0} step={1000000}
               onChange={(e) => setA({ ...a, advertised: +e.target.value || 0 })} />
+            <Chips chips={[{label:'$10M',value:10000000},{label:'$100M',value:100000000},{label:'$500M',value:500000000},{label:'$1B',value:1000000000}]} value={a.advertised} onChange={(v)=>setA({ ...a, advertised: v })} hint="The advertised jackpot, not the cash option. Powerball cash is usually ~45–50% of this." />
           </Field>
           <Field label="State where you'd claim" tip="The state that taxes the prize. A California lottery prize bought in California is not taxed by the state." more="move">
             <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={a.state} onChange={(e) => setA({ ...a, state: e.target.value })}>
