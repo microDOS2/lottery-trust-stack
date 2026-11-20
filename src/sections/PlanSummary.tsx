@@ -30,6 +30,7 @@ function residencyLabel(inp: Inputs): string {
     case 'second': return `Second home in ${tg.name}`;
     case 'move': return `Moving to ${tg.name}`;
     case 'pr': return 'Puerto Rico (Act 60)';
+    default: return 'No special residency plan';
   }
 }
 
