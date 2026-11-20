@@ -86,13 +86,16 @@ export default function CalculatorView(p: Props) {
   const st = STATES.find((s) => s.code === inp.state)!;
   const tg = STATES.find((s) => s.code === inp.target)!;
 
+  const [solvedDraw, setSolvedDraw] = useState<number | null>(null);
   const applyLeaveTarget = (v: string) => {
-    p.setInputs((prev) => {
-      if (v === 'max') return { ...prev, leaveTarget: v };
+    if (v !== 'max') {
       const target = v === '0' ? 0 : r.core * (+v / 100);
-      const solved = solveSpendForTarget({ ...prev, leaveTarget: v }, asm, target);
-      return { ...prev, leaveTarget: v, spend: solved, flatDraw: true, drawOverrides: {} };
-    });
+      setSolvedDraw(solveSpendForTarget({ ...inp, leaveTarget: v }, asm, target));
+    } else {
+      setSolvedDraw(null);
+    }
+    // Only the goal changes here — your yearly draw stays exactly as you set it.
+    p.setInputs((prev) => ({ ...prev, leaveTarget: v }));
   };
 
   const share = async () => {
@@ -344,9 +347,23 @@ export default function CalculatorView(p: Props) {
           </select>
         </Field>
         {inp.leaveTarget !== 'max' && (
-          <p className="rounded-md bg-accent px-3 py-2 text-[13.5px] leading-relaxed text-accent-foreground">
-            That works out to <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span>, leaving {inp.leaveTarget === '0' ? 'nothing' : `${inp.leaveTarget}% of the core`} at the end.
-          </p>
+          <div className="rounded-md bg-accent px-3 py-2 text-[13.5px] leading-relaxed text-accent-foreground">
+            {solvedDraw !== null ? (
+              <>
+                A draw of about <span className="font-num font-semibold">{fmt(solvedDraw)}/yr</span> would reach that goal.
+                Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span> — unchanged unless you choose to use it.
+                <button
+                  type="button"
+                  onClick={() => p.setInputs((prev) => ({ ...prev, spend: solvedDraw, flatDraw: true, drawOverrides: {} }))}
+                  className="mt-2 block rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground cursor-pointer"
+                >
+                  Use this as my yearly draw
+                </button>
+              </>
+            ) : (
+              <>Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span> — unchanged by the goal.</>
+            )}
+          </div>
         )}
 
         <Field label="State you might move to" help="Pick a 0% income-tax state (WY, NV, TX, FL…) if you plan to relocate.">
