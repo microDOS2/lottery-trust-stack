@@ -85,6 +85,48 @@ const SKIP_WHEN: Record<string, string> = {
   expatriation: 'it is only about tax — the exit tax usually eats the win.',
 };
 
+const MECHANISM: Record<string, string> = {
+  'engine-a': 'Munis pay tax-free interest instead of taxable interest, so more of each coupon reaches you.',
+  'engine-b': 'The insurance wrapper shelters growth from annual tax, so compounding outpaces a taxable account.',
+  'engine-c': 'Stocks compound at the equity rate; direct indexing harvests losses to offset gains.',
+  leverage: 'Borrowing against the pile gives you cash without a taxable sale — but the loan and its interest remain.',
+  oz: 'After 10 years, new appreciation is excluded, but the lockup and fund risk are real.',
+  qsbs: 'Startup stock can be excluded after 5 years, so a winner exits tax-free where a normal stock would be taxed.',
+  legacy: 'Moving growth into a dynasty trust avoids the 40% estate bite on the excess.',
+  charitable: 'A deduction in the big tax year reduces what the IRS takes, but the assets leave your estate.',
+  'pr-act60': 'Post-move gains drop to 0%/4% federally, but you must actually live there.',
+  'real-estate': 'Depreciation shelters rent and 1031 defers gains, but the money is illiquid.',
+  'foreign-trust': 'Protection improves, but for a US citizen the tax bill does not change.',
+  expatriation: 'It ends US tax on worldwide income, at the price of the exit tax and possibly never living in the US again.',
+  wing: "Retained gains get taxed at the trust's 0% situs instead of your home state's rate.",
+  hiring: 'No numbers change — this just tells you who to hire and who to avoid.',
+  'ppli-depth': 'No numbers change — this tells you what can kill the policy before you buy it.',
+  'leverage-math': 'No numbers change — this tells you what the loan costs.',
+  'state-estate': 'No numbers change — this tells you whether your state also wants a cut.',
+  'box-spreads': 'No numbers change — this explains the cheap financing inside Engine C.',
+};
+
+const TRADEOFF: Record<string, string> = {
+  'engine-a': 'Reliable tax-free income, but lower long-run growth than stocks.',
+  'engine-b': 'Untaxed compounding, but carrier minimums and complexity.',
+  'engine-c': 'Highest growth potential, but market volatility and drawdown risk.',
+  leverage: 'Cash without selling, but interest costs and margin-call risk.',
+  oz: 'Tax-free appreciation after 10 years, but a long lockup and fund-quality risk.',
+  qsbs: 'Big exclusion on startup gains, but most startups fail.',
+  legacy: 'Estate-tax avoidance for generations, but irrevocable loss of control.',
+  charitable: 'Deduction now and a cleaner estate, but less for yourself.',
+  'pr-act60': 'The lowest legal rate on gains, but a real life move with audits.',
+  'real-estate': 'Rent and deferred gains, but illiquidity and management work.',
+  'foreign-trust': 'Stronger protection, but no US tax benefit and heavy reporting.',
+  expatriation: 'Ends US tax entirely, but exit tax and possibly never coming home.',
+  wing: 'State tax relief for stayers, but situs is a fact test, not a mailing address.',
+  hiring: 'No numbers change — just who to hire and who to avoid.',
+  'ppli-depth': 'No numbers change — what can kill the policy before you buy it.',
+  'leverage-math': 'No numbers change — what the loan actually costs.',
+  'state-estate': 'No numbers change — whether your state also wants a cut.',
+  'box-spreads': 'No numbers change — the cheap financing inside Engine C.',
+};
+
 interface Eligibility {
   ok: boolean;
   label: string;
@@ -195,6 +237,38 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
         blurb="Turn on any of them. Turn on more than one. The result below is that combination. A suggested amount does nothing until you use it."
       />
 
+      <section className="hairline-card border-primary/30 p-6">
+        <h2 className="font-display text-xl font-semibold">Recommended for you</h2>
+        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+          Three curated starting points based on your numbers. Pick one — it turns on the right strategies and sets the dial.
+        </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {([
+            { name: 'Steady income', ids: ['engine-a', 'engine-b'], dial: 75, why: 'Reliable tax-free income now. Bonds and the insurance wrapper pay you every year while the pile keeps growing.' },
+            { name: 'Balanced', ids: ['engine-a', 'engine-b', 'engine-c'], dial: 50, why: 'A bit of both: income now and growth for later. The muni floor plus the wrapper plus stocks.' },
+            { name: 'Maximum growth', ids: ['engine-c'], dial: 0, why: 'The long game. Everything into stocks and let it compound for 30 years.' },
+          ] as const).map((mix) => (
+            <button
+              key={mix.name}
+              type="button"
+              onClick={() => {
+                setInputs((prev) => ({ ...prev, chosen: [...mix.ids], dial: mix.dial, mode: 'balanced' }));
+                onUse();
+              }}
+              className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-left cursor-pointer hover:border-primary hover:bg-primary/10 transition-colors"
+            >
+              <span className="block font-display text-base font-semibold text-primary">{mix.name}</span>
+              <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">{mix.why}</span>
+            </button>
+          ))}
+        </div>
+        {core < PPLI_QP_MIN && (
+          <p className="mt-3 text-[13px] text-muted-foreground">
+            At your size, PPLI is below the {fmt(PPLI_QP_MIN)} minimum — the first two mixes lean on bonds + stocks instead.
+          </p>
+        )}
+      </section>
+
       {inputs.amount <= 0 && (
         <p className="text-[15px] leading-relaxed text-muted-foreground">
           Type the winning cash amount on Goals & Fit first. Until then every result is zero.
@@ -267,8 +341,13 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                 <span className="font-medium">What On does. </span>
                 {ON_DOES[s.id]}{' '}
                 {noChange
-                  ? 'On your numbers right now, turning this on does not change the safe yearly cash or the 25-year pile.'
-                  : <>Turning this on takes your safe yearly cash from <span className="font-num">{fmt(fx.cashOff)}</span> to <span className="font-num">{fmt(fx.cashOn)}</span>, and your 25-year pile from <span className="font-num">{fmt(fx.endOff)}</span> to <span className="font-num">{fmt(fx.endOn)}</span>. Watch both numbers change below when you flip the switch.</>}
+                  ? 'On your numbers right now, turning this on does not change the safe yearly cash or the 30-year pile.'
+                  : <div className="rounded-md bg-secondary px-3 py-2 text-[14px] leading-relaxed">
+                      <span className="font-medium">What if you turn it on: </span>
+                      safe yearly cash <span className="font-num">{fmt(fx.cashOff)}</span> → <span className="font-num stat-good">{fmt(fx.cashOn)}</span>
+                      {' · '}30-year pile <span className="font-num">{fmt(fx.endOff)}</span> → <span className="font-num stat-good">{fmt(fx.endOn)}</span>
+                      <div className="mt-1 text-muted-foreground">{MECHANISM[s.id]}</div>
+                    </div>}
               </p>
 
               {/* Why this card is being suggested, from saved quiz answers */}
@@ -286,6 +365,9 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                 <p><span className="font-medium stat-warm">Skip when: </span>{SKIP_WHEN[s.id]}</p>
               </div>
 
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground">Tradeoff: </span>{TRADEOFF[s.id]}
+              </p>
               {MUST[s.id] && (
                 <p className="mt-3 flex items-start gap-1.5 text-[15px] leading-relaxed text-muted-foreground">
                   <Explainer text={MUST[s.id]} />
