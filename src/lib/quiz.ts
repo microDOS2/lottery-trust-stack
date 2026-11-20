@@ -102,63 +102,25 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'sue', group: 'protect',
-    text: 'Does it worry you that someone might sue you simply because the money is there?',
-    why: 'Anyone can file a lawsuit; what matters is how hard you are to collect from. Insurance protects you, and a trust funded before any claim can protect the assets.',
+    id: 'archetype', group: 'middle',
+    text: 'Which of these sounds most like you?',
+    why: 'This one answer does more than any other to shape the split between money that pays you now and money left to grow. It decides how aggressive or steady the recommended plan leans.',
     options: [
-      { label: 'No', note: 'Nothing is added.', weights: {} },
-      { label: 'Yes', note: 'Insurance protects you. An irrevocable trust funded before any claim can make the assets harder to reach. Answering here does not create either.', weights: { protection: 1 } },
-      { label: 'I have not thought about it', note: 'Nothing is added until you do.', weights: {} },
-      { label: 'Maybe — winners seem to attract that', note: 'Insurance is the cheap first step. A trust only counts if it is funded before any claim exists.', weights: { protection: 0.5 } },
+      { label: 'I want to spend freely now', note: 'The plan leans on steadier assets so the yearly amount keeps coming, even in a rough market. Less is left compounding for later.', weights: { income: 1 } },
+      { label: 'A bit of both', note: 'The plan uses a middle split: enough steady money to keep the check coming, enough left over to grow.', weights: { income: 0.5, growth: 0.5 } },
+      { label: 'Let it grow for later', note: 'The plan leans on growth assets. The yearly amount may have to flex in a rough market, but the pile compounds more for later.', weights: { growth: 1 } },
     ],
   },
   {
-    id: 'stolen', group: 'protect',
-    text: 'What about the quieter kind of trouble — theft, or someone pressuring you into handing money over?',
-    why: 'Insurance can cover theft, but no document stops a pushy relative. Keeping your name off property and accounts makes both problems harder to find you.',
+    id: 'threats', group: 'protect',
+    text: 'Which of these threats worries you most?',
+    why: 'Different threats need different defenses: insurance and a trust funded before any claim slow lawsuits, keeping your name off property slows people looking for you, and a steady split calms market fear. Nothing here hides money from the tax office.',
     options: [
-      { label: 'No', note: 'Nothing is added.', weights: {} },
-      { label: 'Yes. Theft', note: 'Insurance can cover theft. Keeping your name off property makes you harder to find.', weights: { protection: 0.5 } },
-      { label: 'Yes. Someone pressuring me', note: 'A trust does not stop pressure. Keeping your name off property and accounts makes you harder to find.', weights: { protection: 0.5 } },
-      { label: 'Both', note: 'Insurance for theft. Keeping your name off property and accounts for pressure.', weights: { protection: 1 } },
-      { label: 'I\'m not sure what to worry about here', note: 'Nothing is added. The steps below walk through what actually helps.', weights: {} },
-    ],
-  },
-  {
-    id: 'who', group: 'protect',
-    text: 'If someone did come after the money, who do you picture?',
-    why: 'Different people need different defenses: privacy slows a stranger, and a trust funded after a creditor\'s claim can be undone. There is no wrong answer here.',
-    options: [
-      { label: 'No one in particular', note: 'Nothing is added.', weights: {} },
-      { label: 'A stranger', note: 'Keeping your name off property and accounts makes you harder to find.', weights: { protection: 0.5 } },
-      { label: 'A family member or friend', note: 'They may already know. A trust does not stop them from asking. It can make the assets harder to take if it is irrevocable and funded before any claim.', weights: { protection: 0.5 } },
-      { label: 'A business partner or creditor', note: 'A trust funded after a claim, or to dodge a creditor, can be undone. Insurance protects you, the person.', weights: { protection: 1 } },
-      { label: 'All of the above', note: 'Insurance protects you. Keeping your name off property and accounts makes you harder to find. An irrevocable trust funded before any claim can make assets harder to reach.', weights: { protection: 1 } },
-      { label: 'I haven\'t thought about it in this much detail', note: 'Nothing is added. The privacy steps work no matter who shows up later.', weights: {} },
-    ],
-  },
-  {
-    id: 'hold', group: 'protect',
-    text: 'Would you want at least some assets parked where a lawsuit would have a hard time reaching them?',
-    why: 'That is the irrevocable trust: you give up ownership, someone else is trustee, and it only works if funded before any claim exists. Answering here creates nothing.',
-    options: [
-      { label: 'No', note: 'Nothing is moved.', weights: {} },
-      { label: 'Yes. A revocable trust', note: 'You can change it. It does not protect assets from your own creditors while you are alive.', weights: { protection: 0.3 } },
-      { label: 'Yes. An irrevocable trust', note: 'It has to be funded before any claim. You no longer own what you put in. Answering here does not create it.', weights: { protection: 1 } },
-      { label: 'Yes. Both. A revocable trust and an irrevocable trust', note: 'The revocable one you can change. The irrevocable one protects what you put in, if it is funded before any claim.', weights: { protection: 1 } },
-      { label: 'I do not know yet', note: 'Nothing is moved until you decide.', weights: {} },
-      { label: 'What is the difference between the two?', note: 'Revocable: you keep control, but it shields nothing from your own creditors. Irrevocable: you give up ownership, and that is exactly why it shields.', weights: {} },
-    ],
-  },
-  {
-    id: 'last', group: 'long',
-    text: 'How long does this money need to hold out?',
-    why: 'Your age sets what "long" really means. Money that must last a lifetime needs a yearly amount that can be sustained; a shorter stretch lets you spend more now.',
-    options: [
-      { label: 'My whole life', note: 'The yearly amount has to be sustainable for the long stretch set by your age.', weights: { growth: 0.5 } },
-      { label: 'About the next 10 years', note: 'More can be spent now. Less has to be left for later.', weights: { income: 1 } },
-      { label: 'I do not know', note: 'The result uses the long stretch set by your age. You can change it later.', weights: {} },
-      { label: 'Longer than me — I want it to reach my kids', note: 'Then growth and the estate questions below matter more. The yearly amount still has to be sustainable.', weights: { legacy: 0.5 } },
+      { label: 'Lawsuits or creditors', note: 'Insurance protects you, and it is the cheap first step. An irrevocable trust funded before any claim can make assets harder to reach. Answering here creates neither.', weights: { protection: 1 } },
+      { label: 'Being found or targeted', note: 'Keeping your name off a house, a car, and accounts makes you harder to find. It does not stop a lawsuit or hide money from the tax office.', weights: { protection: 1 } },
+      { label: 'Markets crashing', note: 'More of the money sits in steadier things that drop less. That shapes the split, not any paperwork.', weights: {} },
+      { label: 'The tax office', note: 'The tax on the lottery check is set by the amount and where you live when you receive it. Nothing here hides money from the tax office.', weights: {} },
+      { label: 'Nothing in particular', note: 'No extra step is added by this answer.', weights: {} },
     ],
   },
   {
@@ -273,17 +235,6 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'umbrella', group: 'protect',
-    text: 'Quick practical one: do you have umbrella liability insurance?',
-    why: 'Trusts make assets hard to grab; insurance is what actually pays when you are sued. Dollar for dollar, a big umbrella policy is usually the cheapest protection you can buy.',
-    options: [
-      { label: 'Yes', note: 'Check the limit against your new net worth. Many winners carry $5M or more.', weights: { protection: 0.5 } },
-      { label: 'No', note: 'Worth pricing before any complex structure. It is usually the cheapest protection there is.', weights: { protection: 0.5 } },
-      { label: 'I do not know what that is', note: 'Umbrella insurance pays legal costs and judgments above your home and auto policies. Ask an insurance broker, not a trust promoter.', weights: { protection: 0.3 } },
-      { label: 'Not yet, but I\'ll price it this week', note: 'That is the right next step. Bring your new net-worth number so the limit actually matches.', weights: { protection: 0.3 } },
-    ],
-  },
-  {
     id: 'foreign', group: 'protect',
     text: 'Has anyone pitched you a foreign (offshore) trust as a way to dodge taxes?',
     why: 'For a US citizen, every gain inside a foreign trust you fund is still taxed to you personally. It can be an asset-protection tool, but it is not a tax tool.',
@@ -306,17 +257,6 @@ export const QUIZ: QuizQuestion[] = [
     ],
   },
   {
-    id: 'giving', group: 'long',
-    text: 'If you give to charity, how would you want to do it?',
-    why: 'A donor-advised fund gives one big deduction in the big tax year and lets you grant it out over time. A charitable remainder trust can sell appreciated assets tax-free and pay you income for life.',
-    options: [
-      { label: 'A fund now, grants over time', note: 'That is a donor-advised fund. It fits the big-tax-year deduction.', weights: { legacy: 0.4 } },
-      { label: 'Give assets but keep an income', note: 'That is a charitable remainder trust. Part goes to charity, so it is not an income maximizer.', weights: { legacy: 0.6, income: 0.3 } },
-      { label: 'No giving planned', note: 'Nothing is added.', weights: {} },
-      { label: 'I\'d rather just hand money to people directly', note: 'That counts as personal gifts, not charity, and different limits apply. The two structures above are the ones that get the tax break.', weights: {} },
-    ],
-  },
-  {
     id: 'retire', group: 'long',
     text: 'When do you want working to become optional?',
     why: 'This is what "long term" really means. Sooner means the yearly amount has to be reliable now; later gives compounding more time to work first.',
@@ -327,26 +267,12 @@ export const QUIZ: QuizQuestion[] = [
       { label: 'It already is — I won the lottery', note: 'Fair point. The yearly amount still has to be reliable, so the income settings do the work.', weights: { income: 0.5 } },
     ],
   },
-
-  {
-    id: 'never', group: 'long',
-    text: 'Of the big tax moves, which would you genuinely be willing to do?',
-    why: 'A tax strategy you will not actually follow through on is not a plan. Pick what you would really do — the rest stays off the table.',
-    options: [
-      { label: 'I would move to another state', note: 'Later income can be taxed in that state. The lottery check is taxed where you live when you receive it.', weights: { mobility: 0.5 } },
-      { label: 'I would live in Puerto Rico more than half the year', note: 'Later investment gains can use that path. You have to actually be there.', weights: { mobility: 1 } },
-      { label: 'I would give up US citizenship', note: 'That is the step that ends US tax on money from anywhere. It has its own tax.', weights: { mobility: 1 } },
-      { label: 'None of these', note: 'You stay where you are. US tax on money from anywhere continues.', weights: { mobility: 0 } },
-      { label: 'Any of them, if the savings were big enough', note: 'In order of effort: another state first, Puerto Rico second, citizenship last. Each step is a bigger life change than the one before.', weights: { mobility: 1 } },
-      { label: 'Maybe one of these — ask me in a year', note: 'Nothing changes until you actually do it. Staying put is the default.', weights: {} },
-    ],
-  },
 ];
 
 export const QUIZ_SHORT = ['claim', 'filing', 'worry', 'family', 'team', 'discipline'] as const;
-export const QUIZ_MIDDLE = ['live', 'time', 'market', 'give', 'risk', 'spendpattern', 'reinvest', 'business'] as const;
-export const QUIZ_PROTECT = ['sue', 'stolen', 'who', 'hold', 'umbrella', 'foreign'] as const;
-export const QUIZ_LONG = ['last', 'renounce', 'gone', 'later', 'never', 'estate', 'giving', 'retire'] as const;
+export const QUIZ_MIDDLE = ['live', 'time', 'market', 'give', 'risk', 'spendpattern', 'reinvest', 'business', 'archetype'] as const;
+export const QUIZ_PROTECT = ['threats', 'foreign'] as const;
+export const QUIZ_LONG = ['renounce', 'gone', 'later', 'estate', 'retire'] as const;
 
 export function profileFromAnswers(answers: Record<string, number>): GoalProfile {
   const acc: GoalProfile = { income: 1, growth: 0, protection: 0, mobility: 0, legacy: 0, simplicity: 0 };
