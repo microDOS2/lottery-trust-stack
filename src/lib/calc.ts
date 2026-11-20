@@ -15,7 +15,7 @@ export const fmtCompact = (n: number): string => {
 export const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
 
 export type Mode = 'balanced' | 'income' | 'growth' | 'manual';
-export type Residency = 'stay' | 'second' | 'move' | 'pr';
+export type Residency = 'none' | 'stay' | 'second' | 'move' | 'pr';
 export type Basis = 'gross' | 'net';
 
 export interface Inputs {
@@ -102,7 +102,7 @@ export const DEFAULT_INPUTS: Inputs = {
   setupCost: 0,
   annualAdmin: 0,
   mode: 'balanced',
-  residency: 'stay',
+  residency: 'none',
   filing: 'single',
   prFiling: 'pre2027',
   preMoveGains: 0,
@@ -173,6 +173,7 @@ export function futureStateRate(inp: Inputs): number {
   const st = stateByCode(inp.state);
   const tg = stateByCode(inp.target);
   if (inp.residency === 'pr') return 0; // PR replaces the state picture; federal handled via prRate
+  if (inp.residency === 'none') return 0; // no special residency plan: no assumed state drag on future income
   if (inp.residency === 'stay') return st.rate;
   if (inp.residency === 'second' && !tg.noTax) return st.rate; // second-home mode against a taxed target keeps exposure
   return tg.rate;
