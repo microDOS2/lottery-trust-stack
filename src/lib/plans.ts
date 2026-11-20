@@ -33,10 +33,10 @@ export function explainMix(answers: Record<string, number>, inputs: Inputs): { c
   if (answers.live === 2) add('pr-act60', 'You said you could actually live in Puerto Rico — Act 60 is in your mix.');
   else if (answers.live === 1) rationale.push('You are open to a 0% income-tax state. That is a residency setting, not a strategy card.');
   if (answers.worry === 1) add('real-estate', 'You worry about being found. The anonymous LLC keeps your name off property and titles.');
-  if (answers.sue === 1 || answers.hold >= 1) rationale.push('You want assets harder to take. The DAPT and the insurance trust are already in the base stack; umbrella insurance is the cheap add-on.');
+  if (answers.threats === 0 || answers.threats === 1) rationale.push('You want assets harder to take. The DAPT and the insurance trust are already in the base stack; umbrella insurance is the cheap add-on.');
   if (answers.business === 1) add('qsbs', 'You plan a business. QSBS startup stock can exclude up to $15M of gain after 5 years.');
   if (answers.reinvest === 1) add('oz', 'You want the surplus working somewhere sheltered — Opportunity Zone funds defer gains and erase 10-year appreciation.');
-  if (answers.give === 1 || answers.give === 2 || answers.giving === 0 || answers.giving === 1) add('charitable', 'You plan to give. A DAF or a charitable remainder trust does it tax-efficiently.');
+  if (answers.give === 1 || answers.give === 2 || answers.give === 4) add('charitable', 'You plan to give. A DAF or a charitable remainder trust does it tax-efficiently.');
   if (answers.estate === 0) add('legacy', 'Your estate clears the $15M exclusion. The dynasty-trust layer becomes the priority.');
   if (answers.foreign === 0) add('foreign-trust', 'You asked about offshore trusts. Read the reality check: protection yes, tax savings no.');
   if (answers.renounce === 1) add('expatriation', 'You would consider renouncing. That is the exit-tax module — a life decision, not a tax play.');
@@ -89,7 +89,7 @@ function outcomeLines(inputs: Inputs, result: StackResult, answers: Record<strin
   if (answers.reinvest === 1) {
     lines.push('For the venture dollars: if it is a C-corporation, startup stock can exclude up to $15M of gain after 5 years (QSBS). That is the one reinvestment that can beat the stack.');
   }
-  if (answers.umbrella === 2) {
+  if (answers.threats === 0 || answers.threats === 1) {
     lines.push('Umbrella liability insurance pays when you are sued. Trusts make assets harder to take. You usually want both, and the insurance is the cheaper first step.');
   }
   if (answers.foreign === 0) {
@@ -98,10 +98,8 @@ function outcomeLines(inputs: Inputs, result: StackResult, answers: Record<strin
   if (answers.estate === 0) {
     lines.push('Above the $15M-per-person federal estate exclusion, the top estate rate is 40%. The dynasty-trust layer is how growth escapes it — fund it early.');
   }
-  if (answers.giving === 0) {
-    lines.push('A donor-advised fund turns the big tax year into a big deduction and lets you grant the money out over time.');
-  } else if (answers.giving === 1) {
-    lines.push('A charitable remainder trust sells appreciated assets tax-free and pays you income for life. The remainder goes to charity.');
+  if (answers.give === 2 || answers.give === 4) {
+    lines.push('A donor-advised fund turns the big tax year into a big deduction and lets you grant the money out over time. A charitable remainder trust is the other option: it sells appreciated assets tax-free and pays you income for life.');
   }
   if (answers.spendpattern === 0) {
     lines.push('The draw is flat: the same dollars every year. Buying power slowly shrinks with inflation; more stays compounding.');
@@ -126,7 +124,8 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
     spend: inputs.spend,
     residency: residencyFor(answers),
     mode: 'balanced',
-    dial: answers.market === 0 ? 100 : answers.market === 1 ? 0 : 50,
+    dial: answers.archetype === 0 ? 100 : answers.archetype === 1 ? 50 : answers.archetype === 2 ? 0
+      : answers.market === 0 ? 100 : answers.market === 1 ? 0 : 50,
     flatDraw: answers.spendpattern === 0,
     drawOverrides: {},
   };
