@@ -242,7 +242,7 @@ export default function CalculatorView(p: Props) {
     <div className="space-y-4">
       <div>
         <SectionTitle
-          num="03"
+          num="01"
           title={<>Your after-tax pool, <span className="sig-italic">working for you</span></>}
           blurb={`${st.name} prize, ${inp.basis === 'gross' ? 'starting from the gross cash option' : 'starting from money already after tax'}, ${inp.filing === 'mfj' ? 'married filing jointly' : 'single'} — 2026 rates.`}
         />
@@ -413,14 +413,21 @@ export default function CalculatorView(p: Props) {
           <ManualAlloc inputs={inp} setInputs={p.setInputs} />
         )}
 
-        <Field label="Residency plan" help="Controls which state taxes your future investment income.">
-          <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.residency} onChange={(e) => set('residency', e.target.value as Inputs['residency'])}>
-            <option value="stay">Stay put in {st.name}</option>
-            <option value="second">Second home + domicile in {tg.name} (&lt;183 days)</option>
-            <option value="move">Full move to {tg.name}</option>
-            <option value="pr">Move to Puerto Rico (Act 60 decree)</option>
-          </select>
-        </Field>
+        <details className="rounded-md border border-input">
+          <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-muted-foreground hover:text-foreground">Optional: model a residency change</summary>
+          <div className="px-3 pb-3 pt-1">
+            <p className="mb-2 text-[12.5px] leading-snug text-muted-foreground">
+              No special residency plan is assumed by default — nothing about future investment income is taxed by state unless you choose a plan below. The prize itself is still taxed where you claimed it.
+            </p>
+            <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.residency} onChange={(e) => set('residency', e.target.value as Inputs['residency'])}>
+              <option value="none">No special residency plan</option>
+              <option value="stay">Stay put in {st.name}</option>
+              <option value="second">Second home + domicile in {tg.name} (&lt;183 days)</option>
+              <option value="move">Full move to {tg.name}</option>
+              <option value="pr">Move to Puerto Rico (Act 60 decree)</option>
+            </select>
+          </div>
+        </details>
 
         <Field label="Filing status" help="Used only for the federal estimate on the prize.">
           <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.filing} onChange={(e) => set('filing', e.target.value as Inputs['filing'])}>
@@ -753,6 +760,7 @@ function ExplainRail({ inp, r }: { inp: Inputs; r: StackResult }) {
       <div className="hairline-card p-5">
         <h4 className="font-display text-base font-semibold">Your residency math</h4>
         <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+          {inp.residency === 'none' && <>No special residency plan selected — nothing about future investment income is taxed by state in this model. The prize is still taxed where you claimed it.</>}
           {inp.residency === 'stay' && <>Staying in {st.name} means future unshielded income faces {pct(st.rate)} state tax. The stack's engines are designed so that number touches as little of your money as possible.</>}
           {inp.residency === 'pr' && <>As a bona fide Puerto Rico resident with an Act 60 decree, federal tax on post-move investment <em>gains</em> drops to <span className="font-num stat-good font-semibold">{pct(r.prRate, 0)}</span> under IRC §933 — the strongest legal rate available to a US person who keeps their citizenship. Details and the filing deadline are in the PR module above.</>}
           {(inp.residency === 'second' || inp.residency === 'move') && <>Domiciled in {tg.name} ({tg.noTax ? '0% income tax' : `${pct(tg.rate)} top rate`}), your future investment income faces <span className="font-num stat-good font-semibold">{pct(r.futureStateRate)}</span> state tax. Keep a day-count log — {st.name} will check.</>}
