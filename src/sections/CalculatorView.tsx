@@ -15,7 +15,7 @@ import Lazy3D from '../components/Lazy3D';
 import { STRATEGIES } from '../lib/content';
 import DrawSchedule from './DrawSchedule';
 import { Slider } from '@/components/ui/slider';
-import { AlertTriangle, Link2, Check, RotateCcw, Settings2, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
+import { AlertTriangle, Link2, Check, RotateCcw, Settings2, ArrowUp, ArrowDown } from 'lucide-react';
 
 export interface ScenarioSlot {
   name: string;
@@ -77,7 +77,7 @@ export default function CalculatorView(p: Props) {
   const [alloc3D, setAlloc3D] = useState(true);
   const [race3D, setRace3D] = useState(true);
   const [layout, setLayoutRaw] = useState<Layout>(loadLayout);
-  const [more, setMore] = useState(false);
+
   const setLayout = (l: Layout) => {
     setLayoutRaw(l);
     try { localStorage.setItem('lotteryStack.layout', JSON.stringify(l)); } catch { /* ignore */ }
@@ -123,11 +123,15 @@ export default function CalculatorView(p: Props) {
     [order[i], order[j]] = [order[j], order[i]];
     setLayout({ ...layout, order });
   };
-  const toggleHide = (id: string) =>
+
+  const toggleHide = (id: string) => {
     setLayout({
       ...layout,
-      hidden: layout.hidden.includes(id) ? layout.hidden.filter((h) => h !== id) : [...layout.hidden, id],
+      hidden: layout.hidden.includes(id)
+        ? layout.hidden.filter((hiddenId) => hiddenId !== id)
+        : [...layout.hidden, id],
     });
+  };
 
   const sectionNode = (id: string) => {
     switch (id) {
@@ -329,14 +333,7 @@ export default function CalculatorView(p: Props) {
             : `You keep ${fmtCompact(r.net)} after tax. You could take about ${fmtCompact(r.capacity)} a year with no tax on that cash. In 30 years this setup would be about ${fmtCompact(r.stackEnd)}, versus ${fmtCompact(r.baselineEnd)} in a normal taxable account.`}
         </p>
 
-        <Tip text={more ? 'Hide the extra inputs. State, prize, and spending stay visible.' : 'Move, reserves, fees, the income-or-growth slider, and the rate assumptions.'} more="assumptions">
-        <button type="button" onClick={() => setMore((v) => !v)} className="text-left text-sm font-medium text-primary hover:underline cursor-pointer">
-          {more ? 'Hide extra inputs' : 'More inputs'}
-        </button>
-        </Tip>
-
-        {more && (
-        <>
+        {/* All inputs are always visible — nothing is hidden behind a toggle. */}
         <Field label="How much should be left at the end?" help="Choose 'Spend it all' and we solve the biggest yearly check that uses the stack up by the last year. Anything else keeps more compounding. Clears the custom draw schedule when you change it.">
           <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.leaveTarget} onChange={(e) => applyLeaveTarget(e.target.value)}>
             <option value="max">As much as possible</option>
@@ -503,8 +500,6 @@ export default function CalculatorView(p: Props) {
         <button title="Copies a link that reopens these exact numbers." onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 cursor-pointer">
           {copied ? <><Check className="h-4 w-4" /> Link copied</> : <><Link2 className="h-4 w-4" /> Copy shareable link</>}
         </button>
-        </>
-        )}
       </div>
 
       {/* ---------- Results ---------- */}
@@ -559,7 +554,7 @@ export default function CalculatorView(p: Props) {
           </div>
         )}
 
-        {layout.order.filter((id) => !layout.hidden.includes(id)).map((id, idx, arr) => {
+        {layout.order.map((id, idx, arr) => {
           const meta = SECTION_META.find((m) => m.id === id)!;
           return (
             <div key={id}>
@@ -568,7 +563,7 @@ export default function CalculatorView(p: Props) {
                   <span className="font-mono uppercase tracking-wider">{meta.title}</span>
                   <button title="Move this section up." onClick={() => move(id, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
                   <button title="Move this section down." onClick={() => move(id, 1)} disabled={idx === arr.length - 1} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
-                  <button title="Hide this section. You can restore it from the list above." onClick={() => toggleHide(id)} className="rounded p-1 hover:bg-secondary cursor-pointer" aria-label="Hide section"><EyeOff className="h-3.5 w-3.5" /></button>
+  
                 </div>
               )}
               <p className="-mt-1 mb-2 max-w-[75ch] text-[13px] leading-snug text-muted-foreground">{meta.purpose}</p>
