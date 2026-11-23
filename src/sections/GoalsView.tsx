@@ -24,6 +24,155 @@ const MIDDLE = new Set<string>(QUIZ_MIDDLE);
 const PROTECT = new Set<string>(QUIZ_PROTECT);
 const LONG = new Set<string>(QUIZ_LONG);
 
+const SHORT_QS = QUIZ.filter((q) => SHORT.has(q.id));
+const MIDDLE_QS = QUIZ.filter((q) => MIDDLE.has(q.id));
+const PROTECT_QS = QUIZ.filter((q) => PROTECT.has(q.id));
+const LONG_QS = QUIZ.filter((q) => LONG.has(q.id));
+const DISPLAY_ORDER = [...SHORT_QS, ...MIDDLE_QS, ...PROTECT_QS, ...LONG_QS];
+const SHORT_START = 1;
+const MIDDLE_START = SHORT_START + SHORT_QS.length;
+const PROTECT_START = MIDDLE_START + MIDDLE_QS.length;
+const LONG_START = PROTECT_START + PROTECT_QS.length;
+
+/** One-line effect of each quiz answer, mirroring the plans.ts recommendation logic. */
+const EFFECTS: Record<string, string[]> = {
+  claim: [
+    'the tax basis is set to "before tax" — federal and state tax come off first',
+    'the tax basis is set to "already after tax" — nothing more comes off for prize tax',
+    'the tax basis is set to "before tax" — the cautious guess — until you flip it',
+  ],
+  filing: [
+    'filing is set to one person on the return',
+    'filing is set to two people on the return — wider brackets before rates climb',
+    'filing is set to one person for now — easy to change later',
+  ],
+  worry: [
+    'the running-out check is emphasized in the result',
+    'privacy steps are in your mix — the anonymous LLC keeps your name off property',
+    'the result notes that the check tax is fixed by amount and current state',
+    'the result reminds you to include care in the yearly amount',
+    'no setting changed — noted',
+    'both the running-out check and the privacy steps are emphasized',
+  ],
+  live: [
+    'residency is set to stay — later income is taxed where you are',
+    "residency is set to move — a 0% state changes the tax on later income",
+    'residency is set to Puerto Rico — later gains can use the PR path',
+    'the result notes that living abroad does not end US tax',
+    'residency stays put until you pick',
+  ],
+  time: [
+    'the result checks that the yearly amount covers living costs',
+    'the result checks that the yearly amount covers the travel and the places',
+    'the result uses the yearly amount you typed',
+    'the result still checks that the yearly amount can be paid',
+  ],
+  market: [
+    'the dial leans steady (100) so the yearly amount keeps coming',
+    'the dial is set to 0 — more stays in things that grow',
+    'the dial uses the middle split (50)',
+    'the dial uses a middle split (50) — steady money plus growth',
+  ],
+  give: [
+    'nothing is given',
+    'the gift amount is taken out of the pile before investing — it can use the estate exclusion',
+    'the gift amount is taken out of the pile before investing — it can cut income tax that year',
+    'nothing is given until you type an amount',
+    'both kinds of gift come out of the pile before investing',
+  ],
+  archetype: [
+    'the dial leans steady (100) so spending now stays reliable',
+    'the dial uses the middle split (50)',
+    'the dial is set to 0 — the plan leans growth for later',
+  ],
+  threats: [
+    'protection is emphasized — the DAPT plus umbrella insurance are in the notes',
+    'privacy is emphasized — the anonymous LLC is in your mix',
+    'the split leans steadier — that is a settings change, not paperwork',
+    'the result notes that nothing here hides money from the tax office',
+    'no extra step added',
+  ],
+  renounce: [
+    'US tax on worldwide income continues',
+    'the exit-tax module is in your mix — a life decision, not a tax play',
+    'nothing changes until you decide',
+    'noted — most people say no, and that is fine',
+  ],
+  gone: [
+    'the result still shows what would be left',
+    'legacy weight goes up — a trust can be written for that',
+    'protection weight goes up — an irrevocable trust is noted',
+    'the priority is the life, not a pile left over',
+    'the result shows what would be left — the split is tunable later',
+  ],
+  later: [
+    'every year uses the first yearly amount',
+    'the later-years amount field opened — from year 11 it replaces the first amount',
+    'the first yearly amount stays until you type a later one',
+    'same as yes — type the later amount and it applies from year 11',
+  ],
+  family: [
+    'the yearly amount only needs to cover you',
+    'the household rides on the yearly amount — legacy weight goes up',
+    'their support goes into the yearly amount',
+    'the yearly amount covers you for now',
+  ],
+  team: [
+    'the first three hires are noted: tax attorney, CPA, fee-only advisor',
+    'the result notes that the paperwork still needs licensed pros',
+    'the assumptions stay editable so your pros can argue with the rates',
+    'the result notes that a pitch is not advice',
+  ],
+  discipline: [
+    'no guardrails added — the yearly amount drives everything',
+    'the result suggests starting with a smaller yearly amount',
+    'guardrails are suggested: a modest yearly amount and the annuity comparison',
+    'cheap guardrails are suggested: start modest, raise it later',
+  ],
+  risk: [
+    'less stays in stocks — more sits in bonds and the insurance wrapper',
+    'the balanced split is built for exactly this',
+    'more can stay in stocks — compounding does the work',
+    'the result notes that an advisor\'s real job is the call on that day',
+  ],
+  spendpattern: [
+    'the draw is flat — the same dollars every year',
+    'the draw grows each year with prices',
+    'the draw defaults to inflation-linked — flip it on the calculator',
+    'the draw defaults to inflation-linked — flip it on the calculator',
+  ],
+  reinvest: [
+    'surplus goes back into the stack by default',
+    'the QSBS card is in your mix for business surplus',
+    'surplus parks in Treasuries or tax-exempt money market, not checking',
+    'the stack stays the default home for surplus',
+  ],
+  business: [
+    'nothing is set aside for a business',
+    'QSBS is in your mix — type the amount in the business box',
+    'the result notes to ask your CPA about QSBS before any sale',
+    'the result notes to slow down on pitched deals',
+  ],
+  foreign: [
+    'the foreign-trust reality check is in your mix — protection yes, tax savings no',
+    'nothing to unlearn',
+    'the page keeps using US federal and state rules',
+    'the reality check card in the library covers the actual rules',
+  ],
+  estate: [
+    'the dynasty-trust layer is in your mix — fund it early',
+    'an annual estate review is noted, not a day-one structure',
+    'the estate layer can wait',
+    'the result shows the estate number it uses',
+  ],
+  retire: [
+    'the yearly amount has to be reliable from month 13 on',
+    'the growth-leaning settings fit — a decade of compounding first',
+    'the stack can be all growth — income only if you want it',
+    'the income settings do the work',
+  ],
+};
+
 function stretches(age: number): { short: string; middle: string; long: string } {
   if (age <= 0) return { short: 'the next few years', middle: 'the next 10 years', long: 'the years after that' };
   if (age >= 75) return { short: `the next 2 years, until you are ${age + 2}`, middle: `the next 5 years, until you are ${age + 5}`, long: `the years after you are ${age + 5}` };
@@ -54,7 +203,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
     if (inputs.dial !== dial) setInputs((p) => ({ ...p, dial, mode: 'balanced' }));
   }, [answers.market, inputs.mode, inputs.dial, setInputs]);
   const answered = Object.keys(answers).length;
-  const ready = inputs.amount > 0 && age > 0 && answered === QUIZ.length;
+  const ready = inputs.amount > 0 && answered === QUIZ.length;
   const set = useMemo(
     () => (ready ? buildBestPlans(answers, inputs, asm) : null),
     [ready, answers, inputs, asm],
@@ -63,6 +212,18 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
   const moveStates = STATES.filter((s) => s.noTax || s.code === inputs.target);
   const outcome = set?.plans[0];
   const span = stretches(age);
+  const changedLines = useMemo(
+    () =>
+      DISPLAY_ORDER.filter((q) => answers[q.id] !== undefined).map((q) => {
+        const oi = answers[q.id];
+        return {
+          id: q.id,
+          label: q.options[oi]?.label ?? '',
+          effect: EFFECTS[q.id]?.[oi] ?? 'no setting changed — noted',
+        };
+      }),
+    [answers],
+  );
 
   const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'venture' | 'rental' | 'gift' | 'laterSpend' | 'ppliFee' | 'setupCost' | 'annualAdmin' | 'state' | 'target', value: number | string) => {
     setInputs((p) => ({ ...p, [key]: value }));
@@ -76,7 +237,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         </p>
       )}
       <SectionTitle
-        num="01"
+        num="08"
         title={<>Plan the life, <span className="sig-italic">short, middle, and long</span></>}
         blurb="One page. Age first, because a 40-year-old and a 75-year-old do not mean the same thing by later. The result is whether the money can pay for the life without running out. A pile at a fixed year 25 is not the finish line."
       />
@@ -116,13 +277,29 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         </div>
       </div>
 
+      <div className="hairline-card border-primary/30 bg-accent/40 p-5 text-[14.5px] leading-relaxed">
+        A few quick questions to shape your plan. Skip anything you don't feel like answering — the model fills in sensible defaults and says so.
+      </div>
+
+      <div className="hairline-card p-4">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="font-medium">{answered} of {QUIZ.length} answered</span>
+          {answered < QUIZ.length && (
+            <span className="text-muted-foreground">{QUIZ.length - answered} to go</span>
+          )}
+        </div>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-primary/15" role="progressbar" aria-valuenow={answered} aria-valuemin={0} aria-valuemax={QUIZ.length} aria-label={`${answered} of ${QUIZ.length} questions answered`}>
+          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, (answered / QUIZ.length) * 100)}%` }} />
+        </div>
+      </div>
+
       <div className="hairline-card p-6 md:p-8">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">How old are you? <Explainer text="Age sets what short, middle, and long mean. It is not a range." more="trade" /></span>
+            <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">How old are you? (optional) <Explainer text="Age sets what short, middle, and long mean. It is not a range. Leave it blank and the result uses a generic 30-year horizon." more="trade" /></span>
             <input type="number" min={0} max={120} step={1} value={age || ''} onChange={(e) => setAge(+e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
             <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
-              {age > 0 ? `Short is ${span.short}. Middle is ${span.middle}. Long is ${span.long}.` : 'Type your age. The three stretches are set from it.'}
+              {age > 0 ? `Short is ${span.short}. Middle is ${span.middle}. Long is ${span.long}.` : 'Optional. Leave it blank and the result uses a generic 30-year horizon.'}
             </span>
           </label>
           <label className="block">
@@ -139,7 +316,7 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
         </div>
       </div>
 
-      <Group heading={`First, the basics — ${span.short}`} questions={QUIZ.filter((q) => SHORT.has(q.id))} answers={answers} setAnswers={setAnswers} />
+      <Group heading={`First, the basics — ${span.short}`} questions={SHORT_QS} answers={answers} setAnswers={setAnswers} start={SHORT_START} total={QUIZ.length} />
 
       <label className="hairline-card block p-6">
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">How much do you want available each year to live the way you want? <Explainer text="This is the check the result tests. Include anyone you support and any care cost. A bigger number runs out sooner." /></span>
@@ -165,8 +342,8 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
           <Chips chips={[{label:'$500K',value:500000},{label:'$1.5M',value:1500000},{label:'$3M',value:3000000}]} value={inputs.entity4} onChange={(v)=>setNum('entity4',v)} hint="Cash set aside for a home, a boat, or a big purchase soon. This money is not invested." />
       </label>
 
-      <Group heading={`Your everyday life — ${span.middle}`} questions={QUIZ.filter((q) => MIDDLE.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
-        give: answers.give === 1 || answers.give === 2 ? (
+      <Group heading={`Your everyday life — ${span.middle}`} questions={MIDDLE_QS} answers={answers} setAnswers={setAnswers} start={MIDDLE_START} total={QUIZ.length} extra={{
+        give: (answers.give === 1 || answers.give === 2 || answers.give === 4) ? (
           <label className="mt-3 block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for the gift <Explainer text="Taken out before investing. Nothing is given until you type it. A gift to a person can use the $15,000,000 estate exclusion. A gift to charity can reduce income tax in the year you give it. This page does not compute that tax cut." /></span>
             <input type="number" min={0} step={1} value={inputs.gift || ''} onChange={(e) => setNum('gift', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
@@ -273,11 +450,11 @@ Common mistake: comparing a policy's charges to a brokerage account without also
           <p className="mt-3">A trustee has a legal duty to follow the trust terms and act for the beneficiary. You choose the trustee. You can name a co-trustee. You can name a trust protector who can remove the trustee. You can write distribution standards that require the trustee to pay you for living costs, care, or other needs. You can require accountings. What you cannot do is keep the power to force distributions or to remove and replace the trustee at will. That power can make the protection fail and can make the IRS treat the assets as still yours.</p>
           <p className="mt-3">Neither kind hides money from the tax office. Answering a question does not create a trust. A lawyer has to draft it.</p>
         </details>
-        <Group heading="" questions={QUIZ.filter((q) => PROTECT.has(q.id))} answers={answers} setAnswers={setAnswers} />
+        <Group heading="" questions={PROTECT_QS} answers={answers} setAnswers={setAnswers} start={PROTECT_START} total={QUIZ.length} />
       </div>
 
-      <Group heading={`Down the road — ${span.long}`} questions={QUIZ.filter((q) => LONG.has(q.id))} answers={answers} setAnswers={setAnswers} extra={{
-        later: answers.later === 1 ? (
+      <Group heading={`Down the road — ${span.long}`} questions={LONG_QS} answers={answers} setAnswers={setAnswers} start={LONG_START} total={QUIZ.length} extra={{
+        later: (answers.later === 1 || answers.later === 3) ? (
           <label className="mt-3 block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly amount from year 11 on <Explainer text="Replaces the first yearly amount from year 11 through year 30. Years 2 through 10 keep the first amount. Nothing changes until you type it." /></span>
             <input type="number" min={0} step={1} value={inputs.laterSpend || ''} onChange={(e) => setNum('laterSpend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
@@ -286,38 +463,40 @@ Common mistake: comparing a policy's charges to a brokerage account without also
         ) : null,
       }} />
 
-      {answered > 0 && (
-        <div className="sticky bottom-4 z-30 no-print">
-          <div className="hairline-card flex flex-wrap items-center justify-between gap-3 border-primary/40 bg-card/95 p-4 shadow-lg backdrop-blur">
-            <div className="text-sm text-muted-foreground">
-              {ready ? (
-                <span><strong className="text-foreground">All questions answered.</strong> Next: fine-tune the plan, or save it and compare.</span>
-              ) : (
-                <span>
-                  Still to go: {[
-                    age <= 0 ? 'your age' : null,
-                    inputs.amount <= 0 ? 'the cash amount' : null,
-                    answered < QUIZ.length ? `${QUIZ.length - answered} more question${QUIZ.length - answered === 1 ? '' : 's'}` : null,
-                  ].filter(Boolean).join(' · ')}
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              disabled={!ready}
-              onClick={() => { if (outcome) setInputs(() => outcome.inputs); onApplyScenario(); }}
-              className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-            >
-              Continue to Fine-tune →
-            </button>
+      <div className="sticky bottom-4 z-30 no-print">
+        <div className="hairline-card flex flex-wrap items-center justify-between gap-3 border-primary/40 bg-card/95 p-4 shadow-lg backdrop-blur">
+          <div className="text-sm text-muted-foreground">
+            <span className="mr-2 font-medium text-foreground">{answered} of {QUIZ.length} answered.</span>
+            {ready ? (
+              <span><strong className="text-foreground">All questions answered.</strong> Next: fine-tune the plan, or save it and compare.</span>
+            ) : (
+              <span>
+                Still to go: {[
+                  inputs.amount <= 0 ? 'the cash amount' : null,
+                  answered < QUIZ.length ? `${QUIZ.length - answered} more question${QUIZ.length - answered === 1 ? '' : 's'}` : null,
+                ].filter(Boolean).join(' · ')}
+              </span>
+            )}
           </div>
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={() => { if (outcome) setInputs(() => outcome.inputs); onApplyScenario(); }}
+            className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+          >
+            Continue to Fine-tune →
+          </button>
         </div>
-      )}
+      </div>
 
       {outcome && (
         <article data-tour="result" className="hairline-card border-success/40 p-6">
           <h3 className="font-display text-xl font-semibold">The result</h3>
-          <p className="mt-2 text-[14.5px] text-muted-foreground">Age {age}. Short is {span.short}. Middle is {span.middle}.</p>
+          <p className="mt-2 text-[14.5px] text-muted-foreground">
+            {age > 0
+              ? <>Age {age}. Short is {span.short}. Middle is {span.middle}.</>
+              : <>No age given — the result uses a generic 30-year horizon: short is the next few years, middle the next 10 years, long the years after that.</>}
+          </p>
           <ul className="mt-3 list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-muted-foreground">
             {set?.preface.map((line) => <li key={line}>{line}</li>)}
             {outcome.whys.map((w) => <li key={w}>{w}</li>)}
@@ -363,25 +542,43 @@ Common mistake: comparing a policy's charges to a brokerage account without also
           </div>
         </article>
       )}
+
+      {outcome && changedLines.length > 0 && (
+        <section className="hairline-card p-5">
+          <h4 className="font-display text-base font-semibold">What your answers changed</h4>
+          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14px] leading-relaxed text-muted-foreground">
+            {changedLines.map((c) => (
+              <li key={c.id}>You chose “{c.label}” → {c.effect}</li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
 
 function Group({
-  heading, questions, answers, setAnswers, extra,
+  heading, questions, answers, setAnswers, extra, start, total,
 }: {
   heading: string;
   questions: QuizQuestion[];
   answers: Record<string, number>;
   setAnswers: (fn: (a: Record<string, number>) => Record<string, number>) => void;
   extra?: Record<string, ReactNode>;
+  start: number;
+  total: number;
 }) {
   return (
     <div className="space-y-6">
       {heading ? <h3 className="font-display text-lg font-semibold">{heading}</h3> : null}
-      {questions.map((q) => (
+      {questions.map((q, i) => (
         <fieldset key={q.id} className="hairline-card p-5">
-          <legend className="mb-1 text-[15px] font-medium">{q.text}</legend>
+          <legend className="mb-1 text-[15px] font-medium">
+            <span className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-primary">
+              Question {start + i} of {total}
+            </span>
+            {q.text}
+          </legend>
           <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">{q.why}</p>
           <div className="flex flex-col gap-2">
             {q.options.map((o, oi) => (
