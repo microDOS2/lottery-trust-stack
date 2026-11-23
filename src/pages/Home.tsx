@@ -198,6 +198,7 @@ export default function Home() {
   });
   const [notice, setNotice] = useState<EngineNotice | null>(null);
   const [touring, setTouring] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
   const [entities, setEntitiesRaw] = useState<EntityItem[]>(() => {
     try { return JSON.parse(localStorage.getItem('lotteryStack.entities') ?? '[]'); } catch { return []; }
   });
@@ -227,6 +228,7 @@ export default function Home() {
     setInputsRaw((p) => ({ ...p, amount: 100_000_000, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000 }));
     dismissWelcome();
     setView('goals');
+    setResetKey((k) => k + 1);
   };
 
   useEffect(() => {
@@ -301,7 +303,8 @@ export default function Home() {
     setWelcomed(false);
     setView('goals');
     try {
-      ['lotteryStack.inputs', 'lotteryStack.assumptions', 'lotteryStack.scenarios', 'lotteryStack.quizAnswers', 'lotteryStack.layout', 'lotteryStack.welcomed'].forEach((k) => localStorage.removeItem(k));
+      ['lotteryStack.inputs', 'lotteryStack.assumptions', 'lotteryStack.scenarios', 'lotteryStack.quizAnswers', 'lotteryStack.layout', 'lotteryStack.welcomed', 'lotteryStack.age'].forEach((k) => localStorage.removeItem(k));
+    setResetKey((k) => k + 1);
     } catch { /* ignore */ }
   };
 
@@ -385,8 +388,7 @@ export default function Home() {
               onChange={(e) => {
                 const amount = Number(e.target.value);
                 if (!amount) return;
-                setInputsRaw((p) => ({ ...p, amount, basis: 'gross', spend: amount >= 50_000_000 ? 500_000 : Math.round(amount * 0.03) }));
-                setView('calc');
+                trySample();
                 e.target.value = '';
               }}
             >
@@ -445,6 +447,7 @@ export default function Home() {
         )}
         {view === 'goals' && (
           <GoalsView
+            key={resetKey}
             inputs={inputs}
             setInputs={setInputs}
             asm={asm}
