@@ -153,8 +153,8 @@ function eligibilityOf(id: string, core: number, stackEnd: number, typed: number
       return { ok: true, label: 'Your numbers qualify', reason: `${fmt(typed)} typed from a ${fmt(core)} investable core.` };
     case 'legacy':
       return stackEnd > ESTATE_EXEMPTION
-        ? { ok: true, label: 'Your numbers qualify', reason: `Your projected 25-year pile is ${fmt(stackEnd)} — above the ${fmt(ESTATE_EXEMPTION)} exclusion. The pile is a rough proxy for your estate; a lawyer uses the real number.` }
-        : { ok: false, label: 'Not yet — here\'s what\'s missing', reason: `Your projected 25-year pile is ${fmt(stackEnd)}, under the ${fmt(ESTATE_EXEMPTION)} exclusion. The pile is only a rough proxy for your estate.` };
+        ? { ok: true, label: 'Your numbers qualify', reason: `Your projected 30-year pile is ${fmt(stackEnd)} — above the ${fmt(ESTATE_EXEMPTION)} exclusion. The pile is a rough proxy for your estate; a lawyer uses the real number.` }
+        : { ok: false, label: 'Not yet — here\'s what\'s missing', reason: `Your projected 30-year pile is ${fmt(stackEnd)}, under the ${fmt(ESTATE_EXEMPTION)} exclusion. The pile is only a rough proxy for your estate.` };
     case 'pr-act60':
       return core > 0
         ? { ok: true, label: 'Your numbers qualify', reason: 'The math works on your numbers — but it only counts if you actually move and live there more than half the year.' }
@@ -185,11 +185,11 @@ function readQuizTriggers(): Record<string, string[]> {
       add('real-estate', 'Suggested because you said you worry about people finding out or targeting you — an LLC keeps your name off the property.');
       add('foreign-trust', 'You said you worry about being targeted — read this so you know what it can and cannot do.');
     }
-    if (a.sue === 1) add('legacy', 'Suggested because you said you are worried about being sued — a trust funded before any claim can make assets harder to reach.');
+    if (a.threats === 0 || a.threats === 1) add('legacy', 'Suggested because you said you are worried about being sued or targeted — a trust funded before any claim can make assets harder to reach.');
     if (a.live === 2) add('pr-act60', 'Suggested because you said you are open to living in Puerto Rico.');
     if (a.business === 1) add('qsbs', 'Suggested because you said you may start or buy a business.');
     if (a.reinvest === 1) add('oz', 'Suggested because you said you would put extra cash into a business or venture — a zone fund is the tax-deferred version of that move.');
-    if (a.giving === 0 || a.giving === 1) add('charitable', 'Suggested because you said you want to give to charity.');
+    if (a.give === 2 || a.give === 4) add('charitable', 'Suggested because you said you want to give to charity.');
     if (a.estate === 0) add('legacy', 'Suggested because you said your estate will clearly top $15 million.');
     if (a.foreign === 0) add('foreign-trust', 'Suggested because someone pitched you an offshore trust — this card is the reality check.');
     if (a.renounce === 1) add('expatriation', 'Suggested because you said you would consider giving up US citizenship.');
@@ -239,12 +239,25 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
 
       <section className="hairline-card border-primary/30 p-6">
         <h2 className="font-display text-xl font-semibold">Recommended for you</h2>
+        {(() => {
+          try {
+            const a = JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}');
+            const archetype = a.archetype;
+            if (archetype === undefined) return null;
+            const preferred = archetype === 0 ? 'Steady income' : archetype === 1 ? 'Balanced' : 'Maximum growth';
+            return (
+              <p className="mt-2 text-[13px] font-medium text-primary">
+                Your answer points to <strong>{preferred}</strong> — {archetype === 0 ? 'you want to enjoy it now.' : archetype === 1 ? 'you want a bit of both.' : 'you want it to grow for later.'}
+              </p>
+            );
+          } catch { return null; }
+        })()}
         <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
           Three curated starting points based on your numbers. Pick one — it turns on the right strategies and sets the dial.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {([
-            { name: 'Steady income', ids: ['engine-a', 'engine-b'], dial: 75, why: 'Reliable tax-free income now. Bonds and the insurance wrapper pay you every year while the pile keeps growing.' },
+            { name: 'Steady income', ids: ['engine-a', 'engine-b'], dial: 100, why: 'Reliable tax-free income now. Bonds and the insurance wrapper pay you every year while the pile keeps growing.' },
             { name: 'Balanced', ids: ['engine-a', 'engine-b', 'engine-c'], dial: 50, why: 'A bit of both: income now and growth for later. The muni floor plus the wrapper plus stocks.' },
             { name: 'Maximum growth', ids: ['engine-c'], dial: 0, why: 'The long game. Everything into stocks and let it compound for 30 years.' },
           ] as const).map((mix) => (
@@ -255,7 +268,15 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                 setInputs((prev) => ({ ...prev, chosen: [...mix.ids], dial: mix.dial, mode: 'balanced' }));
                 onUse();
               }}
-              className="rounded-lg border border-primary/40 bg-primary/5 px-4 py-3 text-left cursor-pointer hover:border-primary hover:bg-primary/10 transition-colors"
+              className={`rounded-lg border px-4 py-3 text-left cursor-pointer transition-colors ${
+                (() => {
+                  try {
+                    const a = JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}');
+                    const preferred = a.archetype === 0 ? 'Steady income' : a.archetype === 1 ? 'Balanced' : 'Maximum growth';
+                    return mix.name === preferred ? 'border-primary bg-primary/10 ring-2 ring-primary/40' : 'border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10';
+                  } catch { return 'border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10'; }
+                })()
+              }`}
             >
               <span className="block font-display text-base font-semibold text-primary">{mix.name}</span>
               <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">{mix.why}</span>
@@ -314,13 +335,17 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                   <h3 className="font-display text-lg font-semibold">{s.name}</h3>
                   <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">{s.oneLiner}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => toggle(s.id)}
-                  className={`shrink-0 rounded-md border px-3 py-2 text-sm font-semibold cursor-pointer ${on ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card'}`}
-                >
-                  {on ? 'On' : 'Off'}
-                </button>
+                {['wing', 'hiring', 'ppli-depth', 'leverage-math', 'state-estate', 'box-spreads'].includes(s.id) ? (
+                  <span className="shrink-0 rounded-md border border-input bg-secondary px-3 py-2 text-xs font-medium text-muted-foreground">Info only</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggle(s.id)}
+                    className={`shrink-0 rounded-md border px-3 py-2 text-sm font-semibold cursor-pointer ${on ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card'}`}
+                  >
+                    {on ? 'On' : 'Off'}
+                  </button>
+                )}
               </div>
 
               {/* Eligibility strip: green = your numbers qualify, amber = what is missing */}
@@ -344,8 +369,8 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
                   ? 'On your numbers right now, turning this on does not change the safe yearly cash or the 30-year pile.'
                   : <div className="rounded-md bg-secondary px-3 py-2 text-[14px] leading-relaxed">
                       <span className="font-medium">What if you turn it on: </span>
-                      safe yearly cash <span className="font-num">{fmt(fx.cashOff)}</span> → <span className="font-num stat-good">{fmt(fx.cashOn)}</span>
-                      {' · '}30-year pile <span className="font-num">{fmt(fx.endOff)}</span> → <span className="font-num stat-good">{fmt(fx.endOn)}</span>
+                      safe yearly cash <span className="font-num">{fmt(fx.cashOff)}</span> → <span className="font-num">{fmt(fx.cashOn)}</span>
+                      {' · '}30-year pile <span className="font-num">{fmt(fx.endOff)}</span> → <span className="font-num">{fmt(fx.endOn)}</span>
                       <div className="mt-1 text-muted-foreground">{MECHANISM[s.id]}</div>
                     </div>}
               </p>
