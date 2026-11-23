@@ -260,6 +260,7 @@ export default function CalculatorView(p: Props) {
           <Stat label="Money left to invest" tip="What is left to invest after tax, the first year of spending, setup cost, and anything you set aside." more="trade" value={fmtCompact(r.core)} sub="This number is not the insurance minimum." />
         </div>
       </div>
+      <TaxBreakdown inp={inp} r={r} />
     </div>
   );
 
@@ -642,6 +643,66 @@ function SleeveCard({ inp, setInputs, amount }: { inp: Inputs; setInputs: Props[
         <p className="text-[12.5px] leading-snug text-muted-foreground">Does not change the three-engine math.</p>
       )}
     </div>
+  );
+}
+
+function TaxBreakdown({ inp, r }: { inp: Inputs; r: StackResult }) {
+  const st = STATES.find((s) => s.code === inp.state)!;
+  const totalTax = r.fedTax + r.stateTax;
+  const effectiveRate = r.gross > 0 ? totalTax / r.gross : 0;
+  const moneyRow = (label: string, value: string, emphasis = false) => (
+    <div className={`flex items-baseline justify-between gap-4 py-2.5 ${emphasis ? 'border-t border-border font-semibold' : ''}`}>
+      <dt className={emphasis ? 'text-sm text-foreground' : 'text-sm text-muted-foreground'}>{label}</dt>
+      <dd className="shrink-0 whitespace-nowrap text-right font-num font-medium">{value}</dd>
+    </div>
+  );
+
+  return (
+    <section aria-label="Initial tax breakdown" className="hairline-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-display text-lg font-semibold">Initial tax breakdown</h3>
+          <p className="mt-1 text-sm text-muted-foreground">What comes out of the winning amount before debt, reserves, or investing.</p>
+        </div>
+        <span className="rounded-full bg-secondary px-3 py-1 text-[12px] font-medium text-muted-foreground">
+          {inp.basis === 'gross' ? `${pct(effectiveRate)} effective tax` : 'After-tax entry'}
+        </span>
+      </div>
+
+      {inp.basis === 'gross' ? (
+        <>
+          <dl className="mt-3 divide-y divide-border/60">
+            {moneyRow('Winning cash option, before tax', fmt(r.gross))}
+            {moneyRow('Federal income tax', r.fedTax > 0 ? `−${fmt(r.fedTax)}` : fmt(0))}
+            {moneyRow(`${st.name} state income tax`, r.stateTax > 0 ? `−${fmt(r.stateTax)}` : fmt(0))}
+            {moneyRow('Total estimated tax', totalTax > 0 ? `−${fmt(totalTax)}` : fmt(0), true)}
+          </dl>
+          <div className="mt-3 flex flex-col gap-1 rounded-md bg-accent px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+            <span className="text-sm font-semibold">You keep after tax</span>
+            <span className="whitespace-nowrap font-num text-xl font-semibold stat-good">{fmt(r.net)}</span>
+          </div>
+          <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+            Estimated upfront withholding: <span className="font-num">{fmt(r.withheld)}</span>. Withholding is a prepayment, not the final tax bill. The rows above estimate the final 2026 tax; any difference is settled when you file.
+          </p>
+        </>
+      ) : (
+        <>
+          <dl className="mt-3 divide-y divide-border/60">
+            {moneyRow('Money you already have after tax', fmt(r.net))}
+            {moneyRow('Federal tax subtracted again', fmt(0))}
+            {moneyRow('State tax subtracted again', fmt(0))}
+            {moneyRow('Total tax subtracted here', fmt(0), true)}
+          </dl>
+          <div className="mt-3 flex flex-col gap-1 rounded-md bg-accent px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+            <span className="text-sm font-semibold">Available before other uses</span>
+            <span className="whitespace-nowrap font-num text-xl font-semibold stat-good">{fmt(r.net)}</span>
+          </div>
+          <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+            You selected <strong>After tax</strong>. The planner treats this as money already in hand and does not estimate or subtract tax you previously paid.
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 
