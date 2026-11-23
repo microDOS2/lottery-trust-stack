@@ -15,6 +15,7 @@ export interface PlanSet {
   preface: string[];
   plans: PlanOption[];
   mix: { chosen: string[]; rationale: string[] };
+  consequences: string[];
 }
 
 /** Turn quiz answers into a visible strategy mix with a plain-English reason for each inclusion. */
@@ -45,6 +46,42 @@ export function explainMix(answers: Record<string, number>, inputs: Inputs): { c
 
 function year10(result: StackResult): number {
   return result.projection[9]?.end ?? 0;
+}
+
+/**
+ * One plain-English line per answered question, saying what that answer
+ * changed in the plan. Unanswered questions produce no line.
+ */
+export function consequencesFor(answers: Record<string, number>): string[] {
+  const lines: string[] = [];
+  const has = (key: string) => answers[key] !== undefined;
+
+  if (answers.live === 2) lines.push('Residency is set to Puerto Rico (Act 60).');
+  else if (answers.live === 1) lines.push('Residency is set to move to a 0% state.');
+
+  // The archetype answer, when present, drives the dial recommendation;
+  // the market answer only sets the dial when no archetype was picked.
+  if (has('archetype')) {
+    if (answers.archetype === 0) lines.push('The dial leans toward spending now.');
+    else if (answers.archetype === 2) lines.push('The dial leans toward growth for later.');
+    else lines.push('The dial is balanced between spending now and growing for later.');
+  } else if (answers.market === 0) {
+    lines.push('The dial is set to maximum income.');
+  } else if (answers.market === 1) {
+    lines.push('The dial is set to maximum growth.');
+  }
+
+  if (answers.spendpattern === 0) lines.push('Your draw is flat every year (no inflation growth).');
+  else if (answers.spendpattern === 1) lines.push('Your draw grows with inflation.');
+
+  if (answers.threats === 0) lines.push('Protection is prioritized (DAPT + umbrella note).');
+  if (answers.foreign === 0) lines.push('The foreign-trust reality check is flagged.');
+  if (answers.business === 1) lines.push('QSBS startup stock is suggested.');
+  if (answers.reinvest === 1) lines.push('Opportunity Zone funds are suggested.');
+  if (answers.estate === 0) lines.push('The dynasty-trust layer is suggested.');
+  if (answers.later === 1) lines.push('A later-years higher draw replaces the first amount from year 11.');
+
+  return lines;
 }
 
 function residencyFor(answers: Record<string, number>): Inputs['residency'] {
@@ -83,7 +120,7 @@ function outcomeLines(inputs: Inputs, result: StackResult, answers: Record<strin
   } else if (answers.live === 3) {
     lines.push('Living in another country does not end US tax. US tax continues until you give up US citizenship.');
   }
-  if (answers.renounce && answers.renounce > 0) {
+  if (answers.renounce === 1) {
     lines.push('Giving up US citizenship ends US tax on money from anywhere. It has its own tax, the exit tax, on the gain in your assets as if you sold them. You may not be able to live in the US again. Type what the assets would sell for and what you paid, on the calculator, to see the tax.');
   }
   if (answers.reinvest === 1) {
@@ -143,6 +180,7 @@ export function buildBestPlans(answers: Record<string, number>, inputs: Inputs, 
   return {
     preface,
     mix,
+    consequences: consequencesFor(answers),
     plans: [{
       id: 'outcome',
       name: 'What the money can do',
