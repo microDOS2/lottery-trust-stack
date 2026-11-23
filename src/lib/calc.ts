@@ -110,7 +110,7 @@ export const DEFAULT_INPUTS: Inputs = {
   dial: 50,
   manual: { a: 0.25, b: 0.25, c: 0.5 },
   drawOverrides: {},
-  flatDraw: false,
+  flatDraw: true,
   leaveTarget: 'max',
   sleeve: null,
   sleevePct: 0,
