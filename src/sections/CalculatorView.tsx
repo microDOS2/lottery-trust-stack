@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { STATES } from '../lib/taxdata';
 import {
   fmt, fmtCompact, pct, PPLI_QP_MIN, HORIZON, solveSpendForTarget, SLEEVE_MATH, SLEEVE_PCT_MAX,
@@ -14,6 +14,7 @@ import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/C
 import Lazy3D from '../components/Lazy3D';
 import { STRATEGIES } from '../lib/content';
 import DrawSchedule from './DrawSchedule';
+import PRPanel from './PRPanel';
 import { Slider } from '@/components/ui/slider';
 import { AlertTriangle, Link2, Check, RotateCcw, Settings2, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -44,25 +45,22 @@ interface Props {
 const LETTERS = 'ABCDE';
 
 const SECTION_META: Array<{ id: string; title: string; purpose: string }> = [
-  { id: 'charts', title: 'Charts', purpose: 'Two pictures of your money: how it is split between bonds, insurance, and stocks — and how it grows over 30 years versus a normal brokerage account.' },
   { id: 'projection', title: `${HORIZON}-year projection`, purpose: 'The year-by-year numbers behind the chart: what you take out, what gets reinvested, what the fees are, and what is left.' },
-  { id: 'schedule', title: 'Custom draw schedule', purpose: 'Tell the stack how much to pay you each year. Set a year to $0 and it just keeps growing; double another and it stays tax-free within capacity.' },
-  { id: 'realestate', title: 'Real estate', purpose: 'If you want property owned privately in an LLC: what it earns, what the depreciation saves, and what it is worth later.' },
   { id: 'flow', title: 'Money flow', purpose: 'Where the money goes after the lottery pays you: reserves first, then the engines, then the anonymous LLC.' },
   { id: 'compare', title: 'Scenario comparison', purpose: 'Save a few different setups and see which life each one buys — yearly cash, fees, and the pile at the end.' },
 ];
 
-interface Layout { order: string[]; hidden: string[] }
-const DEFAULT_LAYOUT: Layout = { order: SECTION_META.map((s) => s.id), hidden: [] };
+interface Layout { order: string[] }
+const DEFAULT_LAYOUT: Layout = { order: SECTION_META.map((s) => s.id) };
 
 function loadLayout(): Layout {
   try {
     const raw = localStorage.getItem('lotteryStack.layout');
     if (raw) {
-      const parsed = JSON.parse(raw) as Layout;
-      const valid = parsed.order.filter((id) => SECTION_META.some((m) => m.id === id));
+      const parsed = JSON.parse(raw) as { order?: string[] };
+      const valid = (parsed.order ?? []).filter((id) => SECTION_META.some((m) => m.id === id));
       for (const m of SECTION_META) if (!valid.includes(m.id)) valid.push(m.id);
-      return { order: valid, hidden: (parsed.hidden ?? []).filter((id) => valid.includes(id)) };
+      return { order: valid };
     }
   } catch { /* ignore */ }
   return DEFAULT_LAYOUT;
@@ -77,6 +75,8 @@ export default function CalculatorView(p: Props) {
   const [alloc3D, setAlloc3D] = useState(true);
   const [race3D, setRace3D] = useState(true);
   const [layout, setLayoutRaw] = useState<Layout>(loadLayout);
+  const [reserveNowSelected, setReserveNowSelected] = useState(false);
+  const reserveTiming = inp.entity4 > 0 || reserveNowSelected ? 'now' : 'later';
 
   const setLayout = (l: Layout) => {
     setLayoutRaw(l);
@@ -85,16 +85,13 @@ export default function CalculatorView(p: Props) {
   const set = <K extends keyof Inputs>(k: K, v: Inputs[K]) => p.setInputs((prev) => ({ ...prev, [k]: v }));
   const st = STATES.find((s) => s.code === inp.state)!;
   const tg = STATES.find((s) => s.code === inp.target)!;
-
   const [solvedDraw, setSolvedDraw] = useState<number | null>(null);
+
   const applyLeaveTarget = (v: string) => {
     if (v !== 'max') {
       const target = v === '0' ? 0 : r.core * (+v / 100);
       setSolvedDraw(solveSpendForTarget({ ...inp, leaveTarget: v }, asm, target));
-    } else {
-      setSolvedDraw(null);
-    }
-    // Only the goal changes here — your yearly draw stays exactly as you set it.
+    } else setSolvedDraw(null);
     p.setInputs((prev) => ({ ...prev, leaveTarget: v }));
   };
 
@@ -109,10 +106,7 @@ export default function CalculatorView(p: Props) {
   const deflate = (v: number, year: number) => (realDollars ? v / Math.pow(1 + asm.inflation, year) : v);
   const projStack = r.projection.map((row) => ({ ...row, end: deflate(row.end, row.year) }));
   const projBase = r.baseline.map((row) => ({ ...row, end: deflate(row.end, row.year) }));
-
-  const savedScenarios = p.scenarios
-    .map((s, i) => (s ? { letter: LETTERS[i], inputs: s.inputs } : null))
-    .filter((s): s is { letter: string; inputs: Inputs } => !!s);
+  const savedScenarios = p.scenarios.map((s, i) => (s ? { letter: LETTERS[i], inputs: s.inputs } : null)).filter((s): s is { letter: string; inputs: Inputs } => !!s);
   const scenarioResults = useScenarioResults(savedScenarios, asm);
 
   const move = (id: string, dir: -1 | 1) => {
@@ -121,476 +115,253 @@ export default function CalculatorView(p: Props) {
     const j = i + dir;
     if (j < 0 || j >= order.length) return;
     [order[i], order[j]] = [order[j], order[i]];
-    setLayout({ ...layout, order });
-  };
-
-  const toggleHide = (id: string) => {
-    setLayout({
-      ...layout,
-      hidden: layout.hidden.includes(id)
-        ? layout.hidden.filter((hiddenId) => hiddenId !== id)
-        : [...layout.hidden, id],
-    });
+    setLayout({ order });
   };
 
   const sectionNode = (id: string) => {
     switch (id) {
-      case 'charts':
-        return (
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="hairline-card p-5">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-display text-lg font-semibold">Where the core sits</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Trust #2 holds the bonds and stocks · Trust #3 holds the insurance · Entity #4 holds property cash.</p>
-                </div>
-                <button onClick={() => setAlloc3D(!alloc3D)} className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground cursor-pointer">
-                  {alloc3D ? '2D' : '3D'}
-                </button>
-              </div>
-              {alloc3D ? (
-                <Lazy3D milestones={['']} scenarios={[
-                  { letter: 'Bonds', color: '#4C7A3F', values: [r.muni] },
-                  { letter: 'Insurance', color: '#E5604A', values: [r.ppli] },
-                  { letter: 'Stocks', color: '#D9A441', values: [r.equity] },
-                  ...(inp.entity4 > 0 ? [{ letter: 'LLC', color: '#7B6556', values: [inp.entity4] }] : []),
-                ]} />
-              ) : (
-                <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} sleeve={r.sleeveAmount} sleeveName={STRATEGIES.find((s) => s.id === r.sleeveId)?.name ?? 'Sleeve'} />
-              )}
-            </div>
-            <div className="hairline-card p-5">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-display text-lg font-semibold">The compounding race</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Same engines, same returns, same cash to you — but unshielded. The stack's line even carries its admin fees; the baseline pays none.
-                    Gap at year 30: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span>
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-1.5">
-                  <button title="Switch between the 3D skyline and the line chart" onClick={() => setRace3D(!race3D)} className="rounded-full bg-secondary px-3 py-1 text-[12.5px] font-medium text-muted-foreground hover:text-foreground cursor-pointer">
-                    {race3D ? '2D' : '3D'}
-                  </button>
-                  <button title={realDollars ? 'Showing later years in today’s dollars. Click for the raw future amounts.' : 'Showing raw future dollars. Click to shrink later years for inflation.'} onClick={() => setRealDollars(!realDollars)}
-                    className={`rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>
-                    {realDollars ? "Today's $" : 'Nominal $'}
-                  </button>
-                </div>
-              </div>
-              {race3D ? (
-                <Lazy3D scenarios={[
-                  { letter: 'Trust stack', color: '#4C7A3F', values: [r.projection[9]?.end ?? 0, r.stackEnd] },
-                  { letter: 'Taxable account', color: '#9C9388', values: [r.baseline[9]?.end ?? 0, r.baselineEnd] },
-                ]} />
-              ) : (
-                <ProjectionChart stack={projStack} baseline={projBase} />
-              )}
-            </div>
-          </div>
-        );
-      case 'projection':
-        return <ProjectionTable r={r} inp={inp} asm={asm} scenarios={p.scenarios} />;
-      case 'schedule':
-        return <DrawSchedule inputs={inp} setInputs={p.setInputs} result={r} asm={asm} />;
-      case 'realestate':
-        return <RealEstateLazy inputs={inp} result={r} />;
-      case 'flow':
-        return (
-          <div className="hairline-card p-5">
-            <h3 className="font-display text-lg font-semibold">The money flow</h3>
-            <p className="mt-1 mb-3 text-sm text-muted-foreground">One wire in, four destinations. Everything after Trust #1 is engineered to be tax-free or tax-deferred.</p>
-            <FlowLive result={r} entities={p.entities} />
-          </div>
-        );
-      case 'compare':
-        return <ScenarioCompare {...p} scenarioResults={scenarioResults} />;
-      default:
-        return null;
+      case 'projection': return <ProjectionTable r={r} inp={inp} asm={asm} scenarios={p.scenarios} />;
+      case 'flow': return <div className="hairline-card p-5"><h3 className="font-display text-lg font-semibold">The money flow</h3><p className="mt-1 mb-3 text-sm text-muted-foreground">Reserves come out first; only what remains goes into the investment engines.</p><FlowLive result={r} entities={p.entities} /></div>;
+      case 'compare': return <ScenarioCompare {...p} scenarioResults={scenarioResults} />;
+      default: return null;
     }
   };
 
   const scenarioButtons = (
     <div className="hairline-card space-y-3 p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="flex items-center gap-1 text-[15px] font-medium">
-          Save or download
-          <Explainer text="Save keeps this setup in this browser as A, B, C, D, or E. Open puts a saved setup back on the page. Download writes a spreadsheet of the numbers on screen and every saved setup." />
-        </span>
-      </div>
+      <div className="flex items-center gap-1 text-[15px] font-medium">Save or download<Explainer text="Save keeps this setup in this browser as A, B, C, D, or E. Open puts a saved setup back on the page. Download writes a spreadsheet of the current numbers and every saved setup." /></div>
       <div className="flex flex-wrap items-center gap-2">
         {[0, 1, 2, 3, 4].map((i) => (
           <Tip key={i} text={p.scenarios[i] ? `Replace saved setup ${LETTERS[i]} with the numbers on screen.` : `Save the numbers on screen as setup ${LETTERS[i]}.`}>
-            <button type="button" data-tour={i === 0 ? "saveA" : undefined} onClick={() => p.saveScenario(i)}
-              className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:text-primary cursor-pointer">
-              {p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}
-            </button>
+            <button type="button" data-tour={i === 0 ? 'saveA' : undefined} onClick={() => p.saveScenario(i)} className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">{p.scenarios[i] ? 'Overwrite ' : 'Save as '}{LETTERS[i]}</button>
           </Tip>
         ))}
         {p.scenarios.some(Boolean) && p.scenarios.map((s, i) => s ? (
-          <Tip key={`open-${i}`} text={`Put saved setup ${LETTERS[i]} back on the page.`}>
-            <button type="button" onClick={() => p.loadScenario(i)}
-              className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary cursor-pointer">
-              Open {LETTERS[i]}
-            </button>
-          </Tip>
+          <Tip key={`open-${i}`} text={`Put saved setup ${LETTERS[i]} back on the page.`}><button type="button" onClick={() => { setReserveNowSelected(false); p.loadScenario(i); }} className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary cursor-pointer">Open {LETTERS[i]}</button></Tip>
         ) : null)}
-        <Tip text="Downloads a spreadsheet of the numbers on screen, the 25-year line, the fees, and any setups you saved.">
-          <button type="button" onClick={() => downloadPlan(inp, asm, r, p.scenarios)}
-            className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">
-            Download plan
-          </button>
-        </Tip>
+        <Tip text={`Downloads a spreadsheet of the current numbers, the ${HORIZON}-year line, fees, and saved setups.`}><button type="button" onClick={() => downloadPlan(inp, asm, r, p.scenarios)} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">Download plan</button></Tip>
       </div>
-    </div>
-  );
-
-  const headline = (
-    <div className="space-y-4">
-      <div>
-        <SectionTitle
-          num="01"
-          title={<>Your after-tax pool, <span className="sig-italic">working for you</span></>}
-          blurb={`${st.name} prize, ${inp.basis === 'gross' ? 'starting from the gross cash option' : 'starting from money already after tax'}, ${inp.filing === 'mfj' ? 'married filing jointly' : 'single'} — 2026 rates.`}
-        />
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Federal tax on prize" tip="Federal income tax on the cash option, at 2026 rates. The line under it is the state tax." more="assumptions" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
-          <Stat label="Net after-tax pool" tip="What is left after federal and state tax. This is the money the rest of the page invests." more="trade" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
-          <Stat label="Year-1 living reserve" tip="The first year of spending, plus setup cost, held back. The investments are not touched in year 1." more="trade" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
-          <Stat label="Money left to invest" tip="What is left to invest after tax, the first year of spending, setup cost, and anything you set aside." more="trade" value={fmtCompact(r.core)} sub="This number is not the insurance minimum." />
-        </div>
-      </div>
-      <TaxBreakdown inp={inp} r={r} />
     </div>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-10">
       {scenarioButtons}
-      {p.notice && (
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-primary/40 bg-accent px-4 py-3 text-sm">
-          <p>{p.notice.text}</p>
-          <div className="flex gap-2">
-            {p.notice.undo && (
-              <button type="button" title="Puts the previous mix back." onClick={p.undoNotice} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">Undo</button>
-            )}
-            <button type="button" title="Hides this note. Your numbers stay as they are." onClick={p.dismissNotice} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground cursor-pointer">Dismiss</button>
+      {p.notice && <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-primary/40 bg-accent px-4 py-3 text-sm"><p>{p.notice.text}</p><div className="flex gap-2">{p.notice.undo && <button type="button" onClick={p.undoNotice} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">Undo</button>}<button type="button" onClick={p.dismissNotice} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground cursor-pointer">Dismiss</button></div></div>}
+
+      <SectionTitle num="01" title={<>Your plan, <span className="sig-italic">one step at a time</span></>} blurb="Work downward. Each group of answers is followed immediately by what those answers changed—no separate control column and no explanation rail to hunt through." />
+
+      <FlowSection step="1" title="Start with the winnings" purpose="The prize and the first tax bill come before every other decision.">
+        <div className="hairline-card space-y-4 p-5 no-print">
+          <div className="flex items-center justify-between"><h3 className="font-display text-lg font-semibold">Your numbers</h3><Tip text="Clears the prize and puts every input back to the start."><button onClick={() => { setReserveNowSelected(false); p.resetAll(); }} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary cursor-pointer"><RotateCcw className="h-3 w-3" /> Reset</button></Tip></div>
+          <Field label="Where you live now" tip="The state that taxes the prize, and future income if you stay." more="move" help="Sets the state tax on the prize — and on future income if you stay.">
+            <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.state} onChange={(e) => set('state', e.target.value)}>{STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}</select>
+          </Field>
+          {st.code === 'CA' && <p className="text-[13px] leading-snug text-muted-foreground">State tax is $0 only for a California Lottery prize bought in California. An out-of-state ticket is taxed, and later investment income is still taxed.</p>}
+          <div data-tour="amount"><Field label="Prize amount ($)" tip="The cash option, or what is left if tax is already paid. Not the advertised jackpot." more="assumptions" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
+            <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.amount || ''} min={0} step={100000} onChange={(e) => set('amount', +e.target.value || 0)} />
+            <Chips chips={[{ label: '$5M', value: 5000000 }, { label: '$18M', value: 18000000 }, { label: '$100M', value: 100000000 }]} value={inp.amount} onChange={(v) => set('amount', v)} hint="Examples only. Type the gross cash option or the net pool, matching Before/After tax." />
+          </Field></div>
+          <div className="flex gap-2">{(['gross', 'net'] as const).map((b) => <Tip key={b} text={b === 'gross' ? 'The number is the cash option before tax. The calculator subtracts tax.' : 'The number is money you already have. Tax is not subtracted again.'} more="assumptions"><button onClick={() => set('basis', b)} className={`flex-1 rounded-md border px-3 py-2 text-sm cursor-pointer ${inp.basis === b ? 'border-primary bg-accent text-accent-foreground font-medium' : 'border-input bg-card text-muted-foreground'}`}>{b === 'gross' ? 'Before tax' : 'After tax'}</button></Tip>)}</div>
+          <Field label="Filing status" help="Used only for the federal estimate on the prize."><select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.filing} onChange={(e) => set('filing', e.target.value as Inputs['filing'])}><option value="single">Single</option><option value="mfj">Married filing jointly</option></select></Field>
+          <Field label="Debt to pay before investing ($)" tip="Subtracted after tax and before anything is invested. Zero subtracts nothing. It does not change the tax." more="not-included" help="The exact amount. If it is larger than the cash left after tax, only the cash left is subtracted."><input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.debt || ''} min={0} step={1} onChange={(e) => set('debt', +e.target.value || 0)} /></Field>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Stat label="Federal tax on prize" tip="Federal income tax on the cash option, at 2026 rates. The line under it is the state tax." more="assumptions" value={fmtCompact(r.fedTax)} sub={`+ ${fmtCompact(r.stateTax)} state`} />
+          <Stat label="Net after-tax pool" tip="What is left after federal and state tax." more="trade" value={fmtCompact(r.net)} sub="after federal + state" tone="good" />
+        </div>
+        <TaxBreakdown inp={inp} r={r} />
+      </FlowSection>
+
+      <FlowSection step="2" title="Choose the life it pays for" purpose="Set the spending target and its shape. The answer appears directly below the controls.">
+        <div className="hairline-card space-y-4 p-5 no-print">
+          <div data-tour="spend"><Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than what the investments can pay, the pile gets spent." more="trade" help="The exact amount, in dollars.">
+            <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend || ''} min={0} step={1} onChange={(e) => set('spend', +e.target.value || 0)} />
+            <Chips chips={[{ label: '$100K/yr', value: 100000 }, { label: '$400K/yr', value: 400000 }, { label: '$1M/yr', value: 1000000 }]} value={inp.spend} onChange={(v) => set('spend', v)} hint="What you want to live on each year. This is a target, not a forced withdrawal." />
+          </Field></div>
+          <Field label="How much should be left at the end?" help="Choose a legacy goal. This does not change your yearly draw unless you deliberately use the solved amount.">
+            <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.leaveTarget} onChange={(e) => applyLeaveTarget(e.target.value)}><option value="max">As much as possible</option><option value="75">Leave 75% of the core</option><option value="50">Leave half the core</option><option value="25">Leave 25% of the core</option><option value="0">Spend it all (or close to it)</option></select>
+          </Field>
+          {inp.leaveTarget !== 'max' && <div className="rounded-md bg-accent px-3 py-2 text-[13.5px] leading-relaxed text-accent-foreground">{solvedDraw !== null ? <>A draw of about <span className="font-num font-semibold">{fmt(solvedDraw)}/yr</span> would reach that goal. Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span>—unchanged unless you choose it.<button type="button" onClick={() => p.setInputs((prev) => ({ ...prev, spend: solvedDraw, flatDraw: true, drawOverrides: {} }))} className="mt-2 block rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground cursor-pointer">Use this as my yearly draw</button></> : <>Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span>—unchanged by the goal.</>}</div>}
+          <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2"><span className="text-[14px]">Grow draw with inflation</span><button title={inp.flatDraw ? 'Spending stays the same dollar amount every year. Click to let it rise with inflation.' : 'Spending rises each year with inflation. Click for a flat dollar amount.'} onClick={() => set('flatDraw', !inp.flatDraw)} className={`rounded-full px-3 py-1 text-sm font-medium cursor-pointer ${inp.flatDraw ? 'bg-card border border-input text-muted-foreground' : 'bg-primary text-primary-foreground'}`}>{inp.flatDraw ? 'Off — flat draw' : 'On'}</button></div>
+        </div>
+        <div data-tour="capacity"><Stat label="Safe to take per year" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `your schedule draws ${fmtCompact(r.plannedDrawY2)} in year 2` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" /></div>
+        {inp.amount > 0 && !r.sustainable && <Warning>Your spending target is more than the stack can safely pay. You want {fmt(inp.spend)}/yr but the estimated capacity is {fmt(r.capacity)}/yr. A similar core would need to be roughly <strong>{fmt(r.requiredCore)}</strong>.</Warning>}
+        {inp.amount > 0 && r.depletedYear && <Warning>The stack runs dry around year {r.depletedYear} at this draw schedule. Lower the draw, change the mix, or give the core more time to grow.</Warning>}
+        <DrawSchedule inputs={inp} setInputs={p.setInputs} result={r} asm={asm} />
+      </FlowSection>
+
+      <FlowSection step="3" title="Decide what to set aside now" purpose="A year-1 reserve reduces the invested balance immediately. A later purchase should stay invested until it is needed.">
+        <div className="hairline-card space-y-4 p-5 no-print">
+          <div><h3 className="font-display text-lg font-semibold">Property or vehicle purchase</h3><p className="mt-1 text-sm leading-relaxed text-muted-foreground">Choose <strong>No year-1 purchase</strong> if the purchase is more than 12 months away. For a later home, boat, or vehicle, use the custom draw schedule or Entities &amp; Assets in the purchase year instead of carving cash out today.</p></div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="button" onClick={() => { setReserveNowSelected(false); set('entity4', 0); }} className={`rounded-md border px-4 py-3 text-left text-sm cursor-pointer ${reserveTiming === 'later' ? 'border-primary bg-accent font-medium' : 'border-input bg-card text-muted-foreground'}`}>No year-1 purchase — keep it invested</button>
+            <button type="button" onClick={() => setReserveNowSelected(true)} className={`rounded-md border px-4 py-3 text-left text-sm cursor-pointer ${reserveTiming === 'now' ? 'border-primary bg-accent font-medium' : 'border-input bg-card text-muted-foreground'}`}>Year-1 purchase — set cash aside now</button>
+          </div>
+          {reserveTiming === 'now' && <Field label="Cash needed in the first 12 months ($)" help="This amount comes out of the after-tax pool now and is held by Entity #4 for the purchase. It is not invested in the three engines."><input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.entity4 || ''} min={0} step={50000} onChange={(e) => set('entity4', +e.target.value || 0)} /><Chips chips={[{ label: '$500K', value: 500000 }, { label: '$1.5M', value: 1500000 }, { label: '$3M', value: 3000000 }]} value={inp.entity4} onChange={(v) => set('entity4', v)} hint="Use only for a purchase expected in year 1. Enter $0 if you are not buying yet." /></Field>}
+          {reserveTiming === 'later' && <p className="rounded-md bg-secondary px-3 py-2 text-sm text-muted-foreground">Nothing is reserved for property or vehicles now, so this choice does not reduce today’s investment core.</p>}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Stat label="Year-1 living reserve" tip="The first year of spending, plus setup cost, held back. The investments are not touched in year 1." more="trade" value={fmtCompact(r.yr1Reserve)} sub="spending + setup, in Trust #1" />
+          <Stat label="Money left to invest" tip="What is left after tax, debt, the first-year reserve, and anything else you deliberately set aside." more="trade" value={fmtCompact(r.core)} sub={inp.entity4 > 0 ? `${fmtCompact(inp.entity4)} is held for the year-1 purchase` : 'no property/vehicle cash carved out'} />
+        </div>
+      </FlowSection>
+
+      <FlowSection step="4" title="Choose how the rest is invested" purpose="Set the mix and any residency or strategy option. The allocation and compounding pictures are directly underneath.">
+        <div className="hairline-card space-y-4 p-5 no-print">
+          <div><div className="mb-1.5 flex items-center justify-between"><span className="text-[14px] font-medium">Income ↔ Growth dial</span><span className="font-mono text-sm text-muted-foreground">{inp.mode === 'manual' ? 'manual' : inp.dial < 34 ? 'growth' : inp.dial > 66 ? 'income' : 'balanced'}</span></div><Slider value={[inp.dial]} min={0} max={100} step={1} disabled={inp.mode === 'manual'} onValueChange={([v]) => p.setInputs((prev) => ({ ...prev, dial: v, mode: v === 0 ? 'growth' : v === 100 ? 'income' : v === 50 ? 'balanced' : prev.mode === 'manual' ? 'balanced' : prev.mode }))} /><div className="mt-1 flex justify-between text-[12.5px] text-muted-foreground"><span>More compounding</span><span>More tax-free income</span></div></div>
+          <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2"><span className="text-[14px]">Manual allocation</span><button title={inp.mode === 'manual' ? 'You are setting the split yourself. Click to let the slider set it.' : 'The slider sets the split. Click to set your own mix.'} onClick={() => set('mode', inp.mode === 'manual' ? 'balanced' : 'manual')} className={`rounded-full px-3 py-1 text-sm font-medium cursor-pointer ${inp.mode === 'manual' ? 'bg-primary text-primary-foreground' : 'bg-card border border-input text-muted-foreground'}`}>{inp.mode === 'manual' ? 'On' : 'Off'}</button></div>
+          {inp.mode === 'manual' && <ManualAlloc inputs={inp} setInputs={p.setInputs} />}
+          <div className="rounded-md border border-input p-3"><div className="text-[13px] font-medium">Optional residency change</div><p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">No special residency plan is assumed unless you choose one. The prize itself is still taxed where you claimed it.</p><select className="mt-2 w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.residency} onChange={(e) => set('residency', e.target.value as Inputs['residency'])}><option value="none">No special residency plan</option><option value="stay">Stay put in {st.name}</option><option value="second">Second home + domicile in {tg.name} (&lt;183 days)</option><option value="move">Full move to {tg.name}</option><option value="pr">Move to Puerto Rico (Act 60 decree)</option></select>
+            {(inp.residency === 'second' || inp.residency === 'move') && <Field label="State you might move to" help="This changes the modeled future state-tax drag, not the tax on the original prize."><select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.target} onChange={(e) => set('target', e.target.value)}>{STATES.map((s) => <option key={s.code} value={s.code}>{s.name}{s.noTax ? ' — 0% tax' : ''}</option>)}</select></Field>}
+          </div>
+          <div className="rounded-md border border-input p-3"><div className="flex items-center justify-between gap-2"><div className="text-[13px] font-medium">Optional strategy sleeve</div><button type="button" onClick={p.onOpenLibrary} className="text-[12.5px] text-primary hover:underline cursor-pointer">Strategy library</button></div>{!inp.sleeve ? <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">None. One sleeve at a time—choosing another replaces it. OZ, QSBS, and real estate can change the projection; other entries are explanatory.</p> : <SleeveCard inp={inp} setInputs={p.setInputs} amount={r.sleeveAmount} />}</div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Stat label="Bonds" tip="The bond ladder. It pays the bond rate, tax-free, and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} · ${fmtCompact(r.muni * asm.muniYield)}/yr`} />
+          <Stat label="Insurance policy" tip="The insurance allocation. The model requires at least $5 million for this wrapper." more="policy" value={fmtCompact(r.ppli)} sub={r.qpOk ? `${fmtCompact(r.ppli * asm.ppliDraw)}/yr capacity` : `under the ${fmtCompact(PPLI_QP_MIN)} minimum`} />
+          <Stat label="Stocks" tip="The direct-indexed equity allocation and its spendable slice." more="stocks" value={fmtCompact(r.equity)} sub={`${fmtCompact(r.equity * asm.eqDraw)}/yr capacity`} />
+        </div>
+        <Limit>Insurance-wrapper minimum: {fmtCompact(PPLI_QP_MIN)}. Current allocation: {fmtCompact(r.ppli)}. {r.qpOk ? 'That meets the model minimum.' : 'That is under the minimum; your entered mix was not silently erased.'}</Limit>
+        {inp.residency === 'pr' && <PRPanel inputs={inp} setInputs={p.setInputs} result={r} />}
+        <div className="space-y-6">
+          <div className="hairline-card p-5"><div className="flex items-start justify-between gap-2"><div><h3 className="font-display text-lg font-semibold">Where the investment core sits</h3><p className="mt-1 text-sm text-muted-foreground">Bonds, insurance, stocks, and any year-1 purchase reserve.</p></div><button onClick={() => setAlloc3D(!alloc3D)} className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[12.5px] cursor-pointer">{alloc3D ? '2D' : '3D'}</button></div>
+            {alloc3D ? <Lazy3D milestones={['']} scenarios={[{ letter: 'Bonds', color: '#4C7A3F', values: [r.muni] }, { letter: 'Insurance', color: '#E5604A', values: [r.ppli] }, { letter: 'Stocks', color: '#D9A441', values: [r.equity] }, ...(inp.entity4 > 0 ? [{ letter: 'LLC', color: '#7B6556', values: [inp.entity4] }] : [])]} /> : <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} sleeve={r.sleeveAmount} sleeveName={STRATEGIES.find((s) => s.id === r.sleeveId)?.name ?? 'Sleeve'} />}
+          </div>
+          <div className="hairline-card p-5"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-display text-lg font-semibold">How the money compounds</h3><p className="mt-1 text-sm text-muted-foreground">Same engines, returns, and cash to you. The stack line includes its admin fees; the taxable baseline pays none.</p></div><div className="flex gap-1.5"><button onClick={() => setRace3D(!race3D)} className="rounded-full bg-secondary px-3 py-1 text-[12.5px] cursor-pointer">{race3D ? '2D' : '3D'}</button><button onClick={() => setRealDollars(!realDollars)} className={`rounded-full px-3 py-1 text-[12.5px] cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>{realDollars ? "Today's $" : 'Nominal $'}</button></div></div>
+            <p className="mt-2 text-sm text-muted-foreground">Estimated difference at year {HORIZON}: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span></p>
+            {race3D ? <Lazy3D scenarios={[{ letter: 'Trust stack', color: '#4C7A3F', values: [r.projection[9]?.end ?? 0, r.stackEnd] }, { letter: 'Taxable account', color: '#9C9388', values: [r.baseline[9]?.end ?? 0, r.baselineEnd] }]} /> : <ProjectionChart stack={projStack} baseline={projBase} />}
           </div>
         </div>
-      )}
-      <div className="lg:hidden">{headline}</div>
-      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_320px]">
-      {/* ---------- Controls ---------- */}
-      <div className="hairline-card h-fit space-y-4 p-5 no-print lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display text-lg font-semibold">Your numbers</h3>
-          <Tip text="Clears the prize and puts every input back to the start.">
-          <button onClick={p.resetAll} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer">
-            <RotateCcw className="h-3 w-3" /> Reset
-          </button>
-          </Tip>
+      </FlowSection>
+
+      <FlowSection step="5" title="Add costs and assumptions" purpose="Nothing is silently filled in. Choose a planning scenario, build your own, or deliberately model $0.">
+        <div className="hairline-card space-y-4 p-5 no-print">
+          <Field label="One-time structure setup costs ($)" help="Year-1 legal and professional work: trusts drafted, PPLI placed, LLCs formed, and custody opened. These are separate from annual costs."><input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.setupCost || ''} min={0} step={5000} onChange={(e) => set('setupCost', +e.target.value || 0)} /><Chips chips={[{ label: '$0 for now', value: 0 }, { label: '$50K', value: 50000 }, { label: '$75K', value: 75000 }, { label: '$125K', value: 125000 }]} value={inp.setupCost} onChange={(v) => set('setupCost', v)} hint="Planning examples only, not quotes. A typed amount replaces the selection." /></Field>
+          <AnnualFeePlanner inp={inp} setInputs={p.setInputs} />
+          <InsuranceChargePlanner inp={inp} r={r} setInputs={p.setInputs} />
         </div>
-
-        <Field label="Where you live now" tip="The state that taxes the prize, and future income if you stay." more="move" help="Sets the state tax on the prize — and on future income if you stay.">
-          <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.state} onChange={(e) => set('state', e.target.value)}>
-            {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
-          </select>
-        </Field>
-        {st.code === 'CA' && (
-          <p className="-mt-2 text-[12.5px] leading-snug text-muted-foreground">
-            State tax on the prize is $0 only for a California Lottery prize — the ticket was bought in California (Gov. Code § 8880.68). An out-of-state ticket is taxed. Income earned after you invest the prize is still taxed.
-          </p>
-        )}
-
-        <div data-tour="amount"><Field label="Prize amount ($)" tip="The cash option, or what is left if tax is already paid. Not the advertised jackpot." more="assumptions" help={inp.basis === 'gross' ? 'The cash amount before tax.' : 'Money already in hand after tax.'}>
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.amount || ''} min={0} step={100000} onChange={(e) => set('amount', +e.target.value || 0)} />
-          <Chips chips={[{label:'$5M',value:5000000},{label:'$18M',value:18000000},{label:'$100M',value:100000000}]} value={inp.amount} onChange={(v)=>set('amount',v)} hint="Examples: $5M, $18M, $100M. Type the gross cash option or the net pool, matching Before/After tax." />
-        </Field>
-
-        <div className="flex gap-2">
-          {(['gross', 'net'] as const).map((b) => (
-            <Tip key={b} text={b === 'gross' ? 'The number is the cash option before tax. The calculator subtracts tax.' : 'The number is money you already have. Tax is not subtracted again.'} more="assumptions">
-            <button onClick={() => set('basis', b)}
-              className={`flex-1 rounded-md border px-3 py-2 text-sm transition-colors cursor-pointer ${inp.basis === b ? 'border-primary bg-accent text-accent-foreground font-medium' : 'border-input bg-card text-muted-foreground hover:border-primary/50'}`}>
-              {b === 'gross' ? 'Before tax' : 'After tax'}
-            </button>
-            </Tip>
-          ))}
-        </div>
-
-        </div>
-        <Field label="Debt to pay before investing ($)" tip="Subtracted after tax and before anything is invested. Zero subtracts nothing. It does not change the tax." more="not-included" help="The exact amount. If it is larger than the cash left after tax, only the cash left is subtracted.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.debt || ''} min={0} step={1} onChange={(e) => set('debt', +e.target.value || 0)} />
-        </Field>
-
-        <div data-tour="spend"><Field label="How much you want to spend each year" tip="The check you want from year 2 on. If it is bigger than what the investments can pay, the pile gets spent." more="trade" help="The exact amount, in dollars.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.spend || ''} min={0} step={1} onChange={(e) => set('spend', +e.target.value || 0)} />
-          <Chips chips={[{label:'$100K/yr',value:100000},{label:'$400K/yr',value:400000},{label:'$1M/yr',value:1000000}]} value={inp.spend} onChange={(v)=>set('spend',v)} hint="What you want to live on each year. The sustainability check compares this to what the engines can pay." />
-        </Field></div>
-
-        <p className="rounded-md bg-secondary px-3 py-2 text-[13.5px] leading-relaxed">
-          {inp.amount <= 0
-            ? 'Enter a prize amount. Everything on the right stays at zero until you do.'
-            : `You keep ${fmtCompact(r.net)} after tax. You could take about ${fmtCompact(r.capacity)} a year with no tax on that cash. In 30 years this setup would be about ${fmtCompact(r.stackEnd)}, versus ${fmtCompact(r.baselineEnd)} in a normal taxable account.`}
-        </p>
-
-        {/* All inputs are always visible — nothing is hidden behind a toggle. */}
-        <Field label="How much should be left at the end?" help="Choose 'Spend it all' and we solve the biggest yearly check that uses the stack up by the last year. Anything else keeps more compounding. Clears the custom draw schedule when you change it.">
-          <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.leaveTarget} onChange={(e) => applyLeaveTarget(e.target.value)}>
-            <option value="max">As much as possible</option>
-            <option value="75">Leave 75% of the core</option>
-            <option value="50">Leave half the core</option>
-            <option value="25">Leave 25% of the core</option>
-            <option value="0">Spend it all (or close to it)</option>
-          </select>
-        </Field>
-        {inp.leaveTarget !== 'max' && (
-          <div className="rounded-md bg-accent px-3 py-2 text-[13.5px] leading-relaxed text-accent-foreground">
-            {solvedDraw !== null ? (
-              <>
-                A draw of about <span className="font-num font-semibold">{fmt(solvedDraw)}/yr</span> would reach that goal.
-                Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span> — unchanged unless you choose to use it.
-                <button
-                  type="button"
-                  onClick={() => p.setInputs((prev) => ({ ...prev, spend: solvedDraw, flatDraw: true, drawOverrides: {} }))}
-                  className="mt-2 block rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground cursor-pointer"
-                >
-                  Use this as my yearly draw
-                </button>
-              </>
-            ) : (
-              <>Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span> — unchanged by the goal.</>
-            )}
-          </div>
-        )}
-
-        <Field label="State you might move to" help="Pick a 0% income-tax state (WY, NV, TX, FL…) if you plan to relocate.">
-          <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.target} onChange={(e) => set('target', e.target.value)}>
-            {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}{s.noTax ? ' — 0% tax' : ''}</option>)}
-          </select>
-        </Field>
-
-        <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
-          <span className="text-[14px]">Grow draw with inflation</span>
-          <button title={inp.flatDraw ? 'Spending stays the same dollar amount every year. Click to let it rise with inflation.' : 'Spending rises each year with inflation. Click for a flat dollar amount.'} onClick={() => set('flatDraw', !inp.flatDraw)}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${inp.flatDraw ? 'bg-card border border-input text-muted-foreground hover:border-primary/50' : 'bg-primary text-primary-foreground'}`}>
-            {inp.flatDraw ? 'Off — flat draw' : 'On'}
-          </button>
-        </div>
-
-        <Field label="Entity #4 property / vehicle reserve" help={inp.residency === 'pr' ? "LLC can hold investment property — but not your PR primary residence (2026 rules require direct/trust ownership)." : "Cash carved out for the anonymous LLC to buy a home or vehicles. $0 if none."}>
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.entity4 || ''} min={0} step={50000} onChange={(e) => set('entity4', +e.target.value || 0)} />
-          <Chips chips={[{label:'$500K',value:500000},{label:'$1.5M',value:1500000},{label:'$3M',value:3000000}]} value={inp.entity4} onChange={(v)=>set('entity4',v)} hint="Cash for the anonymous LLC to buy property or vehicles. Leave at $0 if you are not buying anything yet." />
-        </Field>
-
-        <Field label="Structure setup costs ($)" help="One-time year-1 legal and professional work: trusts drafted, PPLI placed, LLC formed, custody opened. Realistic range $50–150K.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.setupCost || ''} min={0} step={5000} onChange={(e) => set('setupCost', +e.target.value || 0)} />
-          <Chips chips={[{label:'$50K',value:50000},{label:'$75K',value:75000},{label:'$125K',value:125000}]} value={inp.setupCost} onChange={(v)=>set('setupCost',v)} hint="Customary setup tiers: $50K simple, $75K full stack, $125K+ for very large prizes. Edit only with a real quote." />
-        </Field>
-
-        <Field label="Yearly fees to keep it running" tip="Trustee, accountant, and similar fees. Nothing is taken until you type it. This is not the insurance charge." help="Leave blank for no yearly fee.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.annualAdmin || ''} min={0} step={1000} onChange={(e) => set('annualAdmin', +e.target.value || 0)} />
-          <Chips chips={[{label:'$15K/yr',value:15000},{label:'$25K/yr',value:25000},{label:'$50K/yr',value:50000}]} value={inp.annualAdmin} onChange={(v)=>set('annualAdmin',v)} hint="Trustee + CPA + agent per year, typically about 0.25% of the invested core. Drags the stack; the taxable baseline pays none." />
-        </Field>
-        <Field label="Insurance charge, dollars a year" tip="Taken out of the pile each year. Nothing is taken until you type it. The policy growth rate is before this charge." help="Leave blank for no charge. A common carrier charge is about 0.8% of the policy. This box does not apply that unless you type it.">
-          <input type="number" className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" value={inp.ppliFee || ''} min={0} step={1000} onChange={(e) => set('ppliFee', +e.target.value || 0)} />
-          <Chips chips={[{label:'0% (no policy)',value:0},{label:'0.5% of policy',value:Math.round(r.ppli*0.005)},{label:'0.8% (typical)',value:Math.round(r.ppli*0.008)},{label:'1.2% of policy',value:Math.round(r.ppli*0.012)}]} value={inp.ppliFee} onChange={(v)=>set('ppliFee',v)} hint="Typical: 0.8% of your policy — on a $15M policy that is $120K/yr. Leave blank only if you are not using the insurance wrapper." />
-        </Field>
-        <Limit>Minimum: $5,000,000 in the insurance box. This box is {fmtCompact(r.ppli)}. {r.qpOk ? 'That meets the minimum.' : 'That is under the minimum. The number was not erased. The bond box and the stock box were not changed.'}</Limit>
-        <Limit>Empty fee boxes use averages. Trustee and accountant: $25,000 a year. Insurance charge: 0.8% of the insurance box each year. Both are on this page. A typed number replaces the average. Trustee dollars and a typed insurance charge rise with the inflation rate. The 0.8% already follows the insurance box, so it is not raised a second time.</Limit>
-        <p className="text-[15px] leading-snug text-muted-foreground">The yearly amount is the dollars you asked to receive each year. The paycheck is what the bonds, the insurance box, and the stocks can pay that year. If you asked for more than the paycheck, the extra dollars are taken out of the stocks first.</p>
-
-        <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[14px] font-medium">Income ↔ Growth dial</span>
-            <span className="font-mono text-sm text-muted-foreground">{inp.mode === 'manual' ? 'manual' : inp.dial < 34 ? 'growth' : inp.dial > 66 ? 'income' : 'balanced'}</span>
-          </div>
-          <Slider
-            value={[inp.dial]}
-            min={0} max={100} step={1}
-            disabled={inp.mode === 'manual'}
-            onValueChange={([v]) => p.setInputs((prev) => ({ ...prev, dial: v, mode: v === 0 ? 'growth' : v === 100 ? 'income' : v === 50 ? 'balanced' : prev.mode === 'manual' ? 'balanced' : prev.mode }))}
-          />
-          <div className="mt-1 flex justify-between text-[12.5px] text-muted-foreground">
-            <span>Compound for 25 yrs</span><span>Max tax-free income</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2">
-          <span className="text-[14px]">Manual allocation</span>
-          <button title={inp.mode === 'manual' ? 'You are setting the split yourself. Click to let the slider set it.' : 'The slider sets the split. Click to type your own mix.'} onClick={() => set('mode', inp.mode === 'manual' ? 'balanced' : 'manual')}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${inp.mode === 'manual' ? 'bg-primary text-primary-foreground' : 'bg-card border border-input text-muted-foreground hover:border-primary/50'}`}>
-            {inp.mode === 'manual' ? 'On' : 'Off'}
-          </button>
-        </div>
-
-        {inp.mode === 'manual' && (
-          <ManualAlloc inputs={inp} setInputs={p.setInputs} />
-        )}
-
-        <details className="rounded-md border border-input">
-          <summary className="cursor-pointer px-3 py-2 text-[13px] font-medium text-muted-foreground hover:text-foreground">Optional: model a residency change</summary>
-          <div className="px-3 pb-3 pt-1">
-            <p className="mb-2 text-[12.5px] leading-snug text-muted-foreground">
-              No special residency plan is assumed by default — nothing about future investment income is taxed by state unless you choose a plan below. The prize itself is still taxed where you claimed it.
-            </p>
-            <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.residency} onChange={(e) => set('residency', e.target.value as Inputs['residency'])}>
-              <option value="none">No special residency plan</option>
-              <option value="stay">Stay put in {st.name}</option>
-              <option value="second">Second home + domicile in {tg.name} (&lt;183 days)</option>
-              <option value="move">Full move to {tg.name}</option>
-              <option value="pr">Move to Puerto Rico (Act 60 decree)</option>
-            </select>
-          </div>
-        </details>
-
-        <Field label="Filing status" help="Used only for the federal estimate on the prize.">
-          <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.filing} onChange={(e) => set('filing', e.target.value as Inputs['filing'])}>
-            <option value="single">Single</option>
-            <option value="mfj">Married filing jointly</option>
-          </select>
-        </Field>
-
-        <details className="rounded-md border border-input" open>
-          <summary className="cursor-pointer px-3 py-2 text-[14px] font-medium text-muted-foreground hover:text-foreground">Assumptions (editable)</summary>
-          <p className="px-3 pb-2 text-[15px] leading-snug text-muted-foreground">
-            These are the middle, not a forecast and not a quote. Change any of them. The chart uses the number in the box.
-          </p>
-          <button type="button" onClick={() => openExplain('assumptions')} className="px-3 pb-2 text-left text-[12.5px] font-medium text-primary underline cursor-pointer">Why these rates, in full (new tab)</button>
-          <div className="space-y-3 px-3 pb-3">
+        <div className="hairline-card p-5 no-print">
+          <h3 className="font-display text-lg font-semibold">Return and inflation assumptions</h3><p className="mt-1 text-sm leading-relaxed text-muted-foreground">These are editable planning assumptions, not forecasts or quotes. Every chart uses the numbers below.</p><button type="button" onClick={() => openExplain('assumptions')} className="mt-2 text-left text-[12.5px] font-medium text-primary underline cursor-pointer">Why these rates, in full</button>
+          <div className="mt-4 space-y-4">
             {([
-              ['muniYield', 'Muni yield', 'The tax-free interest the bond ladder pays. That cash is the first money you can spend. In early November 2026 a 10-year AAA municipal bond yielded about 3.4%, and a 30-year AAA bond about 4.5% to 4.8%. A ladder spread across those years is about 4%. The old 4.25% was a round number, a bit high for a mixed ladder. The model holds 4% flat for 30 years. Real coupons will move.'],
-              ['ppliGrowth', 'Policy growth, before the insurance charge', 'How fast the policy investments grow before the dollar charge you type. 7% is the middle of published 2026 long-run stock forecasts. The old 6.2% had already subtracted 0.8% for insurance. That subtraction is no longer hidden. Type the dollars in Insurance charge if you want them taken out. This is not a quote from an insurance company.'],
-              ['ppliDraw', 'PPLI draw', 'How much of the policy you can take each year with no tax, first by withdrawing what you paid in, then by borrowing. 4.5% sits under the 6.2% growth, so one bad stretch does not empty the policy on the chart. The old 6.5% was a sales figure. A very cautious illustration is closer to 3%. A real policy can still lapse if the loans and the charges run ahead of this.'],
-              ['eqGrowth', 'Equity growth', 'How fast the stocks grow before you take anything out. 7% is the middle of published 2026 long-run forecasts. Vanguard’s 30-year median was about 5.9%. J.P. Morgan’s large-cap forecast in October 2026 was 7.5%. The old 9% was close to the past average, which is the high end. It is not a prediction for any single year.'],
-              ['eqDraw', 'Equity draw', 'How much of the stocks the model lets you spend each year. With stocks expected to grow at 7%, spending 3.5% leaves the pile growing. The model treats this whole amount as tax-free, using basis, harvested losses, and loans. That tax-free part is the generous piece: it is easier in the early years than in year 20. The old 4.5% assumed it stayed tax-free for the full 30 years.'],
-              ['divYield', 'Equity dividends', 'Used only on the normal taxable account, which pays tax on these dividends every year. The trust stack does not. 1.5% is about what the broad U.S. market pays. This one was already in the middle, so it did not change.'],
-              ['inflation', 'Inflation', 'Raises your spending each year, and powers the “today’s dollars” switch. The Federal Reserve’s target is 2%. 2.5% allows for inflation staying a bit above that. It is not a forecast for one year. This one was already in the middle, so it did not change.'],
-            ] as const).map(([k, label, why]) => (
-              <label key={k} className="block text-[12.5px] text-muted-foreground">
-                <span className="font-medium text-foreground/90">{label}</span>
-                <input type="number" step={0.25} min={0} max={20}
-                  className="mt-0.5 w-full rounded border border-input bg-card px-2 py-1 text-sm font-num text-foreground"
-                  value={(asm[k] * 100).toFixed(2)}
-                  onChange={(e) => p.setAsm({ ...asm, [k]: (+e.target.value || 0) / 100 })} />
-                <span className="mt-1 block leading-snug">{why}</span>
-              </label>
-            ))}
-            <p className="text-[12.5px] leading-snug text-muted-foreground">
-              The normal taxable account also pays 23.8% federal tax on stock gains. That is the real top rate: 20% plus the 3.8% net-investment surtax. It is not a guess, so it is not a box you edit.
-            </p>
+              ['muniYield', 'Muni yield (%)', 'The tax-free interest the bond ladder pays. The model holds this rate flat; real coupons will move.'],
+              ['ppliGrowth', 'Policy growth before charges (%)', 'Policy investment growth before the insurance charge selected above.'],
+              ['ppliDraw', 'Policy draw capacity (%)', 'The amount the model assumes can be accessed through basis withdrawals and then loans. A real policy can lapse if loans and charges outrun it.'],
+              ['eqGrowth', 'Equity growth (%)', 'Stock growth before withdrawals. It is not a prediction for any single year.'],
+              ['eqDraw', 'Equity draw capacity (%)', 'The tax-efficient amount the model lets you spend from stocks. This treatment needs professional review.'],
+              ['divYield', 'Equity dividends (%)', 'Used only in the taxable comparison, which pays tax on dividends each year.'],
+              ['inflation', 'Inflation (%)', 'Raises inflation-linked spending and fixed-dollar fees, and powers the today’s-dollars chart view.'],
+            ] as const).map(([k, label, why]) => <label key={k} className="block text-[13px] text-muted-foreground"><span className="font-medium text-foreground">{label}</span><input type="number" step={0.25} min={0} max={20} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num text-foreground" value={(asm[k] * 100).toFixed(2)} onChange={(e) => p.setAsm({ ...asm, [k]: (+e.target.value || 0) / 100 })} /><span className="mt-1 block leading-relaxed">{why}</span></label>)}
+            <p className="text-[12.5px] leading-relaxed text-muted-foreground">The taxable account also pays 23.8% federal tax on stock gains: 20% long-term capital-gains tax plus the 3.8% net-investment-income surtax.</p>
           </div>
-        </details>
-
-        <div className="rounded-md border border-input p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-[13px] font-medium">Optional sleeve</div>
-            <button type="button" title="Opens the list of extra ideas. Each row says whether it changes the chart." onClick={p.onOpenLibrary} className="text-[12.5px] text-primary hover:underline cursor-pointer">
-              Strategy library
-            </button>
-          </div>
-          {!inp.sleeve ? (
-            <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">
-              None. One sleeve at a time — choosing another replaces it. OZ, QSBS, and real estate change the projection. Other items do not.
-            </p>
-          ) : (
-            <SleeveCard inp={inp} setInputs={p.setInputs} amount={r.sleeveAmount} />
-          )}
         </div>
+        <button title="Copies a link that reopens these exact numbers." onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground cursor-pointer">{copied ? <><Check className="h-4 w-4" /> Link copied</> : <><Link2 className="h-4 w-4" /> Copy shareable link</>}</button>
+      </FlowSection>
 
-        <button title="Copies a link that reopens these exact numbers." onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 cursor-pointer">
-          {copied ? <><Check className="h-4 w-4" /> Link copied</> : <><Link2 className="h-4 w-4" /> Copy shareable link</>}
-        </button>
-      </div>
-
-      {/* ---------- Results ---------- */}
-      <div className="min-w-0 space-y-6">
-        <div className="hidden lg:block">{headline}</div>
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Stat label="Bonds" tip="The bond ladder. It pays the bond rate, tax-free, and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} of what is invested · ${fmtCompact(r.muni * asm.muniYield)}/yr`} />
-          <Stat label="Insurance policy" tip="This box stands on its own. The minimum in this box is $5,000,000. The number is not erased when it is under that. The bond box and the stock box are not changed." more="policy" value={fmtCompact(r.ppli)} sub={r.qpOk ? `At least ${fmtCompact(PPLI_QP_MIN)}. ${fmtCompact(r.ppli * asm.ppliDraw)} a year from this box.` : `${fmtCompact(r.ppli)} is under the ${fmtCompact(PPLI_QP_MIN)} minimum.`} />
-          <Stat label="Stocks" tip="Stocks. The growth rate and the spendable slice are the rates in the assumptions." more="stocks" value={fmtCompact(r.equity)} sub={r.sleeveAmount > 0 ? `${pct(r.core > 0 ? r.equity / r.core : 0)} after anything you moved out · ${fmtCompact(r.equity * asm.eqDraw)}/yr` : `${pct(w.c)} of what is invested · ${fmtCompact(r.equity * asm.eqDraw)}/yr`} />
-          <div data-tour="capacity"><Stat label="Safe to take per year" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `drawing ${fmtCompact(r.plannedDrawY2)}/yr · ${fmtCompact(Math.max(0, r.capacity - r.plannedDrawY2))} untapped${r.reinvestY2 > 1 ? ` (+${fmtCompact(r.reinvestY2)} coupons swept)` : ''}` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" /></div>
-        </div>
-
-        {inp.amount > 0 && !r.sustainable && (
-          <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-            <div className="text-sm">
-              <strong>Your spending target is more than the stack can safely pay.</strong> You want {fmt(inp.spend)}/yr but the stack can safely pay {fmt(r.capacity)}/yr tax-free. Either lower the target, move the dial toward income, or grow the core — at this draw mix you'd need a core of roughly <span className="font-num font-semibold">{fmt(r.requiredCore)}</span>.
-            </div>
-          </div>
-        )}
-
-        {inp.amount > 0 && r.depletedYear && (
-          <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-            <div className="text-sm">
-              <strong>The stack runs dry around year {r.depletedYear}.</strong> At this draw schedule the engines can't keep up, so the projection dips into principal and eventually empties. Lower the target, raise the dial toward income, or grow the core first.
-            </div>
-          </div>
-        )}
-
-        {inp.residency === 'pr' && <PRLazy inputs={inp} setInputs={p.setInputs} result={r} />}
-
-        <div className="flex justify-end no-print">
-          <button
-            title={customizing ? 'Close the layout controls. The order is saved on this browser.' : 'Show, hide, or reorder the charts below.'}
-            onClick={() => setCustomizing(!customizing)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors cursor-pointer ${customizing ? 'border-primary bg-accent text-accent-foreground' : 'border-input text-muted-foreground hover:text-foreground'}`}
-          >
-            <Settings2 className="h-3.5 w-3.5" /> {customizing ? 'Done customizing' : 'Customize sections'}
-          </button>
-        </div>
-
-        {customizing && layout.hidden.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            Hidden:
-            {layout.hidden.map((id) => (
-              <button key={id} title={`Show ${SECTION_META.find((m) => m.id === id)?.title ?? 'this section'} again.`} onClick={() => toggleHide(id)} className="rounded-full border border-dashed border-input px-3 py-1 hover:border-primary hover:text-primary cursor-pointer">
-                Restore {SECTION_META.find((m) => m.id === id)?.title}
-              </button>
-            ))}
-          </div>
-        )}
-
+      <FlowSection step="6" title="Inspect the detailed results" purpose="Reorder these detail sections if you like. Nothing is hidden, and every number above remains editable.">
+        <div className="flex justify-end no-print"><button onClick={() => setCustomizing(!customizing)} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm cursor-pointer ${customizing ? 'border-primary bg-accent' : 'border-input text-muted-foreground'}`}><Settings2 className="h-3.5 w-3.5" /> {customizing ? 'Done reordering' : 'Reorder detail sections'}</button></div>
         {layout.order.map((id, idx, arr) => {
           const meta = SECTION_META.find((m) => m.id === id)!;
-          return (
-            <div key={id}>
-              {customizing && (
-                <div className="mb-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <span className="font-mono uppercase tracking-wider">{meta.title}</span>
-                  <button title="Move this section up." onClick={() => move(id, -1)} disabled={idx === 0} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
-                  <button title="Move this section down." onClick={() => move(id, 1)} disabled={idx === arr.length - 1} className="rounded p-1 hover:bg-secondary disabled:opacity-30 cursor-pointer" aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
-  
-                </div>
-              )}
-              <p className="-mt-1 mb-2 max-w-[75ch] text-[13px] leading-snug text-muted-foreground">{meta.purpose}</p>
-              {sectionNode(id)}
-            </div>
-          );
+          return <div key={id}>{customizing && <div className="mb-1.5 flex items-center gap-1.5 text-sm text-muted-foreground"><span className="font-mono uppercase tracking-wider">{meta.title}</span><button onClick={() => move(id, -1)} disabled={idx === 0} className="rounded p-1 disabled:opacity-30 cursor-pointer" aria-label={`Move ${meta.title} up`}><ArrowUp className="h-3.5 w-3.5" /></button><button onClick={() => move(id, 1)} disabled={idx === arr.length - 1} className="rounded p-1 disabled:opacity-30 cursor-pointer" aria-label={`Move ${meta.title} down`}><ArrowDown className="h-3.5 w-3.5" /></button></div>}<p className="mb-2 max-w-[75ch] text-[13px] leading-snug text-muted-foreground">{meta.purpose}</p>{sectionNode(id)}</div>;
         })}
-      </div>
-
-      {/* ---------- Explanation rail ---------- */}
-      <aside className="hidden h-fit space-y-4 lg:col-span-2 xl:col-span-1 xl:block">
-        <ExplainRail inp={inp} r={r} />
-      </aside>
-    </div>
+      </FlowSection>
     </div>
   );
 }
 
-// Lazy wrappers keep imports tidy
-import PRPanel from './PRPanel';
-import RealEstatePanel from './RealEstatePanel';
-function PRLazy(props: { inputs: Inputs; setInputs: Props['setInputs']; result: StackResult }) {
-  return <PRPanel {...props} />;
+function FlowSection({ step, title, purpose, children }: { step: string; title: string; purpose: string; children: ReactNode }) {
+  return <section className="scroll-mt-24"><div className="mb-4 flex items-start gap-3"><span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent font-num text-sm font-semibold text-accent-foreground">{step}</span><div><h2 className="font-display text-2xl font-semibold">{title}</h2><p className="mt-1 max-w-[72ch] text-sm leading-relaxed text-muted-foreground">{purpose}</p></div></div><div className="space-y-5">{children}</div></section>;
 }
-function RealEstateLazy({ inputs, result }: { inputs: Inputs; result: StackResult }) {
-  return <RealEstatePanel suggestedPrice={inputs.entity4} marginalRate={0.37 + result.futureStateRate} />;
+
+function Warning({ children }: { children: ReactNode }) {
+  return <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" /><div className="text-sm leading-relaxed">{children}</div></div>;
+}
+
+type AdminItems = NonNullable<Inputs['adminFeeItems']>;
+type AdminMode = NonNullable<Inputs['adminFeeMode']>;
+const EMPTY_ADMIN_ITEMS: AdminItems = { trustee: 0, cpa: 0, legal: 0, entity: 0, reporting: 0 };
+const ADMIN_PRESETS: Record<'basic' | 'full' | 'complex', { label: string; items: AdminItems }> = {
+  basic: { label: 'Basic domestic administration', items: { trustee: 8000, cpa: 4000, legal: 0, entity: 1500, reporting: 1500 } },
+  full: { label: 'Full domestic trust stack', items: { trustee: 12000, cpa: 6000, legal: 5000, entity: 2000, reporting: 0 } },
+  complex: { label: 'Complex or multiple-entity administration', items: { trustee: 20000, cpa: 10000, legal: 10000, entity: 4000, reporting: 6000 } },
+};
+const ADMIN_LINES: Array<[keyof AdminItems, string]> = [
+  ['trustee', 'Trustee and trust administration'], ['cpa', 'CPA and annual tax preparation'], ['legal', 'Attorney, legal, and compliance'], ['entity', 'LLC and registered-agent costs'], ['reporting', 'Reporting, custody, and other administration'],
+];
+const adminTotal = (items: AdminItems) => ADMIN_LINES.reduce((sum, [key]) => sum + Math.max(0, items[key] || 0), 0);
+
+export function AnnualFeePlanner({ inp, setInputs }: { inp: Inputs; setInputs: Props['setInputs'] }) {
+  const mode: AdminMode = inp.adminFeeMode ?? (inp.annualAdmin > 0 ? 'custom' : 'none');
+  const savedItems = { ...EMPTY_ADMIN_ITEMS, ...(inp.adminFeeItems ?? {}) };
+  const displayedItems = mode === 'basic' || mode === 'full' || mode === 'complex' ? { ...ADMIN_PRESETS[mode].items, ...savedItems } : savedItems;
+
+  const applyMode = (next: AdminMode) => {
+    if (next === 'none') {
+      setInputs((prev) => ({ ...prev, adminFeeMode: 'none', annualAdmin: 0 }));
+      return;
+    }
+    if (next === 'custom') {
+      const items = { ...displayedItems };
+      setInputs((prev) => ({ ...prev, adminFeeMode: 'custom', adminFeeItems: items, annualAdmin: adminTotal(items) }));
+      return;
+    }
+    const items = { ...ADMIN_PRESETS[next].items };
+    setInputs((prev) => ({ ...prev, adminFeeMode: next, adminFeeItems: items, annualAdmin: adminTotal(items) }));
+  };
+
+  const updateItem = (key: keyof AdminItems, value: number) => {
+    const items = { ...savedItems, [key]: Math.max(0, value || 0) };
+    setInputs((prev) => ({ ...prev, adminFeeMode: 'custom', adminFeeItems: items, annualAdmin: adminTotal(items) }));
+  };
+
+  return (
+    <div className="rounded-md border border-input p-4" data-testid="annual-fee-planner">
+      <h3 className="font-display text-lg font-semibold">Yearly trustee, tax, legal, and entity costs</h3>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Choose a planning allowance or build your own. These are not provider quotes. They exclude one-time setup costs and the separate insurance-policy charge.</p>
+      <label className="mt-3 block text-sm font-medium">Annual-cost scenario
+        <select className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-normal" value={mode} onChange={(e) => applyMode(e.target.value as AdminMode)}>
+          <option value="none">Do not include annual administration costs — $0</option>
+          <option value="basic">Basic domestic administration — $15,000/yr</option>
+          <option value="full">Full domestic trust stack — $25,000/yr</option>
+          <option value="complex">Complex or multiple entities — $50,000/yr</option>
+          <option value="custom">Build my own itemized estimate</option>
+        </select>
+      </label>
+      {mode !== 'none' && <dl className="mt-4 divide-y divide-border/60">{ADMIN_LINES.map(([key, label]) => <div key={key} className="flex items-center justify-between gap-4 py-2.5"><dt className="text-sm text-muted-foreground">{label}</dt><dd className="shrink-0 text-right font-num text-sm">{mode === 'custom' ? <input aria-label={label} type="number" min={0} step={500} value={savedItems[key] || ''} onChange={(e) => updateItem(key, +e.target.value)} className="w-32 rounded-md border border-input bg-card px-2 py-1 text-right" /> : fmt(displayedItems[key])}</dd></div>)}<div className="flex flex-col gap-1 py-3 font-semibold sm:flex-row sm:items-center sm:justify-between"><dt>Total included each year</dt><dd className="whitespace-nowrap font-num">{fmt(inp.annualAdmin)}</dd></div></dl>}
+      {inp.annualAdmin <= 0 && <p className="mt-3 rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">Your projection currently excludes trustee, tax, legal, and entity-maintenance costs.</p>}
+      <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">The total shown is the exact amount used in the projection. Fixed-dollar annual costs rise with the inflation assumption. Foreign structures and multi-jurisdiction filings can cost substantially more; replace these allowances with real quotes when you have them.</p>
+    </div>
+  );
+}
+
+export function InsuranceChargePlanner({ inp, r, setInputs }: { inp: Inputs; r: StackResult; setInputs: Props['setInputs'] }) {
+  const mode = inp.ppliFeeMode ?? (inp.ppliFee > 0 ? 'fixed' : 'none');
+  const rate = inp.ppliFeeRate ?? 0.008;
+  const yearlyCharge = mode === 'rate' ? r.ppli * rate : mode === 'fixed' ? inp.ppliFee : 0;
+
+  const applyMode = (next: 'none' | 'rate' | 'fixed') => {
+    if (next === 'none') setInputs((prev) => ({ ...prev, ppliFeeMode: 'none', ppliFee: 0 }));
+    else if (next === 'rate') setInputs((prev) => ({ ...prev, ppliFeeMode: 'rate', ppliFeeRate: rate, ppliFee: Math.round(r.ppli * rate) }));
+    else setInputs((prev) => ({ ...prev, ppliFeeMode: 'fixed', ppliFee: Math.round(mode === 'rate' ? yearlyCharge : prev.ppliFee) }));
+  };
+  const setRate = (next: number) => setInputs((prev) => ({ ...prev, ppliFeeMode: 'rate', ppliFeeRate: next, ppliFee: Math.round(r.ppli * next) }));
+
+  return (
+    <div className="rounded-md border border-input p-4" data-testid="insurance-charge-planner">
+      <h3 className="font-display text-lg font-semibold">Insurance policy charge</h3>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">This is the insurance company’s yearly policy charge. It is separate from trustee, attorney, CPA, and LLC costs. If you do not have a quote, choose a planning scenario or deliberately model $0.</p>
+      <label className="mt-3 block text-sm font-medium">How should the model handle this charge?
+        <select className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-normal" value={mode} onChange={(e) => applyMode(e.target.value as 'none' | 'rate' | 'fixed')}>
+          <option value="none">No insurance charge modeled — $0</option><option value="rate">Percentage of the policy each year</option><option value="fixed">Fixed dollar amount from my quote</option>
+        </select>
+      </label>
+      {mode === 'rate' && <div className="mt-3 space-y-3"><div className="flex flex-wrap gap-2">{[0.005, 0.008, 0.012].map((v) => <button key={v} type="button" onClick={() => setRate(v)} className={`rounded-full border px-3 py-1.5 text-sm cursor-pointer ${rate === v ? 'border-primary bg-accent font-medium' : 'border-input text-muted-foreground'}`}>{pct(v)} planning scenario</button>)}</div><label className="block text-sm text-muted-foreground">Custom percentage per year<div className="mt-1 flex items-center gap-2"><input aria-label="Custom insurance charge percentage" type="number" min={0} step={0.05} value={+(rate * 100).toFixed(2)} onChange={(e) => setRate(Math.max(0, (+e.target.value || 0) / 100))} className="w-32 rounded-md border border-input bg-card px-2 py-1.5 font-num" /><span>%</span></div></label><p className="rounded-md bg-secondary px-3 py-2 text-sm"><strong>{pct(rate, 2)} × {fmt(r.ppli)} current policy balance = {fmt(Math.round(yearlyCharge))}/yr</strong></p></div>}
+      {mode === 'fixed' && <label className="mt-3 block text-sm text-muted-foreground">Your quoted charge, dollars per year<input aria-label="Fixed yearly insurance charge" type="number" min={0} step={1000} value={inp.ppliFee || ''} onChange={(e) => setInputs((prev) => ({ ...prev, ppliFeeMode: 'fixed', ppliFee: Math.max(0, +e.target.value || 0) }))} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 font-num" /></label>}
+      {mode === 'none' && <p className="mt-3 rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">The projection includes <strong>$0</strong> for insurance charges. This does not claim that a real policy is free.</p>}
+      <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">Modeled charge now: <span className="font-num font-semibold">{fmt(Math.round(yearlyCharge))}/yr</span>. A percentage follows each year’s projected policy balance; a fixed-dollar quote rises with inflation. Explicit $0 always remains $0.</p>
+    </div>
+  );
 }
 
 function ManualAlloc({ inputs, setInputs }: { inputs: Inputs; setInputs: Props['setInputs'] }) {
@@ -715,7 +486,7 @@ function ProjectionTable({ r, inp, asm, scenarios }: { r: StackResult; inp: Inpu
           Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
           (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
         </p>
-        <button type="button" title="Downloads a spreadsheet of these inputs, the fees, and the 25-year line." onClick={() => downloadPlan(inp, asm, r, scenarios)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
+        <button type="button" title={`Downloads a spreadsheet of these inputs, the fees, and the ${HORIZON}-year line.`} onClick={() => downloadPlan(inp, asm, r, scenarios)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
           Download plan
         </button>
       </div>
@@ -788,7 +559,7 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
                   ['Investable core', (s: ScenarioSlot) => fmtCompact(s.result.core)],
                   ['Allocation A/B/C', (s: ScenarioSlot) => s.result.alloc],
                   ['Safe to take /yr', (s: ScenarioSlot) => fmtCompact(s.result.capacity)],
-                  ['Net worth @ 25 yrs', (s: ScenarioSlot) => fmtCompact(s.result.stackEnd)],
+                  [`Net worth @ ${HORIZON} yrs`, (s: ScenarioSlot) => fmtCompact(s.result.stackEnd)],
                   ['Edge over taxable', (s: ScenarioSlot) => fmtCompact(s.result.advantage)],
                 ] as const).map(([label, fn]) => (
                   <tr key={label} className="border-t border-border/60">
@@ -803,7 +574,7 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
           </div>
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <div>
-              <h4 className="font-display text-base font-semibold">25-year race</h4>
+              <h4 className="font-display text-base font-semibold">{HORIZON}-year race</h4>
               <ScenarioLines scenarios={p.scenarioResults} />
             </div>
             <div>
@@ -814,34 +585,5 @@ function ScenarioCompare(p: Props & { scenarioResults: ReturnType<typeof useScen
         </>
       )}
     </div>
-  );
-}
-
-function ExplainRail({ inp, r }: { inp: Inputs; r: StackResult }) {
-  const st = STATES.find((s) => s.code === inp.state)!;
-  const tg = STATES.find((s) => s.code === inp.target)!;
-  return (
-    <>
-      <div className="hairline-card p-5">
-        <h4 className="font-display text-base font-semibold">What just happened to your money</h4>
-        <ul className="mt-3 space-y-3 text-[14px] leading-relaxed text-muted-foreground">
-          <li><strong className="text-foreground">Taxes came out first.</strong> The lottery withholds 24% federal, but the real bill is ~37% — the difference is due April 15, which is why Trust #1 parks it in T-Bills.</li>
-          <li><strong className="text-foreground">Year 1 is a seasoning year.</strong> You live on the reserve while the PPLI and loss-harvesting engines warm up. Patience here is worth real money.</li>
-          <li><strong className="text-foreground">From month 13, the tap opens — but you choose the flow.</strong> Up to {fmtCompact(r.capacity)}/yr is available tax-free. You plan to draw {fmtCompact(r.plannedDrawY2)}, and the surplus keeps compounding.</li>
-        </ul>
-      </div>
-      <div className="hairline-card p-5">
-        <h4 className="font-display text-base font-semibold">Your residency math</h4>
-        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-          {inp.residency === 'none' && <>No special residency plan selected — nothing about future investment income is taxed by state in this model. The prize is still taxed where you claimed it.</>}
-          {inp.residency === 'stay' && <>Staying in {st.name} means future unshielded income faces {pct(st.rate)} state tax. The stack's engines are designed so that number touches as little of your money as possible.</>}
-          {inp.residency === 'pr' && <>As a bona fide Puerto Rico resident with an Act 60 decree, federal tax on post-move investment <em>gains</em> drops to <span className="font-num stat-good font-semibold">{pct(r.prRate, 0)}</span> under IRC §933 — the strongest legal rate available to a US person who keeps their citizenship. Details and the filing deadline are in the PR module above.</>}
-          {(inp.residency === 'second' || inp.residency === 'move') && <>Domiciled in {tg.name} ({tg.noTax ? '0% income tax' : `${pct(tg.rate)} top rate`}), your future investment income faces <span className="font-num stat-good font-semibold">{pct(r.futureStateRate)}</span> state tax. Keep a day-count log — {st.name} will check.</>}
-        </p>
-      </div>
-      <div className="rounded-lg border border-gold/40 bg-[hsl(var(--gold-tint))] p-4 text-[14px] leading-relaxed text-[hsl(var(--espresso-soft))]">
-        <strong>Honest math, not advice.</strong> This is an educational model with simplified 2026 rates. Real trust drafting, PPLI underwriting, and residency law are fact-specific — run everything past a licensed attorney and CPA before acting.
-      </div>
-    </>
   );
 }

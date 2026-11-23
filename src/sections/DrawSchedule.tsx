@@ -55,7 +55,7 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
   const hasOverrides = Object.keys(inputs.drawOverrides).length > 0;
 
   return (
-    <details className="hairline-card p-5" open={hasOverrides || undefined}>
+    <details className="hairline-card p-5" open>
       <summary className="cursor-pointer font-display text-lg font-semibold">
         Custom draw schedule{hasOverrides && <span className="ml-2 rounded bg-accent px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-accent-foreground">edited</span>}
       </summary>
@@ -96,6 +96,7 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
         </ResponsiveContainer>
         <div className="mt-1 flex flex-wrap justify-between gap-2 text-[13px] text-muted-foreground">
           <span>Total drawn over {HORIZON} years: <span className="font-num font-semibold">{fmtCompact(result.cumCash)}</span></span>
+          <span className="basis-full leading-relaxed">Withdrew more than you spent? Review it before year-end with your CPA and trustee. Future interest can be taxable, and returning cash to a trust or policy is not always a simple deposit. See the First-Year Guide.</span>
           <span>Left at the end: <span className="font-num font-semibold stat-good">{fmtCompact(result.stackEnd)}</span>
             {result.depletedYear && <span className="text-destructive"> · runs dry around year {result.depletedYear}</span>}
           </span>

@@ -30,9 +30,13 @@ export interface Inputs {
   rental: number;       // dollars you typed for a rental; nothing is taken if this is 0
   gift: number;         // dollars you typed for a gift; nothing is taken if this is 0
   laterSpend: number;   // from year 11 on, if above 0; otherwise spend is used
-  ppliFee: number;      // insurance charge in dollars per year; nothing is taken if this is 0
+  ppliFee: number;      // fixed insurance charge in dollars per year; nothing is taken if this is 0
+  ppliFeeMode?: 'none' | 'rate' | 'fixed'; // percentage of each year's policy balance, or fixed dollars
+  ppliFeeRate?: number; // used only when ppliFeeMode is 'rate'
   setupCost: number;    // one-time legal/professional setup of the stack (year 1)
-  annualAdmin: number;  // ongoing trustee, carrier, CPA, registered-agent fees
+  annualAdmin: number;  // ongoing trustee, CPA, legal, and entity-administration fees
+  adminFeeMode?: 'none' | 'basic' | 'full' | 'complex' | 'custom';
+  adminFeeItems?: { trustee: number; cpa: number; legal: number; entity: number; reporting: number };
   mode: Mode;
   residency: Residency;
   filing: Filing;
@@ -99,8 +103,12 @@ export const DEFAULT_INPUTS: Inputs = {
   gift: 0,
   laterSpend: 0,
   ppliFee: 0,
+  ppliFeeMode: 'none',
+  ppliFeeRate: 0.008,
   setupCost: 0,
   annualAdmin: 0,
+  adminFeeMode: 'none',
+  adminFeeItems: { trustee: 0, cpa: 0, legal: 0, entity: 0, reporting: 0 },
   mode: 'balanced',
   residency: 'none',
   filing: 'single',
@@ -413,7 +421,12 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
 
     const adminBase = inp.annualAdmin ?? 0; // explicit 0 means no admin fee
     const inflate = Math.pow(1 + asm.inflation, y - 1);
-    const feeBill = adminBase * inflate + (inp.ppliFee === undefined ? newPpli * AVG_PPLI_FEE_RATE : inp.ppliFee * inflate);
+    const insuranceFee = inp.ppliFeeMode === 'rate'
+      ? newPpli * (inp.ppliFeeRate ?? 0)
+      : inp.ppliFee === undefined
+        ? newPpli * AVG_PPLI_FEE_RATE
+        : inp.ppliFee * inflate;
+    const feeBill = adminBase * inflate + insuranceFee;
     let fees = feeBill;
     const fromPpli = Math.min(fees, newPpli); newPpli -= fromPpli; fees -= fromPpli;
     const fromEq = Math.min(fees, newEq); newEq -= fromEq; fees -= fromEq;

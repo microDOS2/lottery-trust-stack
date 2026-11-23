@@ -1,5 +1,5 @@
 import {
-  fmt, pct, drawForYear, computeStack, AVG_PPLI_FEE_RATE, PPLI_QP_MIN, HORIZON,
+  fmt, pct, drawForYear, computeStack, PPLI_QP_MIN, HORIZON,
   type Inputs, type Assumptions, type StackResult,
 } from '../lib/calc';
 import { stateByCode } from '../lib/taxdata';
@@ -70,8 +70,18 @@ export default function PlanSummary({ inputs: inp, asm, result: r, scenarios, se
   const draw2 = drawForYear(inp, asm, 2);
   const drawEnd = drawForYear(inp, asm, HORIZON);
   const overrideYears = Object.keys(inp.drawOverrides).length;
-  const typedInsurance = (inp.ppliFee || 0) > 0;
-  const modeledInsurance = r.ppli * AVG_PPLI_FEE_RATE;
+  const insuranceMode = inp.ppliFeeMode ?? (inp.ppliFee > 0 ? 'fixed' : 'none');
+  const insuranceRate = inp.ppliFeeRate ?? 0;
+  const insuranceDisclosure = r.ppli <= 0
+    ? 'None (no insurance in the mix)'
+    : insuranceMode === 'rate'
+      ? `${pct(insuranceRate, 2)} of each year’s policy balance (about ${fmt(r.ppli * insuranceRate)} in year 1)`
+      : insuranceMode === 'fixed'
+        ? `${fmt(inp.ppliFee)} per year, adjusted for inflation`
+        : '$0 included — no insurance charge modeled';
+  const adminDisclosure = inp.annualAdmin > 0
+    ? `${fmt(inp.annualAdmin)} per year${inp.adminFeeMode === 'custom' ? ' (custom itemized estimate)' : inp.adminFeeMode && inp.adminFeeMode !== 'none' ? ` (${inp.adminFeeMode} planning scenario)` : ''}`
+    : '$0 included — no annual administration costs modeled';
 
   return (
     <div className="plan-summary mx-auto max-w-3xl px-4 py-8 text-foreground">
@@ -262,21 +272,17 @@ export default function PlanSummary({ inputs: inp, asm, result: r, scenarios, se
           <tbody>
             <Row label="One-time legal and professional setup (year 1)" value={inp.setupCost > 0 ? fmt(inp.setupCost) : 'None typed'} />
             <Row
-              label="Annual administration (trustee, CPA, registered agent)"
-              value={(inp.annualAdmin ?? 0) > 0 ? `${fmt(inp.annualAdmin)} per year` : 'None typed'}
+              label="Annual administration (trustee, CPA, legal, and entities)"
+              value={adminDisclosure}
             />
             <Row
               label="Insurance charge"
-              value={typedInsurance
-                ? `${fmt(inp.ppliFee)} per year`
-                : r.ppli > 0
-                  ? `Modeled at ${pct(AVG_PPLI_FEE_RATE, 1)} of the insurance box (≈${fmt(modeledInsurance)} in year 1)`
-                  : 'None (no insurance in the mix)'}
+              value={insuranceDisclosure}
             />
           </tbody>
         </table>
         <p className="mt-2 text-muted-foreground">
-          Typed fees rise with the inflation assumption each year. Fees come out of the engines and reduce what is left.
+          Fixed-dollar fees rise with the inflation assumption each year. Percentage-based insurance charges follow each year’s projected policy balance. All included fees come out of the engines and reduce what is left.
         </p>
       </section>
 

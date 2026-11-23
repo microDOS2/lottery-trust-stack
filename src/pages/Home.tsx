@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS, LEGACY_ASSUMPTIONS, computeStack, type Inputs, type Assumptions } from '../lib/calc';
 import { QUIZ } from '../lib/quiz';
 import CalculatorView, { type ScenarioSlot } from '../sections/CalculatorView';
@@ -59,6 +59,7 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
     ...DEFAULT_INPUTS,
     ...(parsed ?? {}),
     manual: { ...DEFAULT_INPUTS.manual, ...(parsed?.manual ?? {}) },
+    adminFeeItems: { ...DEFAULT_INPUTS.adminFeeItems, ...(parsed?.adminFeeItems ?? {}) } as NonNullable<Inputs['adminFeeItems']>,
     drawOverrides: { ...(parsed?.drawOverrides ?? {}) },
   };
   if (!hadSleeve && migrateSleeve) {
@@ -76,6 +77,10 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
   if (!inputs.strategyDollars || typeof inputs.strategyDollars !== 'object') inputs.strategyDollars = {};
   if (typeof inputs.debt !== 'number') inputs.debt = 0;
   if (typeof inputs.venture !== 'number') inputs.venture = 0;
+  // Older saved plans predate explicit fee modes. Infer the mode from the dollars
+  // actually stored so the controls cannot say "none" while the engine charges a fee.
+  if (!parsed?.adminFeeMode) inputs.adminFeeMode = inputs.annualAdmin > 0 ? 'custom' : 'none';
+  if (!parsed?.ppliFeeMode) inputs.ppliFeeMode = inputs.ppliFee > 0 ? 'fixed' : 'none';
   return inputs;
 }
 
@@ -174,12 +179,7 @@ export default function Home() {
           const asmNow = loadAssumptions();
           return [...arr.slice(0, 5), null, null, null, null, null].slice(0, 5).map((s) => {
             if (!s || !s.inputs) return null;
-            const inputs = {
-              ...DEFAULT_INPUTS,
-              ...s.inputs,
-              manual: { ...DEFAULT_INPUTS.manual, ...(s.inputs.manual ?? {}) },
-              drawOverrides: { ...(s.inputs.drawOverrides ?? {}) },
-            };
+            const inputs = normalizeInputs(s.inputs, false);
             const r = computeStack(inputs, asmNow);
             return {
               name: s.name ?? 'Scenario',
@@ -216,7 +216,7 @@ export default function Home() {
     setWelcomed(true);
     try { localStorage.setItem('lotteryStack.welcomed', '1'); } catch { /* ignore */ }
   };
-  const trySample = () => {
+  const trySample = (amount = 100_000_000) => {
     const persona: Record<string, number> = {
       worry: 0, live: 0, market: 1, sue: 1, hold: 1, gone: 1, estate: 1, discipline: 0,
     };
@@ -225,7 +225,7 @@ export default function Home() {
       localStorage.setItem('lotteryStack.quizAnswers', JSON.stringify(allAnswers));
       localStorage.setItem('lotteryStack.age', '55');
     } catch { /* ignore */ }
-    setInputsRaw((p) => ({ ...p, amount: 100_000_000, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000 }));
+    setInputsRaw((p) => ({ ...p, amount, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000 }));
     dismissWelcome();
     setView('goals');
     setResetKey((k) => k + 1);
@@ -248,25 +248,6 @@ export default function Home() {
   }, [asm]);
 
   const result = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
-
-  // Customary fee defaults, applied once when money is first entered. User edits win forever after.
-  const feesAutoFilled = useRef(false);
-  useEffect(() => {
-    feesAutoFilled.current = false;
-  }, []);
-  useEffect(() => {
-    if (feesAutoFilled.current || result.core <= 0) return;
-    const amount = inputs.amount;
-    const setup = amount < 10_000_000 ? 50_000 : amount <= 50_000_000 ? 75_000 : 125_000;
-    const admin = Math.max(15_000, Math.round(result.core * 0.0025));
-    const ppli = Math.round(result.ppli * 0.008);
-    if (inputs.setupCost === setup && inputs.annualAdmin === admin && inputs.ppliFee === ppli) {
-      feesAutoFilled.current = true;
-      return;
-    }
-    feesAutoFilled.current = true;
-    setInputsRaw((p) => ({ ...p, setupCost: setup, annualAdmin: admin, ppliFee: ppli }));
-  }, [result.core, result.ppli, inputs.amount, inputs.setupCost, inputs.annualAdmin, inputs.ppliFee]);
 
   const saveScenario = (i: number) => {
     const r = computeStack(inputs, asm);
@@ -294,7 +275,6 @@ export default function Home() {
   };
 
   const globalReset = () => {
-    feesAutoFilled.current = false;
     if (!window.confirm('Start completely over? This clears your numbers, quiz answers, saved scenarios, and layout. It cannot be undone.')) return;
     setInputsRaw(DEFAULT_INPUTS);
     setAsm(DEFAULT_ASSUMPTIONS);
@@ -388,7 +368,7 @@ export default function Home() {
               onChange={(e) => {
                 const amount = Number(e.target.value);
                 if (!amount) return;
-                trySample();
+                trySample(amount);
                 e.target.value = '';
               }}
             >
@@ -475,7 +455,7 @@ export default function Home() {
           />
         )}
         {view === 'entities' && (
-          <EntitiesView entities={entities} setEntities={setEntities} setInputs={setInputs} />
+          <EntitiesView entities={entities} setEntities={setEntities} inputs={inputs} result={result} setInputs={setInputs} />
         )}
         {view === 'plan' && <PlanSummary inputs={inputs} asm={asm} result={result} scenarios={scenarios} />}
         {view === 'analysis' && <AnalysisView inputs={inputs} asm={asm} />}
@@ -521,7 +501,7 @@ export default function Home() {
             <li>Save setups and compare them. The quiz scores which one fits you.</li>
           </ol>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-            <button onClick={trySample} className="flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer">
+            <button onClick={() => trySample()} className="flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer">
               Try a sample $100M
             </button>
             <button onClick={dismissWelcome} className="flex-1 rounded-md border border-input bg-card px-4 py-2.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">

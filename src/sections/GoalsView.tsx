@@ -5,7 +5,7 @@ import { STATES } from '../lib/taxdata';
 import { buildBestPlans } from '../lib/plans';
 import { Explainer, Limit, SectionTitle, Tip, Chips } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
-import type { ScenarioSlot } from './CalculatorView';
+import { AnnualFeePlanner, InsuranceChargePlanner, type ScenarioSlot } from './CalculatorView';
 
 interface Props {
   inputs: Inputs;
@@ -138,8 +138,8 @@ const EFFECTS: Record<string, string[]> = {
   spendpattern: [
     'the draw is flat — the same dollars every year',
     'the draw grows each year with prices',
-    'the draw defaults to inflation-linked — flip it on the calculator',
-    'the draw defaults to inflation-linked — flip it on the calculator',
+    'this recommendation uses inflation-linked draws — you can turn that off in Fine-tune',
+    'this recommendation uses inflation-linked draws — you can turn that off in Fine-tune',
   ],
   reinvest: [
     'surplus goes back into the stack by default',
@@ -336,10 +336,10 @@ export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScena
       </label>
 
       <label className="hairline-card block p-6">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a home, a boat, or anything else you want to pay for soon <Explainer text="Set aside and not invested. Nothing is set aside until you type it. There is no automatic home amount." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is set aside until you do. That cash is not invested.</p>
+        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Cash for a home, boat, or vehicle you will buy in the first 12 months <Explainer text="Use this only for a year-1 purchase. The money is set aside immediately and is not invested. If the purchase is later, leave this at $0 and use the draw schedule or Entities & Assets in the purchase year." /></span>
+        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Nothing is set aside automatically. For a purchase after year 1, leave this at $0 so the money stays invested until it is needed.</p>
         <input type="number" min={0} step={1} value={inputs.entity4 || ''} onChange={(e) => setNum('entity4', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$500K',value:500000},{label:'$1.5M',value:1500000},{label:'$3M',value:3000000}]} value={inputs.entity4} onChange={(v)=>setNum('entity4',v)} hint="Cash set aside for a home, a boat, or a big purchase soon. This money is not invested." />
+          <Chips chips={[{label:'$500K',value:500000},{label:'$1.5M',value:1500000},{label:'$3M',value:3000000}]} value={inputs.entity4} onChange={(v)=>setNum('entity4',v)} hint="Year-1 purchase cash only. This money comes out of the investment core immediately." />
       </label>
 
       <Group heading={`Your everyday life — ${span.middle}`} questions={MIDDLE_QS} answers={answers} setAnswers={setAnswers} start={MIDDLE_START} total={QUIZ.length} extra={{
@@ -391,48 +391,20 @@ Common mistake: typing the property price but forgetting the carrying costs — 
       <label className="block">
         <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">One-time setup cost <Explainer text="The one-time cost of building the structure properly: the attorney who drafts the trusts, the insurance work to place the PPLI policy, forming the anonymous LLC, and opening institutional custody accounts.
 
-Customary amounts: about $50,000 for a simple setup (one revocable trust and a DAPT), $75,000 for the full 4-entity stack, $125,000 or more for a very large prize with multiple entities and a policy to underwrite. The number on this page is already filled with the tier that matches your prize.
+Planning examples: about $50,000 for a simple setup (one revocable trust and a DAPT), $75,000 for the full 4-entity stack, $125,000 or more for a very large prize with multiple entities and a policy to underwrite. Nothing is filled automatically; choose an example or type a real quote.
 
 Why you should not cheap out: the drafting is the protection. A badly drafted trust is just expensive paper — no asset protection, no estate benefit, possibly a tax mess. This is the one place where the cheap quote is the most expensive option.
 
-What to type: the estimate already shown, or the real quote from your attorney. It is paid once, out of the prize, before the engines are funded.
+What to type: a planning example, or the real quote from your attorney. It is paid once, out of the prize, before the engines are funded.
 
 Common mistake: leaving it at $0, which tells the model the structure is free — and quietly makes every later number too optimistic." /></span>
         <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Legal, trustee, and professional fees to set up the trusts. Nothing is taken until you type it.</p>
         <input type="number" min={0} step={1} value={inputs.setupCost || ''} onChange={(e) => setNum('setupCost', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$50K',value:50000},{label:'$75K',value:75000},{label:'$125K',value:125000}]} value={inputs.setupCost} onChange={(v)=>setNum('setupCost',v)} hint="Already set to the customary tier for your prize. Change it only if you have a real quote from your attorney." />
+          <Chips chips={[{label:'$50K',value:50000},{label:'$75K',value:75000},{label:'$125K',value:125000}]} value={inputs.setupCost} onChange={(v)=>setNum('setupCost',v)} hint="Planning examples only, not quotes. Nothing changes until you choose or type an amount." />
       </label>
-      <label className="block">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly fees to keep it running <Explainer text="What it costs to keep the structure alive every year: the trustee company that administers the DAPT, the CPA who files the trust returns, the registered agent for the LLC, and small account fees.
-
-Customary amounts: a corporate trustee runs about $3,000–$10,000 a year flat, or 0.25%–1% of the trust assets. A CPA for a household plus trust returns is another $5,000–$25,000 a year. A registered agent is $100–$300. A sensible default for a full stack is about 0.25% of the invested core per year, with a floor of about $15,000 — that is what this page prefills for you.
-
-Why it matters: these fees come out of the stack every year and slow compounding, exactly like a fund expense ratio. A normal taxable account pays none of them, so the comparison chart charges them only to the stack. That is the honest price of the structure.
-
-What to type: the prefilled estimate, or your actual quotes. If you keep it simple — just a revocable trust and a brokerage account — a much smaller number is fair.
-
-Common mistake: forgetting that a 0.25% fee on a $60 million core is $150,000 a year, not a rounding error." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Trustee, CPA, and carrier fees each year. Nothing is taken until you type it.</p>
-        <input type="number" min={0} step={1} value={inputs.annualAdmin || ''} onChange={(e) => setNum('annualAdmin', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$15K/yr',value:15000},{label:'$25K/yr',value:25000},{label:'$50K/yr',value:50000}]} value={inputs.annualAdmin} onChange={(v)=>setNum('annualAdmin',v)} hint="Trustee + CPA + agent, typically about 0.25% of the invested core per year. The prefilled number is that estimate." />
-      </label>
-      <label className="block">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Insurance charge, dollars a year <Explainer text="The insurance company's annual charge for holding your PPLI policy — the cost of insurance and the administrative load. It is the price of the tax-free compounding the policy gives you.
-
-Customary amount: roughly 0.5%–1.5% of the policy value a year, depending on age, health, and carrier. This page prefills 0.8%, which is a typical institutional charge. On a $15 million policy that is about $120,000 a year.
-
-Why it is separate from the yearly fees: the trustee and CPA keep the structure alive; this charge keeps the policy alive. They are different bills from different people.
-
-The thing that actually matters more than the charge: never let the policy lapse with loans outstanding. If it lapses over-loaned, every dollar of deferred gain can become taxable at once — that is the real catastrophe, not the 0.8%.
-
-What to type: the prefilled estimate, or the actual charge from the carrier's illustration. Leave it blank only if you want the model to pretend the policy is free.
-
-Common mistake: comparing a policy's charges to a brokerage account without also counting the 23.8% plus state tax the account pays on every gain." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Leave this blank if you do not want a charge taken out. The policy growth rate is before this charge.</p>
-        <input type="number" min={0} step={1} value={inputs.ppliFee || ''} onChange={(e) => setNum('ppliFee', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'0% (no policy)',value:0},{label:'0.5% of policy',value:Math.round(preview.ppli*0.005)},{label:'0.8% (typical)',value:Math.round(preview.ppli*0.008)},{label:'1.2% of policy',value:Math.round(preview.ppli*0.012)}]} value={inputs.ppliFee} onChange={(v)=>setNum('ppliFee',v)} hint="Typical: 0.8% of your policy — on a $15M policy that is $120K/yr. Leave blank only if you are not using the insurance wrapper at all." />
-        <Limit>Minimum: $5,000,000 in the insurance box. If this result is under that, the box still shows its number. The number is not erased.</Limit>
-      </label>
+      <AnnualFeePlanner inp={inputs} setInputs={setInputs} />
+      <InsuranceChargePlanner inp={inputs} r={preview} setInputs={setInputs} />
+      <Limit>Minimum: $5,000,000 in the insurance box. If this result is under that, the box still shows its number. The number is not erased.</Limit>
 
       <div className="space-y-4">
         <h3 className="font-display text-lg font-semibold">Protecting you and the estate</h3>

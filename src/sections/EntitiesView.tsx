@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { ENTITY_NOTES, JURISDICTIONS, PASSPORTS, PASSPORT_HONEST_NOTE, PPLI_WRAP_NOTE, type EntityItem } from '../lib/entities';
 import { SectionTitle, Chips } from '../components/widgets';
-import { fmtCompact, HORIZON, type Inputs } from '../lib/calc';
+import { fmtCompact, HORIZON, type Inputs, type StackResult } from '../lib/calc';
 import { Plus, Trash2, Ship, Globe2, Landmark } from 'lucide-react';
+import RealEstatePanel from './RealEstatePanel';
 
 interface Props {
   entities: EntityItem[];
   setEntities: (fn: (p: EntityItem[]) => EntityItem[]) => void;
+  inputs: Inputs;
+  result: StackResult;
   setInputs: (fn: (p: Inputs) => Inputs) => void;
 }
 
-export default function EntitiesView({ entities, setEntities, setInputs }: Props) {
+export default function EntitiesView({ entities, setEntities, inputs, result, setInputs }: Props) {
   const [form, setForm] = useState({ name: '', type: 'us-llc' as EntityItem['type'], jurisdiction: 'Wyoming', purpose: '', amount: 0, year: 1, ppliWrap: false });
 
   const add = () => {
@@ -51,7 +54,7 @@ export default function EntitiesView({ entities, setEntities, setInputs }: Props
       {/* ---------- Add an entity ---------- */}
       <div className="hairline-card p-5">
         <h3 className="font-display text-lg font-semibold">Add an entity</h3>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
           <input placeholder="Name (e.g. Family Home LLC, World Sailboat LLC)" value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="rounded-md border border-input bg-card px-3 py-2 text-sm sm:col-span-2" />
@@ -124,6 +127,17 @@ export default function EntitiesView({ entities, setEntities, setInputs }: Props
           </article>
         ))}
       </div>
+
+      {/* ---------- Real-estate scenario ---------- */}
+      <section aria-labelledby="real-estate-scenario-title" className="space-y-3">
+        <div>
+          <h3 id="real-estate-scenario-title" className="font-display text-xl font-semibold">Real estate, when you have a property to evaluate</h3>
+          <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">
+            This optional scenario belongs here with your assets, not in the main calculator. Use it only when you have a particular property in mind. Every assumption starts at zero, nothing is copied from your other answers, and this box does not change the main projection.
+          </p>
+        </div>
+        <RealEstatePanel suggestedPrice={inputs.entity4} marginalRate={0.37 + result.futureStateRate} />
+      </section>
 
       {/* ---------- Passports & residency ---------- */}
       <section>

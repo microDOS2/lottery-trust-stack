@@ -34,18 +34,18 @@ export default function RealEstatePanel({ suggestedPrice, marginalRate }: Props)
         <span className="font-mono text-[13.5px] font-semibold uppercase tracking-wider rounded bg-accent text-accent-foreground px-1.5 py-0.5">Module</span>
         <h3 className="font-display text-lg font-semibold flex items-center gap-1">
           Real estate
-          <Explainer text="A separate box for a rental property. It starts at zero. Nothing is calculated until you move the price." />
+          <Explainer text="A separate scenario for a specific property you are evaluating. Every input starts at zero, and this box does not change the main projection." />
         </h3>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        This is not filled in for you. Move the sliders. Land is treated as 20% of the price and does not depreciate. The building is the other 80%.
-        {suggestedPrice > 0 ? ` You typed ${fmt(suggestedPrice)} for a home on Goals. That number is not copied here.` : ''}
+        Enter numbers only for a property you are actually evaluating. Nothing is filled in for you. Land is treated as 20% of the price and does not depreciate; the building is the other 80%.
+        {suggestedPrice > 0 ? ` You have ${fmt(suggestedPrice)} reserved for a possible year-1 purchase. That number is not copied here.` : ''}
       </p>
 
       <div className="mt-4 grid gap-x-8 gap-y-4 md:grid-cols-2">
         <div>
           <div className="mb-1 flex justify-between text-[14px]">
-            <span className="font-medium flex items-center gap-1">Property price <Explainer text="What you would pay. The slider starts at zero. It does not use the home amount from Goals." /></span>
+            <span className="font-medium flex items-center gap-1">Property price <Explainer text="What you would pay for the specific property. This starts at zero and does not copy any reserve or goal amount." /></span>
             <span className="font-num text-muted-foreground">{fmtCompact(price)}</span>
           </div>
           <input type="number" min={0} step={1000} value={price || ''} onChange={(e) => setPrice(Math.max(0, +e.target.value || 0))} className="mt-1 w-full rounded-md border border-input bg-card px-2 py-1.5 text-sm font-num" />

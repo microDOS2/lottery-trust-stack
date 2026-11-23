@@ -72,6 +72,11 @@ export const GUIDE_STEPS: GuideStep[] = [
     body: 'Moving to Puerto Rico can take qualifying capital gains to 0% federal, but only for years you are a bona fide resident, and the decree and filings have hard deadlines — the current filing cutoff is December 31, 2026. The prize itself is taxed where you lived when you won; moving does not change that. If PR is on the table, the planning starts immediately, not after the move.',
   },
   {
+    phase: 'Every December',
+    title: 'Give unspent withdrawals a job before year-end',
+    body: 'Money you withdrew but did not spend is still your cash. The withdrawal alone does not create a new tax bill, but interest or gains it earns afterward may be taxable, and the cash is generally back in your estate and within reach of creditors. Decide whether to keep it for near-term spending, hold it in Treasuries or a tax-exempt money-market fund, pay down an eligible policy loan, or make another planned investment. Moving cash back into a trust or policy is not always a simple deposit: extra PPLI premiums can affect underwriting and tax tests, and trust contributions can have gift-tax consequences. Review the choice with your CPA and trustee. If this keeps happening, consider a smaller withdrawal next year so more of the surplus stays sheltered.',
+  },
+  {
     phase: 'Every year after',
     title: 'Audit the day count and the residency',
     body: 'Bona fide residency is decided one tax year at a time: the presence test (usually 183 days in Puerto Rico), the tax-home test, and the closer-connection test. Keep a day-count log, flight records, and receipts as if you will be audited — high-income returns and state exits get audited. States like California and New York will happily argue you never really left.',
