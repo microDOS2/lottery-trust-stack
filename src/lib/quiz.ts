@@ -295,6 +295,15 @@ export function profileFromAnswers(answers: Record<string, number>): GoalProfile
   return acc;
 }
 
+export function profileFromStartChoices(choices: { risk?: 'steady' | 'balanced' | 'growth' | null; legacy?: 'yes' | 'no' | 'unsure' | null }): GoalProfile {
+  const profile: GoalProfile = { income: 0.5, growth: 0.5, protection: 0, mobility: 0, legacy: 0.5, simplicity: 1 };
+  if (choices.risk === 'steady') { profile.income = 1; profile.growth = 0; }
+  if (choices.risk === 'growth') { profile.income = 0; profile.growth = 1; }
+  if (choices.legacy === 'yes') profile.legacy = 1;
+  if (choices.legacy === 'no') profile.legacy = 0;
+  return profile;
+}
+
 export interface Recommendation {
   dial: number;
   residency: Inputs['residency'];
@@ -326,10 +335,21 @@ export function scoreScenario(
   const spend = Math.max(1, inputs.spend);
   const sustainFit = result.capacity >= spend ? 1 : result.capacity / spend;
   const dry = result.depletedYear !== null && result.depletedYear <= 10 ? 0 : 1;
+  const desiredDial = profile.growth > profile.income ? 0 : profile.income > profile.growth ? 100 : 50;
+  const riskFit = inputs.mode === 'manual' ? 0.8 : 1 - Math.abs(inputs.dial - desiredDial) / 100;
+  const maxEnd = Math.max(1, ..._allResults.map((r) => r.stackEnd));
+  const growthFit = Math.max(0, result.stackEnd / maxEnd);
+  const legacyFit = profile.legacy >= 0.75
+    ? (inputs.ppliEnabled !== false ? 1 : 0.35)
+    : profile.legacy <= 0.25
+      ? (inputs.ppliEnabled === false ? 1 : 0.8)
+      : 0.9;
   const dims: Array<{ label: string; score: number; weight: number }> = [
-    { label: 'Pays for the life', score: sustainFit, weight: 1 },
+    { label: 'Pays for the life', score: sustainFit, weight: 1 + profile.income * 0.4 },
     { label: 'Still there through the middle stretch', score: dry, weight: 0.6 },
-    { label: 'Matches where you said you would live', score: inputs.residency === 'stay' && profile.mobility < 0.3 ? 1 : 0.8, weight: 0.3 },
+    { label: 'Matches your market comfort', score: riskFit, weight: 0.5 },
+    { label: 'Long-term compounding', score: growthFit, weight: 0.4 + profile.growth * 0.4 },
+    { label: 'Matches your beneficiary choice', score: legacyFit, weight: 0.4 },
   ];
   const wSum = dims.reduce((s, d) => s + d.weight, 0) || 1;
   const total = Math.round((dims.reduce((s, d) => s + d.score * d.weight, 0) / wSum) * 100);

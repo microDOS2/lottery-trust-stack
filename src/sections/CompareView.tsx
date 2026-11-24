@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { computeStack, fmtCompact, solveSpendForTarget, DEFAULT_INPUTS, type Assumptions, type Inputs } from '../lib/calc';
-import { profileFromAnswers, scoreAll } from '../lib/quiz';
+import { computeStack, fmtCompact, solveSpendForTarget, DEFAULT_INPUTS, HORIZON, type Assumptions, type Inputs } from '../lib/calc';
+import { profileFromStartChoices, scoreAll } from '../lib/quiz';
 import { SectionTitle } from '../components/widgets';
 import { ScenarioLines, ScenarioBars, useScenarioResults, type ScenarioWithResult } from '../components/CompareCharts';
 import { Crown, ArrowUpRight, Trash2 } from 'lucide-react';
@@ -25,9 +25,9 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
   const withResults = useScenarioResults(saved, asm);
   const fitScores = useMemo(() => {
     try {
-      const answers = JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}');
-      if (Object.keys(answers).length === 0 || saved.length === 0) return null;
-      return scoreAll(saved.map((s) => ({ letter: s.letter, inputs: s.inputs })), profileFromAnswers(answers), asm);
+      const choices = JSON.parse(localStorage.getItem('lotteryStack.startChoices') ?? 'null');
+      if (!choices?.risk || !choices?.legacy || saved.length === 0) return null;
+      return scoreAll(saved.map((s) => ({ letter: s.letter, inputs: s.inputs })), profileFromStartChoices(choices), asm);
     } catch { return null; }
   }, [saved, asm]);
   const bestFit = fitScores?.[0];
@@ -49,7 +49,7 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
       <SectionTitle
         num="03"
         title={<>Your setups, <span className="sig-italic">side by side</span></>}
-        blurb="Every saved scenario with the numbers that matter: what it pays you yearly, what it costs, what it leaves in 10 and 25 years, and whether it ever runs dry. Use any of them with one click."
+        blurb={`Every saved scenario with the numbers that matter: what it pays you yearly, what it costs, what it leaves in 10 and ${HORIZON} years, and whether it ever runs dry. Use any of them with one click.`}
       />
 
       {saved.length === 0 ? (
@@ -58,7 +58,7 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
         <>
           {bestFit && (
             <div className="rounded-lg border border-success/40 bg-[hsl(var(--success-tint))] p-4">
-              <strong className="font-display text-lg">Scenario {bestFit.letter} fits your answers best</strong>
+              <strong className="font-display text-lg">Scenario {bestFit.letter} fits your choices best</strong>
               <span className="ml-2 font-num text-sm stat-good">score {bestFit.score.total}/100</span>
               <p className="mt-1 text-sm text-muted-foreground">
                 {bestFit.score.parts.length > 0
@@ -82,7 +82,7 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
                           className="w-16 rounded border border-transparent bg-transparent px-1 text-right font-num text-[13px] font-semibold hover:border-input focus:border-input"
                           aria-label={`Name scenario ${s.letter}`}
                         />
-                        {s.letter === bestLetter && <Crown className="h-3.5 w-3.5 text-success" aria-label="Biggest 25-year pile" />}
+                        {s.letter === bestLetter && <Crown className="h-3.5 w-3.5 text-success" aria-label={`Biggest ${HORIZON}-year pile`} />}
                       </span>
                     </th>
                   ))}
@@ -156,7 +156,7 @@ export default function CompareView({ scenarios, asm, onUse, onDelete }: Props) 
 
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="hairline-card p-5">
-              <h3 className="font-display text-lg font-semibold">The 25-year race</h3>
+              <h3 className="font-display text-lg font-semibold">The {HORIZON}-year race</h3>
               <ScenarioLines scenarios={withResults} />
             </div>
             <div className="hairline-card p-5">

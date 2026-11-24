@@ -27,8 +27,8 @@ export const COMBOS: Array<{ name: string; why: string; ids: string[] }> = [
 
 export function effectOf(id: string, inp: Inputs, asm: Assumptions): { cashOff: number; cashOn: number; endOff: number; endOn: number } {
   const chosen = (inp.chosen ?? []).filter((x) => x !== id);
-  const off = computeStack(previewInputs({ ...inp, chosen }), asm);
-  const on = computeStack(previewInputs({ ...inp, chosen: [...chosen, id] }), asm);
+  const off = computeStack(previewInputs({ ...inp, chosen, ...(id === 'engine-b' ? { ppliEnabled: false } : {}) }), asm);
+  const on = computeStack(previewInputs({ ...inp, chosen: [...chosen, id], ...(id === 'engine-b' ? { ppliEnabled: true } : {}) }), asm);
   return { cashOff: off.capacity, cashOn: on.capacity, endOff: off.stackEnd, endOn: on.stackEnd };
 }
 
@@ -60,6 +60,7 @@ export function previewInputs(inp: Inputs): Inputs {
     }
     next = { ...next, mode: 'manual', manual: { a: acc.a / engines.length, b: acc.b / engines.length, c: acc.c / engines.length } };
   }
+  if (chosen.includes('engine-b')) next = { ...next, ppliEnabled: true };
   if (chosen.includes('pr-act60')) next = { ...next, residency: 'pr' };
   return next;
 }

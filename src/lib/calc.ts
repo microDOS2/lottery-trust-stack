@@ -33,6 +33,7 @@ export interface Inputs {
   ppliFee: number;      // fixed insurance charge in dollars per year; nothing is taken if this is 0
   ppliFeeMode?: 'none' | 'rate' | 'fixed'; // percentage of each year's policy balance, or fixed dollars
   ppliFeeRate?: number; // used only when ppliFeeMode is 'rate'
+  ppliEnabled?: boolean; // false removes the insurance wrapper and reallocates its share to bonds/stocks
   setupCost: number;    // one-time legal/professional setup of the stack (year 1)
   annualAdmin: number;  // ongoing trustee, CPA, legal, and entity-administration fees
   adminFeeMode?: 'none' | 'basic' | 'full' | 'complex' | 'custom';
@@ -69,11 +70,11 @@ export interface Assumptions {
 
 export const DEFAULT_ASSUMPTIONS: Assumptions = {
   muniYield: 0.04,
-  ppliGrowth: 0.07,
+  ppliGrowth: 0.067,
   ppliDraw: 0.045,
-  eqGrowth: 0.07,
+  eqGrowth: 0.067,
   eqDraw: 0.035,
-  divYield: 0.015,
+  divYield: 0.017,
   ltcgRate: 0.238,
   inflation: 0.025,
 };
@@ -105,6 +106,7 @@ export const DEFAULT_INPUTS: Inputs = {
   ppliFee: 0,
   ppliFeeMode: 'none',
   ppliFeeRate: 0.008,
+  ppliEnabled: false,
   setupCost: 0,
   annualAdmin: 0,
   adminFeeMode: 'none',
@@ -157,12 +159,16 @@ export function drawForYear(inp: Inputs, asm: Assumptions, y: number): number {
   return base * Math.pow(1 + asm.inflation, Math.max(0, steps));
 }
 
-/** The three weights are not resized to add up to 1, and the insurance weight is not erased. */
+/** Manual weights are normalized. When PPLI is off, its share is split evenly between bonds and stocks. */
 export function resolveWeights(inp: Inputs, _core: number): Weights {
+  void _core;
+  const withoutPpli = (w: Weights): Weights => inp.ppliEnabled === false
+    ? { a: w.a + w.b / 2, b: 0, c: w.c + w.b / 2 }
+    : w;
   if (inp.mode === 'manual') {
     const { a, b, c } = inp.manual;
     const t = a + b + c || 1; // always normalize manual weights so money can't silently vanish
-    return { a: a / t, b: b / t, c: c / t };
+    return withoutPpli({ a: a / t, b: b / t, c: c / t });
   }
   const growth: Weights = { a: 0.2, b: 0.25, c: 0.55 };
   const balanced: Weights = { a: 0.25, b: 0.25, c: 0.5 };
@@ -173,7 +179,8 @@ export function resolveWeights(inp: Inputs, _core: number): Weights {
     b: x.b + (y.b - x.b) * t,
     c: x.c + (y.c - x.c) * t,
   });
-  return d <= 0.5 ? lerp(growth, balanced, d * 2) : lerp(balanced, income, (d - 0.5) * 2);
+  const weights = d <= 0.5 ? lerp(growth, balanced, d * 2) : lerp(balanced, income, (d - 0.5) * 2);
+  return withoutPpli(weights);
 }
 
 /** State rate applied to future unshielded investment income. */
@@ -300,7 +307,7 @@ export function computeStack(inp: Inputs, asm: Assumptions): StackResult {
   const ppli = take(wantPpli);
   const muni = take(wantMuni);
   const equityGross = take(wantEq);
-  const qpOk = ppli >= PPLI_QP_MIN;
+  const qpOk = inp.ppliEnabled === false || ppli >= PPLI_QP_MIN;
   const chosenIds = Array.isArray(inp.chosen) ? inp.chosen : [];
   const strategyDollars = inp.strategyDollars ?? {};
   let equity = equityGross;

@@ -78,7 +78,7 @@ export default function PlanSummary({ inputs: inp, asm, result: r, scenarios, se
       ? `${pct(insuranceRate, 2)} of each year’s policy balance (about ${fmt(r.ppli * insuranceRate)} in year 1)`
       : insuranceMode === 'fixed'
         ? `${fmt(inp.ppliFee)} per year, adjusted for inflation`
-        : '$0 included — no insurance charge modeled';
+        : 'Charge scenario not selected — $0 temporarily modeled (an active policy is not free)';
   const adminDisclosure = inp.annualAdmin > 0
     ? `${fmt(inp.annualAdmin)} per year${inp.adminFeeMode === 'custom' ? ' (custom itemized estimate)' : inp.adminFeeMode && inp.adminFeeMode !== 'none' ? ` (${inp.adminFeeMode} planning scenario)` : ''}`
     : '$0 included — no annual administration costs modeled';

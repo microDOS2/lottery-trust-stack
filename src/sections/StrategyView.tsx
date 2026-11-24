@@ -29,7 +29,7 @@ const MUST: Record<string, string> = {
 /** One plain sentence: what flipping the toggle actually does. */
 const ON_DOES: Record<string, string> = {
   'engine-a': 'On = shifts your mix toward steady, tax-free bond interest.',
-  'engine-b': 'On = shifts a big slice of your money into the insurance wrapper, where growth is not taxed as it builds.',
+  'engine-b': 'On = includes life insurance on a person, with an investment wrapper and a disclosed carrier-charge scenario.',
   'engine-c': 'On = shifts your mix toward stocks that can harvest losses to offset gains.',
   leverage: 'On = adds a loan against your stocks — cash you can spend without selling. You still owe the loan.',
   oz: 'On = moves the dollars you type out of your stocks and into a zone fund, locked for ten years.',
@@ -87,7 +87,7 @@ const SKIP_WHEN: Record<string, string> = {
 
 const MECHANISM: Record<string, string> = {
   'engine-a': 'Munis pay tax-free interest instead of taxable interest, so more of each coupon reaches you.',
-  'engine-b': 'The insurance wrapper shelters growth from annual tax, so compounding outpaces a taxable account.',
+  'engine-b': 'Qualifying policy growth is tax-deferred and beneficiaries receive the death benefit, but carrier charges and lapse risk remain.',
   'engine-c': 'Stocks compound at the equity rate; direct indexing harvests losses to offset gains.',
   leverage: 'Borrowing against the pile gives you cash without a taxable sale — but the loan and its interest remain.',
   oz: 'After 10 years, new appreciation is excluded, but the lockup and fund risk are real.',
@@ -108,7 +108,7 @@ const MECHANISM: Record<string, string> = {
 
 const TRADEOFF: Record<string, string> = {
   'engine-a': 'Reliable tax-free income, but lower long-run growth than stocks.',
-  'engine-b': 'Untaxed compounding, but carrier minimums and complexity.',
+  'engine-b': 'Potential tax deferral and a death benefit, but underwriting, charges, complexity, and lapse risk.',
   'engine-c': 'Highest growth potential, but market volatility and drawdown risk.',
   leverage: 'Cash without selling, but interest costs and margin-call risk.',
   oz: 'Tax-free appreciation after 10 years, but a long lockup and fund-quality risk.',
@@ -138,7 +138,7 @@ function eligibilityOf(id: string, core: number, stackEnd: number, typed: number
   switch (id) {
     case 'engine-b':
       return core >= PPLI_QP_MIN
-        ? { ok: true, label: 'Your numbers qualify', reason: `Your investable core is ${fmt(core)} — above the ${fmt(PPLI_QP_MIN)} policy minimum.` }
+        ? { ok: true, label: 'Meets model threshold', reason: `Your investable core is ${fmt(core)} — above the ${fmt(PPLI_QP_MIN)} model threshold. Actual underwriting and eligibility still require professional review.` }
         : { ok: false, label: 'Not yet — here\'s what\'s missing', reason: `The policy needs at least ${fmt(PPLI_QP_MIN)} in it. Your investable core is ${fmt(core)}.` };
     case 'oz':
     case 'qsbs':
@@ -170,7 +170,18 @@ function eligibilityOf(id: string, core: number, stackEnd: number, typed: number
   }
 }
 
-/** Quiz answers saved by Goals & Fit: { questionId: optionIndex }. Absent or bad JSON → no trigger lines. */
+function readPreferredMix(): 'Steady income' | 'Balanced' | 'Maximum growth' | null {
+  try {
+    const choices = JSON.parse(localStorage.getItem('lotteryStack.startChoices') ?? 'null');
+    if (choices?.risk === 'steady') return 'Steady income';
+    if (choices?.risk === 'balanced') return 'Balanced';
+    if (choices?.risk === 'growth') return 'Maximum growth';
+    const legacy = JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}');
+    return legacy.archetype === 0 ? 'Steady income' : legacy.archetype === 1 ? 'Balanced' : legacy.archetype === 2 ? 'Maximum growth' : null;
+  } catch { return null; }
+}
+
+/** Legacy quiz answers plus the new Start choices. Absent or bad JSON → no trigger lines. */
 function readQuizTriggers(): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   try {
@@ -193,6 +204,9 @@ function readQuizTriggers(): Record<string, string[]> {
     if (a.estate === 0) add('legacy', 'Suggested because you said your estate will clearly top $15 million.');
     if (a.foreign === 0) add('foreign-trust', 'Suggested because someone pitched you an offshore trust — this card is the reality check.');
     if (a.renounce === 1) add('expatriation', 'Suggested because you said you would consider giving up US citizenship.');
+    const start = JSON.parse(localStorage.getItem('lotteryStack.startChoices') ?? 'null');
+    if (start?.legacy === 'yes') add('legacy', 'Suggested because you want money or a death benefit available for other people after you die.');
+    if (start?.ppli === 'explore') add('engine-b', 'You chose to explore life insurance. Review the insured person, owner, beneficiaries, carrier charges, and lapse risk before using it.');
   } catch {
     // No saved answers, storage unavailable, or bad JSON — hide the trigger lines.
   }
@@ -205,13 +219,22 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
   const view = useMemo(() => describeCombo(inputs, asm), [inputs, asm]);
   const core = view.plain.core;
   const stackEnd = view.result.stackEnd;
-  const triggers = useMemo(readQuizTriggers, []);
+  const triggers = useMemo(() => readQuizTriggers(), []);
+  const preferredMix = useMemo(() => readPreferredMix(), []);
 
   const toggle = (id: string) => {
     setInputs((p) => {
       const cur = p.chosen ?? [];
-      const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
-      return { ...p, chosen: next };
+      const enabling = !cur.includes(id);
+      const next = enabling ? [...cur, id] : cur.filter((x) => x !== id);
+      return {
+        ...p,
+        chosen: next,
+        ...(id === 'engine-b' ? {
+          ppliEnabled: enabling,
+          ...(!enabling ? { ppliFeeMode: 'none' as const, ppliFee: 0 } : {}),
+        } : {}),
+      };
     });
   };
 
@@ -219,8 +242,9 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
     setInputs((p) => ({ ...p, strategyDollars: { ...(p.strategyDollars ?? {}), [id]: amount } }));
   };
 
-  const useCombo = (ids: string[]) => {
-    setInputs((p) => ({ ...p, chosen: ids }));
+  const applyCombo = (ids: string[]) => {
+    const ppliEnabled = ids.includes('engine-b');
+    setInputs((p) => ({ ...p, chosen: ids, ppliEnabled, ...(!ppliEnabled ? { ppliFeeMode: 'none' as const, ppliFee: 0 } : {}) }));
   };
 
   const apply = () => {
@@ -239,40 +263,31 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
 
       <section className="hairline-card border-primary/30 p-6">
         <h2 className="font-display text-xl font-semibold">Recommended for you</h2>
-        {(() => {
-          try {
-            const a = JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}');
-            const archetype = a.archetype;
-            if (archetype === undefined) return null;
-            const preferred = archetype === 0 ? 'Steady income' : archetype === 1 ? 'Balanced' : 'Maximum growth';
-            return (
-              <p className="mt-2 text-[13px] font-medium text-primary">
-                Your answer points to <strong>{preferred}</strong> — {archetype === 0 ? 'you want to enjoy it now.' : archetype === 1 ? 'you want a bit of both.' : 'you want it to grow for later.'}
-              </p>
-            );
-          } catch { return null; }
-        })()}
+        {preferredMix && (
+          <p className="mt-2 text-[13px] font-medium text-primary">
+            Your market choice points to <strong>{preferredMix}</strong> — {preferredMix === 'Steady income' ? 'income matters most.' : preferredMix === 'Balanced' ? 'you want a bit of both.' : 'long-term growth matters most.'}
+          </p>
+        )}
         <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
           Three curated starting points based on your numbers. Pick one — it turns on the right strategies and sets the dial.
         </p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {([
-            { name: 'Steady income', ids: ['engine-a', 'engine-b'], dial: 100, why: 'Reliable tax-free income now. Bonds and the insurance wrapper pay you every year while the pile keeps growing.' },
-            { name: 'Balanced', ids: ['engine-a', 'engine-b', 'engine-c'], dial: 50, why: 'A bit of both: income now and growth for later. The muni floor plus the wrapper plus stocks.' },
-            { name: 'Maximum growth', ids: ['engine-c'], dial: 0, why: 'The long game. Everything into stocks and let it compound for 30 years.' },
+            { name: 'Steady income', ids: ['engine-a'], dial: 100, why: 'An income-focused bond allocation. PPLI stays off unless you deliberately add it later.' },
+            { name: 'Balanced', ids: ['engine-a', 'engine-c'], dial: 50, why: 'Bonds and stocks without automatically adding life insurance. You can explore PPLI separately.' },
+            { name: 'Maximum growth', ids: ['engine-c'], dial: 0, why: 'A stock-focused long-term allocation with no automatic insurance wrapper.' },
           ] as const).map((mix) => (
             <button
               key={mix.name}
               type="button"
               onClick={() => {
-                setInputs((prev) => ({ ...prev, chosen: [...mix.ids], dial: mix.dial, mode: 'balanced' }));
+                setInputs((prev) => ({ ...prev, chosen: [...mix.ids], dial: mix.dial, mode: 'balanced', ppliEnabled: false, ppliFeeMode: 'none', ppliFee: 0 }));
                 onUse();
               }}
               className={`rounded-lg border px-4 py-3 text-left cursor-pointer transition-colors ${
                 (() => {
                   try {
-                    const a = JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}');
-                    const preferred = a.archetype === 0 ? 'Steady income' : a.archetype === 1 ? 'Balanced' : 'Maximum growth';
+                    const preferred = readPreferredMix();
                     return mix.name === preferred ? 'border-primary bg-primary/10 ring-2 ring-primary/40' : 'border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10';
                   } catch { return 'border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10'; }
                 })()
@@ -304,7 +319,7 @@ export default function StrategyView({ inputs, setInputs, asm, onUse }: Props) {
             <button
               key={c.name}
               type="button"
-              onClick={() => useCombo(c.ids)}
+              onClick={() => applyCombo(c.ids)}
               className="rounded-lg border border-input bg-card px-4 py-3 text-left cursor-pointer hover:border-primary/50"
             >
               <span className="block text-[15px] font-medium">{c.name}</span>

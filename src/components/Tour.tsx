@@ -8,14 +8,14 @@ export interface TourStep {
   text: string;
 }
 
-export const TOUR_STEPS: TourStep[] = [
+const TOUR_STEPS: TourStep[] = [
   { view: 'calc', selector: '[data-tour="amount"]', title: 'Step 1 of 8 — Your prize', text: 'Type your cash amount here. Just exploring? Use the "Try a sample" menu up top to fill in an example you can play with.' },
   { view: 'calc', selector: '[data-tour="spend"]', title: 'Step 2 of 8 — Your yearly spend', text: 'How much you want to live on each year. The whole page checks one thing: can the money pay that, without running out?' },
   { view: 'calc', selector: '[data-tour="capacity"]', title: 'Step 3 of 8 — The number that matters', text: 'This is what the stack can safely pay you every year, tax-free. If your spending target is under it, the rest keeps compounding.' },
   { view: 'calc', selector: '[data-tour="saveA"]', title: 'Step 4 of 8 — Save this setup', text: 'Click Save as A. Now change the dial or the state and save B — nothing is locked in until you say so.' },
   { view: 'compare', title: 'Step 5 of 8 — Compare your setups', text: 'This tab puts every saved setup side by side: yearly cash, fees, the 30-year pile, and whether it ever runs dry. Charts included.' },
   { view: 'goals', selector: 'fieldset', title: 'Step 6 of 8 — A few plain questions', text: 'No financial jargon, no wrong answers. Just your life: where you want to live, what you worry about, who the money is for.' },
-  { view: 'goals', selector: '[data-tour="result"]', title: 'Step 7 of 8 — The verdict', text: 'Finish the questions and this panel tells you which setup fits you best, in plain English, with the numbers to back it up.' },
+  { view: 'goals', selector: '[data-tour="result"]', title: 'Step 7 of 8 — Your candidate plan', text: 'Make your choices and this panel shows a candidate starting plan with the numbers to back it up. Nothing is applied until you choose a button.' },
   { view: 'calc', title: 'Step 8 of 8 — Make it yours', text: 'Edit any assumption, use "Reorder detail sections" to arrange the detailed results, and use Download plan for a spreadsheet. That is the whole site.' },
 ];
 

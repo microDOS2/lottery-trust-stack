@@ -6,7 +6,7 @@ import {
 } from '../lib/calc';
 import { Stat, Field, SectionTitle, Tip, Explainer, Limit, Chips } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
-import { useExplain } from '../explainNav';
+import AssumptionsPanel from '../components/AssumptionsPanel';
 import { AllocationDonut, ProjectionChart } from '../components/viz';
 import FlowLive from '../components/FlowLive';
 import type { EntityItem } from '../lib/entities';
@@ -67,7 +67,6 @@ function loadLayout(): Layout {
 }
 
 export default function CalculatorView(p: Props) {
-  const openExplain = useExplain();
   const { inputs: inp, result: r, asm } = p;
   const [copied, setCopied] = useState(false);
   const [realDollars, setRealDollars] = useState(false);
@@ -217,12 +216,13 @@ export default function CalculatorView(p: Props) {
           </div>
           <div className="rounded-md border border-input p-3"><div className="flex items-center justify-between gap-2"><div className="text-[13px] font-medium">Optional strategy sleeve</div><button type="button" onClick={p.onOpenLibrary} className="text-[12.5px] text-primary hover:underline cursor-pointer">Strategy library</button></div>{!inp.sleeve ? <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">None. One sleeve at a time—choosing another replaces it. OZ, QSBS, and real estate can change the projection; other entries are explanatory.</p> : <SleeveCard inp={inp} setInputs={p.setInputs} amount={r.sleeveAmount} />}</div>
         </div>
+        <PpliChoice inp={inp} setInputs={p.setInputs} />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Stat label="Bonds" tip="The bond ladder. It pays the bond rate, tax-free, and the principal does not grow." more="bonds" value={fmtCompact(r.muni)} sub={`${pct(w.a)} · ${fmtCompact(r.muni * asm.muniYield)}/yr`} />
-          <Stat label="Insurance policy" tip="The insurance allocation. The model requires at least $5 million for this wrapper." more="policy" value={fmtCompact(r.ppli)} sub={r.qpOk ? `${fmtCompact(r.ppli * asm.ppliDraw)}/yr capacity` : `under the ${fmtCompact(PPLI_QP_MIN)} minimum`} />
+          <Stat label="Insurance policy" tip="Life insurance on a person, with an investment wrapper. It is not insurance for the lottery principal." more="policy" value={inp.ppliEnabled === false ? 'Not included' : fmtCompact(r.ppli)} sub={inp.ppliEnabled === false ? 'its share is split between bonds and stocks' : r.qpOk ? `${fmtCompact(r.ppli * asm.ppliDraw)}/yr capacity` : `under the ${fmtCompact(PPLI_QP_MIN)} minimum`} />
           <Stat label="Stocks" tip="The direct-indexed equity allocation and its spendable slice." more="stocks" value={fmtCompact(r.equity)} sub={`${fmtCompact(r.equity * asm.eqDraw)}/yr capacity`} />
         </div>
-        <Limit>Insurance-wrapper minimum: {fmtCompact(PPLI_QP_MIN)}. Current allocation: {fmtCompact(r.ppli)}. {r.qpOk ? 'That meets the model minimum.' : 'That is under the minimum; your entered mix was not silently erased.'}</Limit>
+        {inp.ppliEnabled !== false && <Limit>Insurance-wrapper minimum: {fmtCompact(PPLI_QP_MIN)}. Current allocation: {fmtCompact(r.ppli)}. {r.qpOk ? 'That meets the model minimum.' : 'That is under the minimum; your entered mix was not silently erased.'}</Limit>}
         {inp.residency === 'pr' && <PRPanel inputs={inp} setInputs={p.setInputs} result={r} />}
         <div className="space-y-6">
           <div className="hairline-card p-5"><div className="flex items-start justify-between gap-2"><div><h3 className="font-display text-lg font-semibold">Where the investment core sits</h3><p className="mt-1 text-sm text-muted-foreground">Bonds, insurance, stocks, and any year-1 purchase reserve.</p></div><button onClick={() => setAlloc3D(!alloc3D)} className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[12.5px] cursor-pointer">{alloc3D ? '2D' : '3D'}</button></div>
@@ -241,21 +241,7 @@ export default function CalculatorView(p: Props) {
           <AnnualFeePlanner inp={inp} setInputs={p.setInputs} />
           <InsuranceChargePlanner inp={inp} r={r} setInputs={p.setInputs} />
         </div>
-        <div className="hairline-card p-5 no-print">
-          <h3 className="font-display text-lg font-semibold">Return and inflation assumptions</h3><p className="mt-1 text-sm leading-relaxed text-muted-foreground">These are editable planning assumptions, not forecasts or quotes. Every chart uses the numbers below.</p><button type="button" onClick={() => openExplain('assumptions')} className="mt-2 text-left text-[12.5px] font-medium text-primary underline cursor-pointer">Why these rates, in full</button>
-          <div className="mt-4 space-y-4">
-            {([
-              ['muniYield', 'Muni yield (%)', 'The tax-free interest the bond ladder pays. The model holds this rate flat; real coupons will move.'],
-              ['ppliGrowth', 'Policy growth before charges (%)', 'Policy investment growth before the insurance charge selected above.'],
-              ['ppliDraw', 'Policy draw capacity (%)', 'The amount the model assumes can be accessed through basis withdrawals and then loans. A real policy can lapse if loans and charges outrun it.'],
-              ['eqGrowth', 'Equity growth (%)', 'Stock growth before withdrawals. It is not a prediction for any single year.'],
-              ['eqDraw', 'Equity draw capacity (%)', 'The tax-efficient amount the model lets you spend from stocks. This treatment needs professional review.'],
-              ['divYield', 'Equity dividends (%)', 'Used only in the taxable comparison, which pays tax on dividends each year.'],
-              ['inflation', 'Inflation (%)', 'Raises inflation-linked spending and fixed-dollar fees, and powers the today’s-dollars chart view.'],
-            ] as const).map(([k, label, why]) => <label key={k} className="block text-[13px] text-muted-foreground"><span className="font-medium text-foreground">{label}</span><input type="number" step={0.25} min={0} max={20} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num text-foreground" value={(asm[k] * 100).toFixed(2)} onChange={(e) => p.setAsm({ ...asm, [k]: (+e.target.value || 0) / 100 })} /><span className="mt-1 block leading-relaxed">{why}</span></label>)}
-            <p className="text-[12.5px] leading-relaxed text-muted-foreground">The taxable account also pays 23.8% federal tax on stock gains: 20% long-term capital-gains tax plus the 3.8% net-investment-income surtax.</p>
-          </div>
-        </div>
+        <AssumptionsPanel inputs={inp} asm={asm} setAsm={p.setAsm} />
         <button title="Copies a link that reopens these exact numbers." onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground cursor-pointer">{copied ? <><Check className="h-4 w-4" /> Link copied</> : <><Link2 className="h-4 w-4" /> Copy shareable link</>}</button>
       </FlowSection>
 
@@ -266,6 +252,26 @@ export default function CalculatorView(p: Props) {
           return <div key={id}>{customizing && <div className="mb-1.5 flex items-center gap-1.5 text-sm text-muted-foreground"><span className="font-mono uppercase tracking-wider">{meta.title}</span><button onClick={() => move(id, -1)} disabled={idx === 0} className="rounded p-1 disabled:opacity-30 cursor-pointer" aria-label={`Move ${meta.title} up`}><ArrowUp className="h-3.5 w-3.5" /></button><button onClick={() => move(id, 1)} disabled={idx === arr.length - 1} className="rounded p-1 disabled:opacity-30 cursor-pointer" aria-label={`Move ${meta.title} down`}><ArrowDown className="h-3.5 w-3.5" /></button></div>}<p className="mb-2 max-w-[75ch] text-[13px] leading-snug text-muted-foreground">{meta.purpose}</p>{sectionNode(id)}</div>;
         })}
       </FlowSection>
+    </div>
+  );
+}
+
+function PpliChoice({ inp, setInputs }: { inp: Inputs; setInputs: Props['setInputs'] }) {
+  const enabled = inp.ppliEnabled !== false;
+  return (
+    <div className="hairline-card p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-display text-lg font-semibold">Life insurance with an investment wrapper (PPLI)</h3>
+          <p className="mt-1 max-w-[72ch] text-sm leading-relaxed text-muted-foreground">
+            <strong>Who is insured?</strong> Usually you. <strong>Who benefits?</strong> The beneficiaries you name, through the death benefit. It can also provide tax-advantaged investment growth when structured correctly. It does not insure the lottery principal, prevent lawsuits, or protect against market losses.
+          </p>
+        </div>
+        <button type="button" onClick={() => setInputs((prev) => ({ ...prev, ppliEnabled: !enabled, ...(enabled ? { ppliFeeMode: 'none' as const, ppliFee: 0 } : {}) }))} className={`rounded-full px-4 py-2 text-sm font-medium cursor-pointer ${enabled ? 'bg-primary text-primary-foreground' : 'border border-input bg-card text-muted-foreground'}`}>
+          {enabled ? 'Included — remove it' : 'Not included — explore PPLI'}
+        </button>
+      </div>
+      {enabled && <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">The policy owner is often an irrevocable trust. Carrier charges, medical underwriting, premium limits, investor-control rules, and lapse risk all matter. Choose a charge scenario under Costs and assumptions.</p>}
     </div>
   );
 }
@@ -336,6 +342,14 @@ export function AnnualFeePlanner({ inp, setInputs }: { inp: Inputs; setInputs: P
 }
 
 export function InsuranceChargePlanner({ inp, r, setInputs }: { inp: Inputs; r: StackResult; setInputs: Props['setInputs'] }) {
+  if (inp.ppliEnabled === false) {
+    return (
+      <div className="rounded-md border border-input p-4" data-testid="insurance-charge-planner">
+        <h3 className="font-display text-lg font-semibold">Insurance policy charge</h3>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">No life-insurance policy is selected, so there is no insured person, death benefit, policy allocation, or carrier charge in this plan.</p>
+      </div>
+    );
+  }
   const mode = inp.ppliFeeMode ?? (inp.ppliFee > 0 ? 'fixed' : 'none');
   const rate = inp.ppliFeeRate ?? 0.008;
   const yearlyCharge = mode === 'rate' ? r.ppli * rate : mode === 'fixed' ? inp.ppliFee : 0;
@@ -353,12 +367,12 @@ export function InsuranceChargePlanner({ inp, r, setInputs }: { inp: Inputs; r: 
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">This is the insurance company’s yearly policy charge. It is separate from trustee, attorney, CPA, and LLC costs. If you do not have a quote, choose a planning scenario or deliberately model $0.</p>
       <label className="mt-3 block text-sm font-medium">How should the model handle this charge?
         <select className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-normal" value={mode} onChange={(e) => applyMode(e.target.value as 'none' | 'rate' | 'fixed')}>
-          <option value="none">No insurance charge modeled — $0</option><option value="rate">Percentage of the policy each year</option><option value="fixed">Fixed dollar amount from my quote</option>
+          <option value="none">Choose a charge scenario</option><option value="rate">Percentage of the policy each year</option><option value="fixed">Fixed dollar amount from my quote</option>
         </select>
       </label>
       {mode === 'rate' && <div className="mt-3 space-y-3"><div className="flex flex-wrap gap-2">{[0.005, 0.008, 0.012].map((v) => <button key={v} type="button" onClick={() => setRate(v)} className={`rounded-full border px-3 py-1.5 text-sm cursor-pointer ${rate === v ? 'border-primary bg-accent font-medium' : 'border-input text-muted-foreground'}`}>{pct(v)} planning scenario</button>)}</div><label className="block text-sm text-muted-foreground">Custom percentage per year<div className="mt-1 flex items-center gap-2"><input aria-label="Custom insurance charge percentage" type="number" min={0} step={0.05} value={+(rate * 100).toFixed(2)} onChange={(e) => setRate(Math.max(0, (+e.target.value || 0) / 100))} className="w-32 rounded-md border border-input bg-card px-2 py-1.5 font-num" /><span>%</span></div></label><p className="rounded-md bg-secondary px-3 py-2 text-sm"><strong>{pct(rate, 2)} × {fmt(r.ppli)} current policy balance = {fmt(Math.round(yearlyCharge))}/yr</strong></p></div>}
       {mode === 'fixed' && <label className="mt-3 block text-sm text-muted-foreground">Your quoted charge, dollars per year<input aria-label="Fixed yearly insurance charge" type="number" min={0} step={1000} value={inp.ppliFee || ''} onChange={(e) => setInputs((prev) => ({ ...prev, ppliFeeMode: 'fixed', ppliFee: Math.max(0, +e.target.value || 0) }))} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 font-num" /></label>}
-      {mode === 'none' && <p className="mt-3 rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">The projection includes <strong>$0</strong> for insurance charges. This does not claim that a real policy is free.</p>}
+      {mode === 'none' && <p className="mt-3 rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">A policy is included, but no charge scenario has been selected. The projection temporarily includes <strong>$0</strong>; choose a percentage or a real quote because an active policy is not free.</p>}
       <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">Modeled charge now: <span className="font-num font-semibold">{fmt(Math.round(yearlyCharge))}/yr</span>. A percentage follows each year’s projected policy balance; a fixed-dollar quote rises with inflation. Explicit $0 always remains $0.</p>
     </div>
   );
@@ -417,7 +431,7 @@ function SleeveCard({ inp, setInputs, amount }: { inp: Inputs; setInputs: Props[
   );
 }
 
-function TaxBreakdown({ inp, r }: { inp: Inputs; r: StackResult }) {
+export function TaxBreakdown({ inp, r }: { inp: Inputs; r: StackResult }) {
   const st = STATES.find((s) => s.code === inp.state)!;
   const totalTax = r.fedTax + r.stateTax;
   const effectiveRate = r.gross > 0 ? totalTax / r.gross : 0;

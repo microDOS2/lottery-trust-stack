@@ -1,578 +1,256 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { QUIZ, QUIZ_LONG, QUIZ_MIDDLE, QUIZ_PROTECT, QUIZ_SHORT, type QuizQuestion } from '../lib/quiz';
-import { computeStack, fmtCompact, type Assumptions, type Inputs } from '../lib/calc';
+import { computeStack, fmt, fmtCompact, HORIZON, type Assumptions, type Inputs } from '../lib/calc';
 import { STATES } from '../lib/taxdata';
-import { buildBestPlans } from '../lib/plans';
-import { Explainer, Limit, SectionTitle, Tip, Chips } from '../components/widgets';
-import { downloadPlan } from '../lib/download';
-import { AnnualFeePlanner, InsuranceChargePlanner, type ScenarioSlot } from './CalculatorView';
+import { Chips, Stat } from '../components/widgets';
+import { TaxBreakdown, type ScenarioSlot } from './CalculatorView';
 
 interface Props {
   inputs: Inputs;
   setInputs: (fn: (p: Inputs) => Inputs) => void;
   asm: Assumptions;
   scenarios: (ScenarioSlot | null)[];
-  saveScenario: (i: number) => void;
+  saveScenario: (i: number, override?: Inputs) => void;
   loadScenario: (i: number) => void;
   onApplyScenario: () => void;
+  onCompareScenario: () => void;
   onStartOver: () => void;
   onOpenLibrary: () => void;
 }
 
-const SHORT = new Set<string>(QUIZ_SHORT);
-const MIDDLE = new Set<string>(QUIZ_MIDDLE);
-const PROTECT = new Set<string>(QUIZ_PROTECT);
-const LONG = new Set<string>(QUIZ_LONG);
+type Risk = 'steady' | 'balanced' | 'growth';
+type Legacy = 'yes' | 'no' | 'unsure';
+type PpliChoice = 'not_now' | 'explore';
+type Purchase = 'now' | 'later';
+type Charge = '0.005' | '0.008' | '0.012' | 'fixed';
+interface Choices { risk: Risk | null; legacy: Legacy | null; ppli: PpliChoice | null; purchase: Purchase | null; charge: Charge | null }
+const EMPTY_CHOICES: Choices = { risk: null, legacy: null, ppli: null, purchase: null, charge: null };
 
-const SHORT_QS = QUIZ.filter((q) => SHORT.has(q.id));
-const MIDDLE_QS = QUIZ.filter((q) => MIDDLE.has(q.id));
-const PROTECT_QS = QUIZ.filter((q) => PROTECT.has(q.id));
-const LONG_QS = QUIZ.filter((q) => LONG.has(q.id));
-const DISPLAY_ORDER = [...SHORT_QS, ...MIDDLE_QS, ...PROTECT_QS, ...LONG_QS];
-const SHORT_START = 1;
-const MIDDLE_START = SHORT_START + SHORT_QS.length;
-const PROTECT_START = MIDDLE_START + MIDDLE_QS.length;
-const LONG_START = PROTECT_START + PROTECT_QS.length;
-
-/** One-line effect of each quiz answer, mirroring the plans.ts recommendation logic. */
-const EFFECTS: Record<string, string[]> = {
-  claim: [
-    'the tax basis is set to "before tax" — federal and state tax come off first',
-    'the tax basis is set to "already after tax" — nothing more comes off for prize tax',
-    'the tax basis is set to "before tax" — the cautious guess — until you flip it',
-  ],
-  filing: [
-    'filing is set to one person on the return',
-    'filing is set to two people on the return — wider brackets before rates climb',
-    'filing is set to one person for now — easy to change later',
-  ],
-  worry: [
-    'the running-out check is emphasized in the result',
-    'privacy steps are in your mix — the anonymous LLC keeps your name off property',
-    'the result notes that the check tax is fixed by amount and current state',
-    'the result reminds you to include care in the yearly amount',
-    'no setting changed — noted',
-    'both the running-out check and the privacy steps are emphasized',
-  ],
-  live: [
-    'residency is set to stay — later income is taxed where you are',
-    "residency is set to move — a 0% state changes the tax on later income",
-    'residency is set to Puerto Rico — later gains can use the PR path',
-    'the result notes that living abroad does not end US tax',
-    'residency stays put until you pick',
-  ],
-  time: [
-    'the result checks that the yearly amount covers living costs',
-    'the result checks that the yearly amount covers the travel and the places',
-    'the result uses the yearly amount you typed',
-    'the result still checks that the yearly amount can be paid',
-  ],
-  market: [
-    'the dial leans steady (100) so the yearly amount keeps coming',
-    'the dial is set to 0 — more stays in things that grow',
-    'the dial uses the middle split (50)',
-    'the dial uses a middle split (50) — steady money plus growth',
-  ],
-  give: [
-    'nothing is given',
-    'the gift amount is taken out of the pile before investing — it can use the estate exclusion',
-    'the gift amount is taken out of the pile before investing — it can cut income tax that year',
-    'nothing is given until you type an amount',
-    'both kinds of gift come out of the pile before investing',
-  ],
-  archetype: [
-    'the dial leans steady (100) so spending now stays reliable',
-    'the dial uses the middle split (50)',
-    'the dial is set to 0 — the plan leans growth for later',
-  ],
-  threats: [
-    'protection is emphasized — the DAPT plus umbrella insurance are in the notes',
-    'privacy is emphasized — the anonymous LLC is in your mix',
-    'the split leans steadier — that is a settings change, not paperwork',
-    'the result notes that nothing here hides money from the tax office',
-    'no extra step added',
-  ],
-  renounce: [
-    'US tax on worldwide income continues',
-    'the exit-tax module is in your mix — a life decision, not a tax play',
-    'nothing changes until you decide',
-    'noted — most people say no, and that is fine',
-  ],
-  gone: [
-    'the result still shows what would be left',
-    'legacy weight goes up — a trust can be written for that',
-    'protection weight goes up — an irrevocable trust is noted',
-    'the priority is the life, not a pile left over',
-    'the result shows what would be left — the split is tunable later',
-  ],
-  later: [
-    'every year uses the first yearly amount',
-    'the later-years amount field opened — from year 11 it replaces the first amount',
-    'the first yearly amount stays until you type a later one',
-    'same as yes — type the later amount and it applies from year 11',
-  ],
-  family: [
-    'the yearly amount only needs to cover you',
-    'the household rides on the yearly amount — legacy weight goes up',
-    'their support goes into the yearly amount',
-    'the yearly amount covers you for now',
-  ],
-  team: [
-    'the first three hires are noted: tax attorney, CPA, fee-only advisor',
-    'the result notes that the paperwork still needs licensed pros',
-    'the assumptions stay editable so your pros can argue with the rates',
-    'the result notes that a pitch is not advice',
-  ],
-  discipline: [
-    'no guardrails added — the yearly amount drives everything',
-    'the result suggests starting with a smaller yearly amount',
-    'guardrails are suggested: a modest yearly amount and the annuity comparison',
-    'cheap guardrails are suggested: start modest, raise it later',
-  ],
-  risk: [
-    'less stays in stocks — more sits in bonds and the insurance wrapper',
-    'the balanced split is built for exactly this',
-    'more can stay in stocks — compounding does the work',
-    'the result notes that an advisor\'s real job is the call on that day',
-  ],
-  spendpattern: [
-    'the draw is flat — the same dollars every year',
-    'the draw grows each year with prices',
-    'this recommendation uses inflation-linked draws — you can turn that off in Fine-tune',
-    'this recommendation uses inflation-linked draws — you can turn that off in Fine-tune',
-  ],
-  reinvest: [
-    'surplus goes back into the stack by default',
-    'the QSBS card is in your mix for business surplus',
-    'surplus parks in Treasuries or tax-exempt money market, not checking',
-    'the stack stays the default home for surplus',
-  ],
-  business: [
-    'nothing is set aside for a business',
-    'QSBS is in your mix — type the amount in the business box',
-    'the result notes to ask your CPA about QSBS before any sale',
-    'the result notes to slow down on pitched deals',
-  ],
-  foreign: [
-    'the foreign-trust reality check is in your mix — protection yes, tax savings no',
-    'nothing to unlearn',
-    'the page keeps using US federal and state rules',
-    'the reality check card in the library covers the actual rules',
-  ],
-  estate: [
-    'the dynasty-trust layer is in your mix — fund it early',
-    'an annual estate review is noted, not a day-one structure',
-    'the estate layer can wait',
-    'the result shows the estate number it uses',
-  ],
-  retire: [
-    'the yearly amount has to be reliable from month 13 on',
-    'the growth-leaning settings fit — a decade of compounding first',
-    'the stack can be all growth — income only if you want it',
-    'the income settings do the work',
-  ],
-};
-
-function stretches(age: number): { short: string; middle: string; long: string } {
-  if (age <= 0) return { short: 'the next few years', middle: 'the next 10 years', long: 'the years after that' };
-  if (age >= 75) return { short: `the next 2 years, until you are ${age + 2}`, middle: `the next 5 years, until you are ${age + 5}`, long: `the years after you are ${age + 5}` };
-  if (age >= 60) return { short: `the next 3 years, until you are ${age + 3}`, middle: `the next 8 years, until you are ${age + 8}`, long: `the years after you are ${age + 8}` };
-  return { short: `the next 3 years, until you are ${age + 3}`, middle: `the next 10 years, until you are ${age + 10}`, long: `the years after you are ${age + 10}` };
+function loadChoices(): Choices {
+  try {
+    const saved = JSON.parse(localStorage.getItem('lotteryStack.startChoices') ?? 'null');
+    return saved ? { ...EMPTY_CHOICES, ...saved } : EMPTY_CHOICES;
+  } catch { return EMPTY_CHOICES; }
 }
 
-export default function GoalsView({ inputs, setInputs, asm, scenarios, saveScenario, loadScenario, onApplyScenario, onStartOver, onOpenLibrary }: Props) {
-  const [answers, setAnswersRaw] = useState<Record<string, number>>(() => {
-    try { return JSON.parse(localStorage.getItem('lotteryStack.quizAnswers') ?? '{}'); } catch { return {}; }
-  });
-  const setAnswers = (fn: (a: Record<string, number>) => Record<string, number>) => {
-    setAnswersRaw((prev) => {
-      const next = fn(prev);
-      try { localStorage.setItem('lotteryStack.quizAnswers', JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-  };
-  const [age, setAge] = useState<number>(() => {
-    try { return Number(localStorage.getItem('lotteryStack.age') || 0) || 0; } catch { return 0; }
-  });
-  useEffect(() => {
-    try { localStorage.setItem('lotteryStack.age', String(age)); } catch { /* ignore */ }
-  }, [age]);
-  useEffect(() => {
-    if (answers.market === undefined || inputs.mode === 'manual') return;
-    const dial = answers.market === 0 ? 100 : answers.market === 1 ? 0 : 50;
-    if (inputs.dial !== dial) setInputs((p) => ({ ...p, dial, mode: 'balanced' }));
-  }, [answers.market, inputs.mode, inputs.dial, setInputs]);
-  const answered = Object.keys(answers).length;
-  const ready = inputs.amount > 0 && answered === QUIZ.length;
-  const set = useMemo(
-    () => (ready ? buildBestPlans(answers, inputs, asm) : null),
-    [ready, answers, inputs, asm],
-  );
-  const preview = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
-  const moveStates = STATES.filter((s) => s.noTax || s.code === inputs.target);
-  const outcome = set?.plans[0];
-  const span = stretches(age);
-  const changedLines = useMemo(
-    () =>
-      DISPLAY_ORDER.filter((q) => answers[q.id] !== undefined).map((q) => {
-        const oi = answers[q.id];
-        return {
-          id: q.id,
-          label: q.options[oi]?.label ?? '',
-          effect: EFFECTS[q.id]?.[oi] ?? 'no setting changed — noted',
-        };
-      }),
-    [answers],
-  );
+export default function GoalsView({ inputs, setInputs, asm, saveScenario, onApplyScenario, onCompareScenario, onStartOver, onOpenLibrary }: Props) {
+  const [choices, setChoices] = useState<Choices>(loadChoices);
+  const [spendTouched, setSpendTouched] = useState(inputs.spend > 0);
+  const [isSample] = useState(() => inputs.amount === 100_000_000 && localStorage.getItem('lotteryStack.age') === '55');
 
-  const setNum = (key: 'amount' | 'spend' | 'debt' | 'entity4' | 'venture' | 'rental' | 'gift' | 'laterSpend' | 'ppliFee' | 'setupCost' | 'annualAdmin' | 'state' | 'target', value: number | string) => {
-    setInputs((p) => ({ ...p, [key]: value }));
+  useEffect(() => {
+    try { localStorage.setItem('lotteryStack.startChoices', JSON.stringify(choices)); } catch { /* ignore */ }
+  }, [choices]);
+
+  const choose = <K extends keyof Choices>(key: K, value: Choices[K]) => setChoices((prev) => ({ ...prev, [key]: value }));
+  const setNum = (key: 'amount' | 'spend' | 'entity4' | 'ppliFee', value: number) => setInputs((prev) => ({ ...prev, [key]: value }));
+  const taxResult = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
+
+  const candidateInputs = useMemo<Inputs>(() => {
+    const next = { ...inputs };
+    if (choices.risk) {
+      next.dial = choices.risk === 'steady' ? 100 : choices.risk === 'growth' ? 0 : 50;
+      next.mode = 'balanced';
+    }
+    if (choices.purchase === 'later') next.entity4 = 0;
+    if (choices.ppli === 'not_now') {
+      next.ppliEnabled = false;
+      next.ppliFeeMode = 'none';
+      next.ppliFee = 0;
+    } else if (choices.ppli === 'explore') {
+      next.ppliEnabled = true;
+      if (choices.charge === 'fixed') {
+        next.ppliFeeMode = 'fixed';
+      } else if (choices.charge) {
+        next.ppliFeeMode = 'rate';
+        next.ppliFeeRate = Number(choices.charge);
+        next.ppliFee = 0;
+      } else {
+        next.ppliFeeMode = 'none';
+        next.ppliFee = 0;
+      }
+    }
+    return next;
+  }, [inputs, choices]);
+  const candidate = useMemo(() => computeStack(candidateInputs, asm), [candidateInputs, asm]);
+
+  const missing = [
+    inputs.amount <= 0 ? 'your winning amount' : null,
+    !spendTouched ? 'your yearly spending choice' : null,
+    !choices.risk ? 'your market-comfort choice' : null,
+    !choices.purchase ? 'your purchase-timing choice' : null,
+    choices.purchase === 'now' && inputs.entity4 <= 0 ? 'the year-1 purchase amount' : null,
+    !choices.legacy ? 'your answer about money after death' : null,
+    !choices.ppli ? 'your PPLI choice' : null,
+    choices.ppli === 'explore' && !choices.charge ? 'an insurance-charge scenario' : null,
+    choices.ppli === 'explore' && choices.charge === 'fixed' && inputs.ppliFee <= 0 ? 'your quoted insurance charge' : null,
+  ].filter(Boolean) as string[];
+  const complete = missing.length === 0;
+
+  const apply = () => setInputs(() => candidateInputs);
+  const usePlan = () => {
+    if (!complete) return;
+    apply();
+    saveScenario(0, candidateInputs);
+    onApplyScenario();
+  };
+  const comparePlan = () => {
+    if (!complete) return;
+    apply();
+    saveScenario(0, candidateInputs);
+    onCompareScenario();
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      {age === 55 && inputs.amount === 100_000_000 && (
-        <p className="rounded-md bg-accent px-3 py-2 text-[13px] text-accent-foreground">
-          Example persona: <strong>Dana, 55, Colorado</strong> — all questions pre-filled so you can see a finished result. Change anything to make it yours.
-        </p>
-      )}
-      <SectionTitle
-        num="08"
-        title={<>Plan the life, <span className="sig-italic">short, middle, and long</span></>}
-        blurb="One page. Age first, because a 40-year-old and a 75-year-old do not mean the same thing by later. The result is whether the money can pay for the life without running out. A pile at a fixed year 25 is not the finish line."
-      />
-      <button
-        type="button"
-        onClick={onStartOver}
-        className="mb-4 rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 cursor-pointer"
-      >
-        Clear and start over
-      </button>
+    <div className="mx-auto max-w-4xl space-y-10">
+      <header>
+        <p className="eyebrow">A guided starting point</p>
+        <h2 className="mt-3 font-display text-3xl font-semibold">Start with the life you want. <span className="sig-italic">We’ll show you how the money could support it.</span></h2>
+        <p className="mt-3 max-w-[70ch] text-[15px] leading-relaxed text-muted-foreground">Answer only what you know. Nothing is selected or applied automatically. You can review the numbers, compare alternatives, or fine-tune every assumption before deciding.</p>
+        {isSample && <p className="mt-3 rounded-md bg-accent px-3 py-2 text-sm text-accent-foreground">Example loaded. Change anything to make it yours; the plan is not applied until you choose a button at the end.</p>}
+        <button type="button" onClick={onStartOver} className="mt-4 rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-medium text-primary cursor-pointer">Clear and start over</button>
+      </header>
 
-      <div className="hairline-card space-y-3 p-4">
-        <span className="flex items-center gap-1 text-[15px] font-medium">
-          Save or download
-          <Explainer text="Save keeps this setup in this browser as A, B, C, D, or E. Open puts a saved setup back on the page. Download writes a spreadsheet of the numbers on screen and every saved setup." />
-        </span>
-        <div className="flex flex-wrap items-center gap-2">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <Tip key={i} text={scenarios[i] ? `Replace saved setup ${'ABCDE'[i]} with the numbers on this page.` : `Save the numbers on this page as setup ${'ABCDE'[i]}.`}>
-              <button type="button" onClick={() => saveScenario(i)} className="rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
-                {scenarios[i] ? 'Overwrite ' : 'Save as '}{'ABCDE'[i]}
-              </button>
-            </Tip>
-          ))}
-          {scenarios.map((s, i) => s ? (
-            <Tip key={`open-${i}`} text={`Put saved setup ${'ABCDE'[i]} back on the page.`}>
-              <button type="button" onClick={() => loadScenario(i)} className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary cursor-pointer">
-                Open {'ABCDE'[i]}
-              </button>
-            </Tip>
-          ) : null)}
-          <Tip text="Downloads a spreadsheet of the numbers on this page, the fees, the 25-year line, and any setups you saved.">
-            <button type="button" onClick={() => downloadPlan(inputs, asm, preview, scenarios)} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">
-              Download plan
-            </button>
-          </Tip>
-        </div>
-      </div>
-
-      <div className="hairline-card border-primary/30 bg-accent/40 p-5 text-[14.5px] leading-relaxed">
-        A few quick questions to shape your plan. Skip anything you don't feel like answering — the model fills in sensible defaults and says so.
-      </div>
-
-      <div className="hairline-card p-4">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium">{answered} of {QUIZ.length} answered</span>
-          {answered < QUIZ.length && (
-            <span className="text-muted-foreground">{QUIZ.length - answered} to go</span>
-          )}
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-primary/15" role="progressbar" aria-valuenow={answered} aria-valuemin={0} aria-valuemax={QUIZ.length} aria-label={`${answered} of ${QUIZ.length} questions answered`}>
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, (answered / QUIZ.length) * 100)}%` }} />
-        </div>
-      </div>
-
-      <div className="hairline-card p-6 md:p-8">
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">How old are you? (optional) <Explainer text="Age sets what short, middle, and long mean. It is not a range. Leave it blank and the result uses a generic 30-year horizon." more="trade" /></span>
-            <input type="number" min={0} max={120} step={1} value={age || ''} onChange={(e) => setAge(+e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-            <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
-              {age > 0 ? `Short is ${span.short}. Middle is ${span.middle}. Long is ${span.long}.` : 'Optional. Leave it blank and the result uses a generic 30-year horizon.'}
-            </span>
+      <StartSection step="1" title="Your winnings" purpose="Only the facts needed for the first tax estimate. No products or strategies yet.">
+        <div className="hairline-card space-y-4 p-5">
+          <label className="block text-sm font-medium">Winning amount
+            <input type="number" min={0} step={100000} value={inputs.amount || ''} onChange={(e) => setNum('amount', +e.target.value || 0)} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
           </label>
-          <label className="block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">Lottery cash amount <Explainer text="The check you could take, or what is left if the tax is already paid. Not the advertised jackpot." more="trade" /></span>
-            <input type="number" min={0} step={100000} value={inputs.amount || ''} onChange={(e) => setNum('amount', +e.target.value || 0)} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$5M',value:5000000},{label:'$18M',value:18000000},{label:'$100M',value:100000000}]} value={inputs.amount} onChange={(v)=>setNum('amount',v)} hint="The check you could take, or what is left after tax. Examples: $5M, $18M, $100M." />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[14px] font-medium">State you live in now <Explainer text="This state taxes the lottery check. Moving later does not change that." more="move" /></span>
-            <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inputs.state} onChange={(e) => setNum('state', e.target.value)}>
-              {STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <Group heading={`First, the basics — ${span.short}`} questions={SHORT_QS} answers={answers} setAnswers={setAnswers} start={SHORT_START} total={QUIZ.length} />
-
-      <label className="hairline-card block p-6">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">How much do you want available each year to live the way you want? <Explainer text="This is the check the result tests. Include anyone you support and any care cost. A bigger number runs out sooner." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">This is the amount that buys freedom from the worry. Include anyone who depends on you, and any care cost. The result checks whether the money can pay it without running out.</p>
-        <input type="number" min={0} step={1} value={inputs.spend || ''} onChange={(e) => setNum('spend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$100K/yr',value:100000},{label:'$400K/yr',value:400000},{label:'$1M/yr',value:1000000}]} value={inputs.spend} onChange={(v)=>setNum('spend',v)} hint="What you want to live on each year. The page checks whether the money can pay it without running out." />
-        <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">
-          {inputs.amount <= 0 ? 'Enter a cash amount first.' : `As things stand, the money can pay ${fmtCompact(preview.capacity)} a year.`}
-        </span>
-      </label>
-
-      <label className="hairline-card block p-6">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Debts to clear before anything else <Explainer text="Paid from the cash after tax, before anything is invested. Nothing is paid until you type it. It does not change the tax." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the dollars. Nothing is paid until you do.</p>
-        <input type="number" min={0} step={1} value={inputs.debt || ''} onChange={(e) => setNum('debt', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'None',value:0},{label:'$250K',value:250000},{label:'$1M',value:1000000}]} value={inputs.debt} onChange={(v)=>setNum('debt',v)} hint="Paid off first, before anything is invested. Leave blank if you have no debts to clear." />
-      </label>
-
-      <label className="hairline-card block p-6">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Cash for a home, boat, or vehicle you will buy in the first 12 months <Explainer text="Use this only for a year-1 purchase. The money is set aside immediately and is not invested. If the purchase is later, leave this at $0 and use the draw schedule or Entities & Assets in the purchase year." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Nothing is set aside automatically. For a purchase after year 1, leave this at $0 so the money stays invested until it is needed.</p>
-        <input type="number" min={0} step={1} value={inputs.entity4 || ''} onChange={(e) => setNum('entity4', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$500K',value:500000},{label:'$1.5M',value:1500000},{label:'$3M',value:3000000}]} value={inputs.entity4} onChange={(v)=>setNum('entity4',v)} hint="Year-1 purchase cash only. This money comes out of the investment core immediately." />
-      </label>
-
-      <Group heading={`Your everyday life — ${span.middle}`} questions={MIDDLE_QS} answers={answers} setAnswers={setAnswers} start={MIDDLE_START} total={QUIZ.length} extra={{
-        give: (answers.give === 1 || answers.give === 2 || answers.give === 4) ? (
-          <label className="mt-3 block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for the gift <Explainer text="Taken out before investing. Nothing is given until you type it. A gift to a person can use the $15,000,000 estate exclusion. A gift to charity can reduce income tax in the year you give it. This page does not compute that tax cut." /></span>
-            <input type="number" min={0} step={1} value={inputs.gift || ''} onChange={(e) => setNum('gift', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          </label>
-        ) : null,
-      }} />
-
-      <label className="hairline-card block p-6">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">If you would move, which state? <Explainer text="Used only if you said a different state. It changes tax on later income, not the tax on the lottery check." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Used only if you said a different state. The lottery check is still taxed where you live now.</p>
-        <select className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm" value={inputs.target} onChange={(e) => setNum('target', e.target.value)}>
-          {moveStates.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}
-        </select>
-      </label>
-
-      <label className="hairline-card block p-6">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a business <Explainer text="Money you plan to put into a business you start or buy — set aside before the rest gets invested, so the calculator never pretends it is still compounding in the stack.
-
-Why it is separate: a business is not an S&P index fund. It is illiquid, can go to zero, and can also out-return everything else you own. It deserves its own line item, not a hiding place inside the stock engine.
-
-The tax angle worth knowing: if the business is a C-corporation, its stock may qualify as QSBS — after 5 years, up to $15 million of gain per company can be federally tax-free. That is one of the few outcomes that can beat leaving the money in the stack.
-
-What to type: only what you can genuinely afford to lose — for most winners that is 5–10% of the after-tax pool, not half of it. Example: on $60 million after tax, type $3,000,000–$6,000,000 for a serious venture, $500,000 for a first experiment.
-
-Common mistake: funding the dream business with the whole pile and then needing to sell stocks to live on." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
-        <input type="number" min={0} step={1} value={inputs.venture || ''} onChange={(e) => setNum('venture', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$250K',value:250000},{label:'$1M',value:1000000},{label:'$5M',value:5000000}]} value={inputs.venture} onChange={(v)=>setNum('venture',v)} hint="Only what you can genuinely afford to lose — 5–10% of the pool is a sensible cap for most winners." />
-      </label>
-      <label className="block">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Dollars for a rental <Explainer text="Money for an investment property — a rental house, a duplex, a small building. It comes out before investing, so it does not count as part of the stack that pays you every year.
-
-Why it is separate: a rental is not a stock. It pays rent, it appreciates slowly, and it has three quiet tax benefits the stack does not give equities: depreciation that shelters the rent on paper, 1031 exchanges that roll gains into the next property without tax, and a basis step-up at death.
-
-How it fits: this is the job of Entity #4 — the anonymous LLC owns the property, so your name stays off the county records. If you move to Puerto Rico, note the LLC cannot hold your PR primary residence; that one has to be owned directly or by a trust.
-
-What to type: the full purchase price plus closing costs. Example: a $600,000 rental house plus ~$25,000 in closing and repairs — type $625,000. If you mean your own home, not a rental, use the home/boat box above instead.
-
-Common mistake: typing the property price but forgetting the carrying costs — taxes, insurance, and repairs run roughly 1% of the property value a year." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Type the amount. Nothing is taken out until you do.</p>
-        <input type="number" min={0} step={1} value={inputs.rental || ''} onChange={(e) => setNum('rental', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$500K',value:500000},{label:'$1M',value:1000000},{label:'$2.5M',value:2500000}]} value={inputs.rental} onChange={(v)=>setNum('rental',v)} hint="Full purchase price plus closing costs. If you mean your own home, use the home box above instead." />
-      </label>
-
-      <label className="block">
-        <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">One-time setup cost <Explainer text="The one-time cost of building the structure properly: the attorney who drafts the trusts, the insurance work to place the PPLI policy, forming the anonymous LLC, and opening institutional custody accounts.
-
-Planning examples: about $50,000 for a simple setup (one revocable trust and a DAPT), $75,000 for the full 4-entity stack, $125,000 or more for a very large prize with multiple entities and a policy to underwrite. Nothing is filled automatically; choose an example or type a real quote.
-
-Why you should not cheap out: the drafting is the protection. A badly drafted trust is just expensive paper — no asset protection, no estate benefit, possibly a tax mess. This is the one place where the cheap quote is the most expensive option.
-
-What to type: a planning example, or the real quote from your attorney. It is paid once, out of the prize, before the engines are funded.
-
-Common mistake: leaving it at $0, which tells the model the structure is free — and quietly makes every later number too optimistic." /></span>
-        <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">Legal, trustee, and professional fees to set up the trusts. Nothing is taken until you type it.</p>
-        <input type="number" min={0} step={1} value={inputs.setupCost || ''} onChange={(e) => setNum('setupCost', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-          <Chips chips={[{label:'$50K',value:50000},{label:'$75K',value:75000},{label:'$125K',value:125000}]} value={inputs.setupCost} onChange={(v)=>setNum('setupCost',v)} hint="Planning examples only, not quotes. Nothing changes until you choose or type an amount." />
-      </label>
-      <AnnualFeePlanner inp={inputs} setInputs={setInputs} />
-      <InsuranceChargePlanner inp={inputs} r={preview} setInputs={setInputs} />
-      <Limit>Minimum: $5,000,000 in the insurance box. If this result is under that, the box still shows its number. The number is not erased.</Limit>
-
-      <div className="space-y-4">
-        <h3 className="font-display text-lg font-semibold">Protecting you and the estate</h3>
-        <div className="hairline-card border-primary/30 bg-accent/40 p-5 text-[14.5px] leading-relaxed">
-          <strong>The 10-second version:</strong> a trust makes it harder to <em>take</em> the money, not harder to sue you.
-          Revocable = you keep control, no protection. Irrevocable = someone else is trustee, real protection — but only if funded before any claim.
-        </div>
-        <details className="hairline-card p-5 text-[14.5px] leading-relaxed text-muted-foreground">
-          <summary className="cursor-pointer font-medium text-foreground">The full explanation</summary>
-          <p className="mt-3">A trust does not stop you from being sued. You can still be sued. Insurance is what protects you, the person.</p>
-          <p className="mt-3">You can have more than one trust at the same time. A revocable trust and one or more irrevocable trusts can exist together. You can be the only beneficiary of all of them.</p>
-          <p className="mt-3">A revocable trust can be changed or cancelled by you. You still control it, so a lawsuit can reach it while you are alive. It is for who gets the money after you die. It is not asset protection.</p>
-          <p className="mt-3">An irrevocable trust cannot be taken back, and you cannot change it on your own. Someone else is the trustee. You no longer own what you put in. That is why a later lawsuit has a harder time taking those assets. It has to be funded before any claim. A transfer after you know about a lawsuit, or made to dodge a creditor, can be undone.</p>
-          <p className="mt-3">If you are the only beneficiary of an irrevocable trust you created, most states give little or no asset protection. Nevada, South Dakota, Delaware, and Alaska allow a domestic asset protection trust where you can be a beneficiary and still have some protection. It is not absolute. A foreign trust can be harder for a US court to reach. It does not hide the money from the IRS, and it can create extra reporting.</p>
-          <p className="mt-3">A trustee has a legal duty to follow the trust terms and act for the beneficiary. You choose the trustee. You can name a co-trustee. You can name a trust protector who can remove the trustee. You can write distribution standards that require the trustee to pay you for living costs, care, or other needs. You can require accountings. What you cannot do is keep the power to force distributions or to remove and replace the trustee at will. That power can make the protection fail and can make the IRS treat the assets as still yours.</p>
-          <p className="mt-3">Neither kind hides money from the tax office. Answering a question does not create a trust. A lawyer has to draft it.</p>
-        </details>
-        <Group heading="" questions={PROTECT_QS} answers={answers} setAnswers={setAnswers} start={PROTECT_START} total={QUIZ.length} />
-      </div>
-
-      <Group heading={`Down the road — ${span.long}`} questions={LONG_QS} answers={answers} setAnswers={setAnswers} start={LONG_START} total={QUIZ.length} extra={{
-        later: (answers.later === 1 || answers.later === 3) ? (
-          <label className="mt-3 block">
-            <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-medium">Yearly amount from year 11 on <Explainer text="Replaces the first yearly amount from year 11 through year 30. Years 2 through 10 keep the first amount. Nothing changes until you type it." /></span>
-            <input type="number" min={0} step={1} value={inputs.laterSpend || ''} onChange={(e) => setNum('laterSpend', +e.target.value || 0)} className="w-full max-w-sm rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
-            <Limit>From year 11 through year 30. Years 2 through 10 stay on the first yearly amount.</Limit>
-          </label>
-        ) : null,
-      }} />
-
-      <div className="sticky bottom-4 z-30 no-print">
-        <div className="hairline-card flex flex-wrap items-center justify-between gap-3 border-primary/40 bg-card/95 p-4 shadow-lg backdrop-blur">
-          <div className="text-sm text-muted-foreground">
-            <span className="mr-2 font-medium text-foreground">{answered} of {QUIZ.length} answered.</span>
-            {ready ? (
-              <span><strong className="text-foreground">All questions answered.</strong> Next: fine-tune the plan, or save it and compare.</span>
-            ) : (
-              <span>
-                Still to go: {[
-                  inputs.amount <= 0 ? 'the cash amount' : null,
-                  answered < QUIZ.length ? `${QUIZ.length - answered} more question${QUIZ.length - answered === 1 ? '' : 's'}` : null,
-                ].filter(Boolean).join(' · ')}
-              </span>
-            )}
+          <Chips chips={[{ label: '$5M', value: 5000000 }, { label: '$18M', value: 18000000 }, { label: '$100M', value: 100000000 }]} value={inputs.amount} onChange={(v) => setNum('amount', v)} hint="Use the cash option, not the advertised annuity jackpot." />
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setInputs((p) => ({ ...p, basis: 'gross' }))} className={`flex-1 rounded-md border px-3 py-2 text-sm cursor-pointer ${inputs.basis === 'gross' ? 'border-primary bg-accent font-medium' : 'border-input text-muted-foreground'}`}>Before tax</button>
+            <button type="button" onClick={() => setInputs((p) => ({ ...p, basis: 'net' }))} className={`flex-1 rounded-md border px-3 py-2 text-sm cursor-pointer ${inputs.basis === 'net' ? 'border-primary bg-accent font-medium' : 'border-input text-muted-foreground'}`}>Already after tax</button>
           </div>
-          <button
-            type="button"
-            disabled={!ready}
-            onClick={() => { if (outcome) setInputs(() => outcome.inputs); onApplyScenario(); }}
-            className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-          >
-            Continue to Fine-tune →
-          </button>
+          <label className="block text-sm font-medium">State where you live now
+            <select value={inputs.state} onChange={(e) => setInputs((p) => ({ ...p, state: e.target.value }))} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-normal">{STATES.map((s) => <option key={s.code} value={s.code}>{s.name}</option>)}</select>
+          </label>
+          <label className="block text-sm font-medium">Tax filing status
+            <select value={inputs.filing} onChange={(e) => setInputs((p) => ({ ...p, filing: e.target.value as Inputs['filing'] }))} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-normal"><option value="single">Single</option><option value="mfj">Married filing jointly</option></select>
+          </label>
         </div>
-      </div>
+        <TaxBreakdown inp={inputs} r={taxResult} />
+      </StartSection>
 
-      {outcome && (
-        <article data-tour="result" className="hairline-card border-success/40 p-6">
-          <h3 className="font-display text-xl font-semibold">The result</h3>
-          <p className="mt-2 text-[14.5px] text-muted-foreground">
-            {age > 0
-              ? <>Age {age}. Short is {span.short}. Middle is {span.middle}.</>
-              : <>No age given — the result uses a generic 30-year horizon: short is the next few years, middle the next 10 years, long the years after that.</>}
-          </p>
-          <ul className="mt-3 list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-muted-foreground">
-            {set?.preface.map((line) => <li key={line}>{line}</li>)}
-            {outcome.whys.map((w) => <li key={w}>{w}</li>)}
-          </ul>
+      <StartSection step="2" title="The life you want the money to support" purpose="A few high-impact choices. There is no long questionnaire and no automatic recommendation.">
+        <div className="hairline-card space-y-4 p-5">
+          <label className="block text-sm font-medium">How much would you like to spend each year?
+            <input type="number" min={0} step={1000} value={inputs.spend || ''} onChange={(e) => { setSpendTouched(true); setNum('spend', +e.target.value || 0); }} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+          </label>
+          <Chips chips={[{ label: '$0 for now', value: 0 }, { label: '$100K/yr', value: 100000 }, { label: '$400K/yr', value: 400000 }, { label: '$1M/yr', value: 1000000 }]} value={inputs.spend} onChange={(v) => { setSpendTouched(true); setNum('spend', v); }} hint="This is a target, not a forced withdrawal. Enter $0 deliberately if you want to let it grow." />
+          <ChoicePrompt title="Do you have a major purchase planned within the next 12 months?">
+            <ChoiceButton selected={choices.purchase === 'later'} onClick={() => choose('purchase', 'later')}>No, or it is later — keep the money invested</ChoiceButton>
+            <ChoiceButton selected={choices.purchase === 'now'} onClick={() => choose('purchase', 'now')}>Yes, within 12 months — set cash aside now</ChoiceButton>
+          </ChoicePrompt>
+          {choices.purchase === 'now' && <label className="block text-sm font-medium">Cash needed for that year-1 purchase
+            <input type="number" min={0} step={50000} value={inputs.entity4 || ''} onChange={(e) => setNum('entity4', +e.target.value || 0)} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-num" />
+            <span className="mt-1 block text-[13px] text-muted-foreground">Only this amount is removed from the investment core now. Later purchases belong in the draw schedule or Entities &amp; Assets.</span>
+          </label>}
+          <fieldset>
+            <legend className="text-sm font-medium">If $10 million fell to $7 million temporarily, what would matter most?</legend>
+            <div className="mt-2 space-y-2">
+              <ChoiceButton selected={choices.risk === 'steady'} onClick={() => choose('risk', 'steady')}><strong>Protect my income.</strong> I would accept lower expected growth for a steadier plan.</ChoiceButton>
+              <ChoiceButton selected={choices.risk === 'balanced'} onClick={() => choose('risk', 'balanced')}><strong>Stay balanced.</strong> I can accept some swings if income and growth both get attention.</ChoiceButton>
+              <ChoiceButton selected={choices.risk === 'growth'} onClick={() => choose('risk', 'growth')}><strong>Keep growing.</strong> I have a long horizon and can tolerate larger drops.</ChoiceButton>
+            </div>
+          </fieldset>
+          <ChoicePrompt title="Do you want money or a death benefit available for other people after you die?">
+            <ChoiceButton selected={choices.legacy === 'yes'} onClick={() => choose('legacy', 'yes')}>Yes — beneficiaries matter to me</ChoiceButton>
+            <ChoiceButton selected={choices.legacy === 'no'} onClick={() => choose('legacy', 'no')}>No — this money is mainly for my lifetime</ChoiceButton>
+            <ChoiceButton selected={choices.legacy === 'unsure'} onClick={() => choose('legacy', 'unsure')}>Not sure — show me the options without deciding for me</ChoiceButton>
+          </ChoicePrompt>
+        </div>
+      </StartSection>
 
-          {set?.mix && (
-            <div className="mt-5 rounded-lg border border-primary/30 bg-accent/40 p-4">
-              <h4 className="font-display text-base font-semibold">How your answers shaped the mix</h4>
-              <ul className="mt-2 space-y-1.5 text-[14px] leading-relaxed text-muted-foreground">
-                {set.mix.rationale.map((line) => <li key={line}>→ {line}</li>)}
-              </ul>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {set.mix.chosen.map((id) => (
-                  <span key={id} className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] font-medium text-primary">
-                    {id === 'engine-a' ? 'Munis' : id === 'engine-b' ? 'PPLI' : id === 'engine-c' ? 'Stocks' : id}
-                  </span>
-                ))}
+      <StartSection step="3" title="Understand life insurance before choosing it" purpose="PPLI is life insurance on a person, not insurance for the lottery money. It is optional here.">
+        <div className="hairline-card p-5">
+          <h3 className="font-display text-xl font-semibold">Private Placement Life Insurance (PPLI)</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">A life-insurance contract with an investment wrapper. It may provide tax-advantaged investment growth and tax-advantaged access through withdrawals and policy loans when the contract remains compliant.</p>
+          <dl className="mt-4 divide-y divide-border/60">
+            <RoleRow label="Who is insured?" value="Usually you, the lottery winner, or sometimes another person with an insurable interest." />
+            <RoleRow label="Who owns the policy?" value="Often an irrevocable trust rather than you personally." />
+            <RoleRow label="Who is financially protected?" value="Primarily your named beneficiaries, through the death benefit. The policy owner may also benefit from the policy’s tax treatment during your life." />
+            <RoleRow label="What does it cost?" value="Carrier charges, plus separate legal, trustee, tax, and investment costs. An active policy is not free." />
+            <RoleRow label="What can go wrong?" value="Medical underwriting can fail. Premium and investor-control rules can be violated. An over-loaned policy can lapse and create a large tax bill." />
+          </dl>
+          <p className="mt-4 rounded-md bg-secondary px-3 py-2 text-sm leading-relaxed text-muted-foreground"><strong>It does not:</strong> insure the lottery principal, prevent lawsuits, stop market losses, or automatically shield assets from creditors.</p>
+          <ChoicePrompt title="Do you want to include this in the starting plan?">
+            <ChoiceButton selected={choices.ppli === 'not_now'} onClick={() => choose('ppli', 'not_now')}>Not for this plan — no policy or carrier charge</ChoiceButton>
+            <ChoiceButton selected={choices.ppli === 'explore'} onClick={() => choose('ppli', 'explore')}>Explore PPLI — show me the cost and allocation</ChoiceButton>
+          </ChoicePrompt>
+          {choices.ppli === 'explore' && (
+            <div className="mt-4 rounded-md border border-input p-4">
+              <h4 className="text-sm font-semibold">Choose an illustrative carrier-charge scenario</h4>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">These are planning allowances, not quotes. You can replace them with a carrier illustration in Fine-tune.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(['0.005', '0.008', '0.012'] as const).map((rate) => <button key={rate} type="button" onClick={() => choose('charge', rate)} className={`rounded-full border px-3 py-1.5 text-sm cursor-pointer ${choices.charge === rate ? 'border-primary bg-accent font-medium' : 'border-input text-muted-foreground'}`}>{(Number(rate) * 100).toFixed(1)}% of policy per year</button>)}
+                <button type="button" onClick={() => choose('charge', 'fixed')} className={`rounded-full border px-3 py-1.5 text-sm cursor-pointer ${choices.charge === 'fixed' ? 'border-primary bg-accent font-medium' : 'border-input text-muted-foreground'}`}>Use a fixed quote</button>
               </div>
-              <button
-                type="button"
-                onClick={() => { setInputs(() => ({ ...outcome.inputs, chosen: set.mix!.chosen })); onOpenLibrary(); }}
-                className="mt-3 text-sm font-medium text-primary hover:underline cursor-pointer"
-              >
-                See this mix in the Strategy Library →
-              </button>
+              {choices.charge === 'fixed' && <label className="mt-3 block text-sm font-medium">Quoted charge, dollars per year<input type="number" min={0} step={1000} value={inputs.ppliFee || ''} onChange={(e) => setNum('ppliFee', +e.target.value || 0)} className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 font-num" /></label>}
+              {candidate.ppli < 5_000_000 && <p className="mt-3 text-[13px] leading-relaxed text-destructive">The current candidate allocates {fmtCompact(candidate.ppli)} to PPLI, below this model’s $5 million policy-allocation threshold. You can change the mix in Fine-tune; actual eligibility requires professional review.</p>}
             </div>
           )}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => { setInputs(() => outcome.inputs); onApplyScenario(); }}
-              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer"
-            >
-              Fine-tune this plan
-            </button>
-            <button
-              type="button"
-              onClick={() => { const i = scenarios.findIndex((s) => !s); if (i >= 0) { saveScenario(i); } }}
-              className="inline-flex items-center rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20 cursor-pointer"
-            >
-              Save & compare it
-            </button>
-          </div>
-        </article>
-      )}
+        </div>
+      </StartSection>
 
-      {outcome && changedLines.length > 0 && (
-        <section className="hairline-card p-5">
-          <h4 className="font-display text-base font-semibold">What your answers changed</h4>
-          <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[14px] leading-relaxed text-muted-foreground">
-            {changedLines.map((c) => (
-              <li key={c.id}>You chose “{c.label}” → {c.effect}</li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <StartSection step="4" title="Review the starting plan" purpose="This is a preview only. Your current plan does not change until you deliberately apply it.">
+        <div data-tour="result" className="hairline-card p-5">
+          {!complete ? (
+            <div>
+              <h3 className="font-display text-lg font-semibold">A few choices are still needed</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Nothing is filled in for you. Still to choose:</p>
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">{missing.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div><h3 className="font-display text-xl font-semibold">Your candidate plan</h3><p className="mt-1 text-sm text-muted-foreground">Review the numbers, then choose what to do. This is not yet your active plan.</p></div>
+                <span className="rounded-full bg-accent px-3 py-1 text-[12px] font-medium text-accent-foreground">Preview only</span>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Stat label="Money invested" value={fmtCompact(candidate.core)} sub={candidate.housePaid > 0 ? `${fmtCompact(candidate.housePaid)} held for a year-1 purchase` : 'after tax and reserves'} tone="good" />
+                <Stat label="Estimated yearly capacity" value={fmtCompact(candidate.capacity)} sub={`your target: ${fmtCompact(candidateInputs.spend)}/yr`} tone="warm" />
+                <Stat label={`Projected at year ${HORIZON}`} value={fmtCompact(candidate.stackEnd)} sub="using editable assumptions, not a forecast" />
+                <Stat label="Life insurance" value={candidateInputs.ppliEnabled === false ? 'Not included' : fmtCompact(candidate.ppli)} sub={candidateInputs.ppliEnabled === false ? 'no insured person or death benefit modeled' : choices.charge === 'fixed' ? `${fmt(candidateInputs.ppliFee)}/yr fixed quote` : `${(candidateInputs.ppliFeeRate! * 100).toFixed(1)}% yearly charge scenario`} />
+              </div>
+              <dl className="mt-4 divide-y divide-border/60 text-sm">
+                <RoleRow label="Professional costs included so far" value={candidateInputs.annualAdmin > 0 ? `${fmt(candidateInputs.annualAdmin)}/yr` : '$0 — choose a planning allowance in Fine-tune'} />
+                <RoleRow label="Market approach" value={choices.risk === 'steady' ? 'Income-focused' : choices.risk === 'growth' ? 'Growth-focused' : 'Balanced'} />
+                <RoleRow label="Beneficiary purpose" value={choices.legacy === 'yes' ? 'You want money or a death benefit for others' : choices.legacy === 'no' ? 'Mainly lifetime spending' : 'Undecided; no beneficiary strategy is forced'} />
+              </dl>
+              {candidate.depletedYear && <p className="mt-3 rounded-md bg-destructive/5 px-3 py-2 text-sm text-destructive">At this spending schedule, the candidate runs dry around year {candidate.depletedYear}. Lower the draw or adjust the mix before using it.</p>}
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                <button type="button" onClick={usePlan} className="flex-1 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground cursor-pointer">Use this starting plan</button>
+                <button type="button" onClick={comparePlan} className="flex-1 rounded-md border border-primary bg-primary/10 px-4 py-3 text-sm font-medium text-primary cursor-pointer">Compare alternatives</button>
+              </div>
+              <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">Both buttons apply the candidate. <strong>Use this starting plan</strong> opens Fine-tune with every assumption editable. <strong>Compare alternatives</strong> saves it as Scenario A and opens the comparison page.</p>
+              <button type="button" onClick={onOpenLibrary} className="mt-3 text-sm font-medium text-primary underline cursor-pointer">Explore advanced strategies before deciding</button>
+            </>
+          )}
+        </div>
+      </StartSection>
     </div>
   );
 }
 
-function Group({
-  heading, questions, answers, setAnswers, extra, start, total,
-}: {
-  heading: string;
-  questions: QuizQuestion[];
-  answers: Record<string, number>;
-  setAnswers: (fn: (a: Record<string, number>) => Record<string, number>) => void;
-  extra?: Record<string, ReactNode>;
-  start: number;
-  total: number;
-}) {
+function StartSection({ step, title, purpose, children }: { step: string; title: string; purpose: string; children: ReactNode }) {
   return (
-    <div className="space-y-6">
-      {heading ? <h3 className="font-display text-lg font-semibold">{heading}</h3> : null}
-      {questions.map((q, i) => (
-        <fieldset key={q.id} className="hairline-card p-5">
-          <legend className="mb-1 text-[15px] font-medium">
-            <span className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-primary">
-              Question {start + i} of {total}
-            </span>
-            {q.text}
-          </legend>
-          <p className="mb-3 max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">{q.why}</p>
-          <div className="flex flex-col gap-2">
-            {q.options.map((o, oi) => (
-              <Tip key={oi} text={o.note}>
-              <button
-                type="button"
-                onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
-                className={`rounded-lg border px-4 py-3 text-left cursor-pointer ${
-                  answers[q.id] === oi ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card hover:border-primary/50'
-                }`}
-              >
-                <span className="block text-[15px] font-medium">{o.label}</span>
-                <span className={`mt-1 block text-[15px] leading-snug ${answers[q.id] === oi ? 'text-primary-foreground/85' : 'text-muted-foreground'}`}>
-                  {o.note}
-                </span>
-              </button>
-              </Tip>
-            ))}
-          </div>
-          {extra?.[q.id]}
-        </fieldset>
-      ))}
-    </div>
+    <section>
+      <div className="mb-4 flex items-start gap-3">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent font-num text-sm font-semibold text-accent-foreground">{step}</span>
+        <div><h2 className="font-display text-2xl font-semibold">{title}</h2><p className="mt-1 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">{purpose}</p></div>
+      </div>
+      <div className="space-y-5">{children}</div>
+    </section>
   );
+}
+
+function ChoicePrompt({ title, children }: { title: string; children: ReactNode }) {
+  return <div><h3 className="text-sm font-medium">{title}</h3><div className="mt-2 space-y-2">{children}</div></div>;
+}
+
+function ChoiceButton({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
+  return <button type="button" aria-pressed={selected} onClick={onClick} className={`block w-full rounded-md border px-4 py-3 text-left text-sm leading-relaxed cursor-pointer ${selected ? 'border-primary bg-accent font-medium' : 'border-input bg-card text-muted-foreground hover:border-primary/50'}`}>{children}</button>;
+}
+
+function RoleRow({ label, value }: { label: string; value: string }) {
+  return <div className="py-3"><dt className="text-[13px] font-medium text-foreground">{label}</dt><dd className="mt-1 text-sm leading-relaxed text-muted-foreground">{value}</dd></div>;
 }

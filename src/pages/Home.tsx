@@ -81,6 +81,8 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
   // actually stored so the controls cannot say "none" while the engine charges a fee.
   if (!parsed?.adminFeeMode) inputs.adminFeeMode = inputs.annualAdmin > 0 ? 'custom' : 'none';
   if (!parsed?.ppliFeeMode) inputs.ppliFeeMode = inputs.ppliFee > 0 ? 'fixed' : 'none';
+  // PPLI was always present in older plans; preserve those plans while keeping it optional for new ones.
+  if (parsed && parsed.ppliEnabled === undefined) inputs.ppliEnabled = true;
   return inputs;
 }
 
@@ -152,7 +154,7 @@ function loadAssumptions(): Assumptions {
       (Object.keys(LEGACY_ASSUMPTIONS) as (keyof Assumptions)[]).forEach((k) => {
         if (Math.abs(parsed[k] - LEGACY_ASSUMPTIONS[k]) < 1e-9) next[k] = DEFAULT_ASSUMPTIONS[k];
       });
-      if (Math.abs(next.ppliGrowth - 0.062) < 1e-9) next.ppliGrowth = 0.07;
+      if (Math.abs(next.ppliGrowth - 0.062) < 1e-9) next.ppliGrowth = DEFAULT_ASSUMPTIONS.ppliGrowth;
       return next;
     }
   } catch { /* ignore */ }
@@ -224,8 +226,9 @@ export default function Home() {
     try {
       localStorage.setItem('lotteryStack.quizAnswers', JSON.stringify(allAnswers));
       localStorage.setItem('lotteryStack.age', '55');
+      localStorage.setItem('lotteryStack.startChoices', JSON.stringify({ risk: 'balanced', legacy: 'unsure', ppli: 'not_now', purchase: 'later' }));
     } catch { /* ignore */ }
-    setInputsRaw((p) => ({ ...p, amount, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000 }));
+    setInputsRaw((p) => ({ ...p, amount, basis: 'gross', spend: p.spend > 0 ? p.spend : 500_000, ppliEnabled: false, ppliFeeMode: 'none', ppliFee: 0 }));
     dismissWelcome();
     setView('goals');
     setResetKey((k) => k + 1);
@@ -249,11 +252,12 @@ export default function Home() {
 
   const result = useMemo(() => computeStack(inputs, asm), [inputs, asm]);
 
-  const saveScenario = (i: number) => {
-    const r = computeStack(inputs, asm);
+  const saveScenario = (i: number, override?: Inputs) => {
+    const source = override ?? inputs;
+    const r = computeStack(source, asm);
     const slot: ScenarioSlot = {
       name: `Scenario ${'ABCDE'[i]}`,
-      inputs,
+      inputs: source,
       result: {
         net: r.net, core: r.core, capacity: r.capacity, stackEnd: r.stackEnd, advantage: r.advantage,
         alloc: `${Math.round(r.weights.a * 100)}/${Math.round(r.weights.b * 100)}/${Math.round(r.weights.c * 100)}`,
@@ -283,9 +287,9 @@ export default function Home() {
     setWelcomed(false);
     setView('goals');
     try {
-      ['lotteryStack.inputs', 'lotteryStack.assumptions', 'lotteryStack.scenarios', 'lotteryStack.quizAnswers', 'lotteryStack.layout', 'lotteryStack.welcomed', 'lotteryStack.age'].forEach((k) => localStorage.removeItem(k));
-    setResetKey((k) => k + 1);
+      ['lotteryStack.inputs', 'lotteryStack.assumptions', 'lotteryStack.scenarios', 'lotteryStack.quizAnswers', 'lotteryStack.layout', 'lotteryStack.welcomed', 'lotteryStack.age', 'lotteryStack.startChoices'].forEach((k) => localStorage.removeItem(k));
     } catch { /* ignore */ }
+    setResetKey((k) => k + 1);
   };
 
   useEffect(() => {
@@ -435,6 +439,7 @@ export default function Home() {
             saveScenario={saveScenario}
             loadScenario={loadScenario}
             onApplyScenario={() => setView('calc')}
+            onCompareScenario={() => setView('compare')}
             onStartOver={globalReset}
             onOpenLibrary={() => setView('library')}
           />
@@ -498,7 +503,7 @@ export default function Home() {
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-[15px] leading-relaxed text-muted-foreground">
             <li>Type your cash and answer a few plain questions.</li>
             <li>See what the money can safely pay each year, and for how long.</li>
-            <li>Save setups and compare them. The quiz scores which one fits you.</li>
+            <li>Save setups and compare them. Your choices shape which one fits best.</li>
           </ol>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
             <button onClick={() => trySample()} className="flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:brightness-95 cursor-pointer">
