@@ -303,7 +303,7 @@ export default function DrawSchedule({ inputs, setInputs, result, asm }: Props) 
               formatter={(v: number, name: string) => [fmtCompact(v), name === 'requested' ? 'Requested withdrawal' : name === 'draw' ? 'Actual cash to you' : 'Estimated sustainable capacity']}
               labelFormatter={(year) => `Year ${year}${inputs.drawEvents?.[year] ? ` · ${inputs.drawEvents[year]}` : ''}`}
             />
-            <Bar dataKey="requested" onClick={(data, _index, event) => selectYear(data.year, event.shiftKey)} radius={[3, 3, 0, 0]} name="Requested withdrawal">
+            <Bar dataKey="requested" onClick={(data, _index, event) => selectYear(data.year, event.shiftKey)} radius={[3, 3, 0, 0]} name="Requested withdrawal" minPointSize={4}>
               {chartData.map((d) => <Cell key={d.year} cursor="pointer" data-year={d.year} fill={d.requested > d.capacity ? '#C42121' : d.year >= lo && d.year <= hi ? '#E5604A' : '#C9C1B7'} />)}
             </Bar>
             <Bar dataKey="capacity" fill="#4C7A3F" name="Estimated sustainable capacity" radius={[3, 3, 0, 0]} />
