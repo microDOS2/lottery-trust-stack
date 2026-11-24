@@ -1,4 +1,6 @@
 // Entity & asset planning: multiple LLCs, foreign trusts, and second passports/residencies.
+export type EntityClass = 'holding' | 'operating-business' | 'real-estate' | 'vehicle-boat' | 'investment' | 'other';
+
 export interface EntityItem {
   id: string;
   name: string;
@@ -8,6 +10,54 @@ export interface EntityItem {
   amount: number;
   year: number; // 1–30, when the asset is bought or the entity funded
   ppliWrap?: boolean; // foreign trust holds a PPLI policy inside
+  parentId?: string; // optional parent holding entity; undefined = top level
+  ownershipPct?: number; // parent’s membership interest, 1–100; defaults to 100
+  assetClass?: EntityClass;
+}
+
+export const ENTITY_CLASS_META: Record<EntityClass, { label: string; note: string }> = {
+  holding: {
+    label: 'Holding company',
+    note: 'Owns membership interests in subsidiaries rather than running daily operations. Useful for separating an operating business, property, vehicles, and investments. Keep separate books, accounts, contracts, and capitalization.',
+  },
+  'operating-business': {
+    label: 'Operating business',
+    note: 'For customers, employees, contracts, inventory, and business liabilities. Business profits are not tax-free. Do not place the safe investment portfolio or personal home in this same entity.',
+  },
+  'real-estate': {
+    label: 'Real estate',
+    note: 'For a home, rental, land, or building. Tenant and property risks stay separate from other entities when formalities are respected. Local registration, tax, insurance, and landlord rules still apply.',
+  },
+  'vehicle-boat': {
+    label: 'Vehicle or boat',
+    note: 'For a car, aircraft, boat, or other titled asset. Registration, insurance, flag-state, and operating-liability rules matter more than the LLC’s formation state.',
+  },
+  investment: {
+    label: 'Investments',
+    note: 'For brokerage interests, intellectual property, or other investments. Ownership and income still follow the entity’s tax classification; the class alone creates no tax shelter.',
+  },
+  other: {
+    label: 'Other purpose',
+    note: 'A custom asset or entity. Describe the purpose clearly so your attorney and CPA can review liability, tax classification, registration, and reporting.',
+  },
+};
+
+export function entityClass(e: EntityItem): EntityClass {
+  if (e.assetClass) return e.assetClass;
+  const text = `${e.purpose} ${e.name}`.toLowerCase();
+  if (text.includes('holding') || e.type === 'foreign-trust') return 'holding';
+  if (/rental|property|home|house|real estate|building|land/.test(text)) return 'real-estate';
+  if (/boat|sail|vehicle|car|aircraft|yacht/.test(text)) return 'vehicle-boat';
+  if (/business|startup|operating|company|shop|restaurant/.test(text)) return 'operating-business';
+  return 'investment';
+}
+
+export function normalizeEntities(items: EntityItem[]): EntityItem[] {
+  return items.map((item) => ({
+    ...item,
+    assetClass: entityClass(item),
+    ownershipPct: Math.min(100, Math.max(1, item.ownershipPct ?? 100)),
+  }));
 }
 
 export const JURISDICTIONS = [

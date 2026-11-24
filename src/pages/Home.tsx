@@ -17,7 +17,7 @@ import EntitiesView from '../sections/EntitiesView';
 import PlanSummary from '../sections/PlanSummary';
 import AnalysisView from '../sections/AnalysisView';
 import LegacyView from '../sections/LegacyView';
-import type { EntityItem } from '../lib/entities';
+import { normalizeEntities, type EntityItem } from '../lib/entities';
 
 type View = 'calc' | 'lab' | 'library' | 'annuity' | 'guide' | 'glossary' | 'goals' | 'explain' | 'compare' | 'entities' | 'plan' | 'analysis' | 'legacy';
 
@@ -202,7 +202,7 @@ export default function Home() {
   const [touring, setTouring] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const [entities, setEntitiesRaw] = useState<EntityItem[]>(() => {
-    try { return JSON.parse(localStorage.getItem('lotteryStack.entities') ?? '[]'); } catch { return []; }
+    try { return normalizeEntities(JSON.parse(localStorage.getItem('lotteryStack.entities') ?? '[]')); } catch { return []; }
   });
   const setEntities = (fn: (p: EntityItem[]) => EntityItem[]) => {
     setEntitiesRaw((prev) => {
