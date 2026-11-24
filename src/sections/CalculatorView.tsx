@@ -7,11 +7,11 @@ import {
 import { Stat, Field, SectionTitle, Tip, Explainer, Limit, Chips } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
 import AssumptionsPanel from '../components/AssumptionsPanel';
-import { AllocationDonut, ProjectionChart } from '../components/viz';
+
 import FlowLive from '../components/FlowLive';
 import type { EntityItem } from '../lib/entities';
 import { ScenarioLines, ScenarioBars, useScenarioResults } from '../components/CompareCharts';
-import Lazy3D from '../components/Lazy3D';
+
 import { STRATEGIES } from '../lib/content';
 import DrawSchedule from './DrawSchedule';
 import PRPanel from './PRPanel';
@@ -69,10 +69,7 @@ function loadLayout(): Layout {
 export default function CalculatorView(p: Props) {
   const { inputs: inp, result: r, asm } = p;
   const [copied, setCopied] = useState(false);
-  const [realDollars, setRealDollars] = useState(false);
   const [customizing, setCustomizing] = useState(false);
-  const [alloc3D, setAlloc3D] = useState(true);
-  const [race3D, setRace3D] = useState(true);
   const [layout, setLayoutRaw] = useState<Layout>(loadLayout);
   const [reserveNowSelected, setReserveNowSelected] = useState(false);
   const reserveTiming = inp.entity4 > 0 || reserveNowSelected ? 'now' : 'later';
@@ -102,9 +99,6 @@ export default function CalculatorView(p: Props) {
   };
 
   const w = r.weights;
-  const deflate = (v: number, year: number) => (realDollars ? v / Math.pow(1 + asm.inflation, year) : v);
-  const projStack = r.projection.map((row) => ({ ...row, end: deflate(row.end, row.year) }));
-  const projBase = r.baseline.map((row) => ({ ...row, end: deflate(row.end, row.year) }));
   const savedScenarios = p.scenarios.map((s, i) => (s ? { letter: LETTERS[i], inputs: s.inputs } : null)).filter((s): s is { letter: string; inputs: Inputs } => !!s);
   const scenarioResults = useScenarioResults(savedScenarios, asm);
 
@@ -181,7 +175,7 @@ export default function CalculatorView(p: Props) {
           <Field label="How much should be left at the end?" help="Choose a legacy goal. This does not change your yearly draw unless you deliberately use the solved amount.">
             <select className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={inp.leaveTarget} onChange={(e) => applyLeaveTarget(e.target.value)}><option value="max">As much as possible</option><option value="75">Leave 75% of the core</option><option value="50">Leave half the core</option><option value="25">Leave 25% of the core</option><option value="0">Spend it all (or close to it)</option></select>
           </Field>
-          {inp.leaveTarget !== 'max' && <div className="rounded-md bg-accent px-3 py-2 text-[13.5px] leading-relaxed text-accent-foreground">{solvedDraw !== null ? <>A draw of about <span className="font-num font-semibold">{fmt(solvedDraw)}/yr</span> would reach that goal. Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span>—unchanged unless you choose it.<button type="button" onClick={() => p.setInputs((prev) => ({ ...prev, spend: solvedDraw, flatDraw: true, drawOverrides: {} }))} className="mt-2 block rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground cursor-pointer">Use this as my yearly draw</button></> : <>Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span>—unchanged by the goal.</>}</div>}
+          {inp.leaveTarget !== 'max' && <div className="rounded-md bg-accent px-3 py-2 text-[13.5px] leading-relaxed text-accent-foreground">{solvedDraw !== null ? <>A draw of about <span className="font-num font-semibold">{fmt(solvedDraw)}/yr</span> would reach that goal. Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span>—unchanged unless you choose it.<button type="button" onClick={() => p.setInputs((prev) => ({ ...prev, spend: solvedDraw, flatDraw: true, drawOverrides: {}, drawEvents: {} }))} className="mt-2 block rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground cursor-pointer">Use this as my yearly draw</button></> : <>Your current draw is <span className="font-num font-semibold">{fmt(inp.spend)}/yr</span>—unchanged by the goal.</>}</div>}
           <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2"><span className="text-[14px]">Grow draw with inflation</span><button title={inp.flatDraw ? 'Spending stays the same dollar amount every year. Click to let it rise with inflation.' : 'Spending rises each year with inflation. Click for a flat dollar amount.'} onClick={() => set('flatDraw', !inp.flatDraw)} className={`rounded-full px-3 py-1 text-sm font-medium cursor-pointer ${inp.flatDraw ? 'bg-card border border-input text-muted-foreground' : 'bg-primary text-primary-foreground'}`}>{inp.flatDraw ? 'Off — flat draw' : 'On'}</button></div>
         </div>
         <div data-tour="capacity"><Stat label="Safe to take per year" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `your schedule draws ${fmtCompact(r.plannedDrawY2)} in year 2` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" /></div>
@@ -224,15 +218,6 @@ export default function CalculatorView(p: Props) {
         </div>
         {inp.ppliEnabled !== false && <Limit>Insurance-wrapper minimum: {fmtCompact(PPLI_QP_MIN)}. Current allocation: {fmtCompact(r.ppli)}. {r.qpOk ? 'That meets the model minimum.' : 'That is under the minimum; your entered mix was not silently erased.'}</Limit>}
         {inp.residency === 'pr' && <PRPanel inputs={inp} setInputs={p.setInputs} result={r} />}
-        <div className="space-y-6">
-          <div className="hairline-card p-5"><div className="flex items-start justify-between gap-2"><div><h3 className="font-display text-lg font-semibold">Where the investment core sits</h3><p className="mt-1 text-sm text-muted-foreground">Bonds, insurance, stocks, and any year-1 purchase reserve.</p></div><button onClick={() => setAlloc3D(!alloc3D)} className="shrink-0 rounded-full bg-secondary px-3 py-1 text-[12.5px] cursor-pointer">{alloc3D ? '2D' : '3D'}</button></div>
-            {alloc3D ? <Lazy3D milestones={['']} scenarios={[{ letter: 'Bonds', color: '#4C7A3F', values: [r.muni] }, { letter: 'Insurance', color: '#E5604A', values: [r.ppli] }, { letter: 'Stocks', color: '#D9A441', values: [r.equity] }, ...(inp.entity4 > 0 ? [{ letter: 'LLC', color: '#7B6556', values: [inp.entity4] }] : [])]} /> : <AllocationDonut muni={r.muni} ppli={r.ppli} equity={r.equity} reserve={inp.entity4} sleeve={r.sleeveAmount} sleeveName={STRATEGIES.find((s) => s.id === r.sleeveId)?.name ?? 'Sleeve'} />}
-          </div>
-          <div className="hairline-card p-5"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-display text-lg font-semibold">How the money compounds</h3><p className="mt-1 text-sm text-muted-foreground">Same engines, returns, and cash to you. The stack line includes its admin fees; the taxable baseline pays none.</p></div><div className="flex gap-1.5"><button onClick={() => setRace3D(!race3D)} className="rounded-full bg-secondary px-3 py-1 text-[12.5px] cursor-pointer">{race3D ? '2D' : '3D'}</button><button onClick={() => setRealDollars(!realDollars)} className={`rounded-full px-3 py-1 text-[12.5px] cursor-pointer ${realDollars ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>{realDollars ? "Today's $" : 'Nominal $'}</button></div></div>
-            <p className="mt-2 text-sm text-muted-foreground">Estimated difference at year {HORIZON}: <span className="font-num font-semibold stat-good">{fmtCompact(r.advantage)}</span></p>
-            {race3D ? <Lazy3D scenarios={[{ letter: 'Trust stack', color: '#4C7A3F', values: [r.projection[9]?.end ?? 0, r.stackEnd] }, { letter: 'Taxable account', color: '#9C9388', values: [r.baseline[9]?.end ?? 0, r.baselineEnd] }]} /> : <ProjectionChart stack={projStack} baseline={projBase} />}
-          </div>
-        </div>
       </FlowSection>
 
       <FlowSection step="5" title="Add costs and assumptions" purpose="Nothing is silently filled in. Choose a planning scenario, build your own, or deliberately model $0.">

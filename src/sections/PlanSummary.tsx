@@ -258,6 +258,9 @@ export default function PlanSummary({ inputs: inp, asm, result: r, scenarios, se
             {overrideYears > 0 && (
               <Row label="Custom overrides" value={`${overrideYears} year${overrideYears === 1 ? '' : 's'} set by hand`} />
             )}
+            {Object.keys(inp.drawEvents ?? {}).length > 0 && (
+              <Row label="Named draw events" value={Object.entries(inp.drawEvents ?? {}).map(([year, label]) => `Y${year}: ${label}`).join(' · ')} />
+            )}
           </tbody>
         </table>
         <p className="mt-2 text-muted-foreground">

@@ -47,6 +47,7 @@ export interface Inputs {
   dial: number; // 0 = max compounding, 100 = max tax-free income
   manual: { a: number; b: number; c: number }; // fractions summing to 1
   drawOverrides: Record<number, number>; // year (1-30) -> custom tax-free draw; overrides the spend target
+  drawEvents?: Record<number, string>; // optional labels such as Home or Sailboat; display only, no engine effect
   flatDraw: boolean; // true = same dollar amount every year (no inflation growth)
   leaveTarget: string; // 'max' | '75' | '50' | '25' | '0' — target leftover at the horizon
   sleeve: string | null; // one optional library item; a new choice replaces the old one
@@ -120,6 +121,7 @@ export const DEFAULT_INPUTS: Inputs = {
   dial: 50,
   manual: { a: 0.25, b: 0.25, c: 0.5 },
   drawOverrides: {},
+  drawEvents: {},
   flatDraw: true,
   leaveTarget: 'max',
   sleeve: null,

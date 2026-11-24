@@ -91,7 +91,7 @@ export default function EntitiesView({ entities, setEntities, inputs, result, se
       amount: 2_500_000, year: 2, ownershipPct: 100,
     };
     setEntities((prev) => [...prev, item]);
-    setInputs((p) => ({ ...p, drawOverrides: { ...p.drawOverrides, 2: Math.max(p.drawOverrides[2] ?? 0, 2_500_000) } }));
+    setInputs((p) => ({ ...p, drawOverrides: { ...p.drawOverrides, 2: Math.max(p.drawOverrides[2] ?? 0, 2_500_000) }, drawEvents: { ...(p.drawEvents ?? {}), 2: 'World sailboat' } }));
     setNotice('Added the sailboat as a year-2 asset and put $2.5M into the year-2 draw schedule.');
   };
 

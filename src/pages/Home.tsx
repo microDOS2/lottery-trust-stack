@@ -61,6 +61,7 @@ function normalizeInputs(parsed: Partial<Inputs> | undefined, migrateSleeve: boo
     manual: { ...DEFAULT_INPUTS.manual, ...(parsed?.manual ?? {}) },
     adminFeeItems: { ...DEFAULT_INPUTS.adminFeeItems, ...(parsed?.adminFeeItems ?? {}) } as NonNullable<Inputs['adminFeeItems']>,
     drawOverrides: { ...(parsed?.drawOverrides ?? {}) },
+    drawEvents: { ...(parsed?.drawEvents ?? {}) },
   };
   if (!hadSleeve && migrateSleeve) {
     try {
