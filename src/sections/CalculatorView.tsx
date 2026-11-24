@@ -7,6 +7,7 @@ import {
 import { Stat, Field, SectionTitle, Tip, Explainer, Limit, Chips } from '../components/widgets';
 import { downloadPlan } from '../lib/download';
 import AssumptionsPanel from '../components/AssumptionsPanel';
+import ReportsPanel from '../components/ReportsPanel';
 
 import FlowLive from '../components/FlowLive';
 import type { EntityItem } from '../lib/entities';
@@ -45,7 +46,6 @@ interface Props {
 const LETTERS = 'ABCDE';
 
 const SECTION_META: Array<{ id: string; title: string; purpose: string }> = [
-  { id: 'projection', title: `${HORIZON}-year projection`, purpose: 'The year-by-year numbers behind the chart: what you take out, what gets reinvested, what the fees are, and what is left.' },
   { id: 'flow', title: 'Money flow', purpose: 'Where the money goes after the lottery pays you: reserves first, then the engines, then the anonymous LLC.' },
   { id: 'compare', title: 'Scenario comparison', purpose: 'Save a few different setups and see which life each one buys — yearly cash, fees, and the pile at the end.' },
 ];
@@ -113,7 +113,6 @@ export default function CalculatorView(p: Props) {
 
   const sectionNode = (id: string) => {
     switch (id) {
-      case 'projection': return <ProjectionTable r={r} inp={inp} asm={asm} scenarios={p.scenarios} />;
       case 'flow': return <div className="hairline-card p-5"><h3 className="font-display text-lg font-semibold">The money flow</h3><p className="mt-1 mb-3 text-sm text-muted-foreground">Reserves come out first; only what remains goes into the investment engines.</p><FlowLive result={r} entities={p.entities} /></div>;
       case 'compare': return <ScenarioCompare {...p} scenarioResults={scenarioResults} />;
       default: return null;
@@ -142,7 +141,8 @@ export default function CalculatorView(p: Props) {
       {scenarioButtons}
       {p.notice && <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-primary/40 bg-accent px-4 py-3 text-sm"><p>{p.notice.text}</p><div className="flex gap-2">{p.notice.undo && <button type="button" onClick={p.undoNotice} className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground cursor-pointer">Undo</button>}<button type="button" onClick={p.dismissNotice} className="rounded-md px-3 py-1.5 text-sm text-muted-foreground cursor-pointer">Dismiss</button></div></div>}
 
-      <SectionTitle num="01" title={<>Your plan, <span className="sig-italic">one step at a time</span></>} blurb="Work downward. Each group of answers is followed immediately by what those answers changed—no separate control column and no explanation rail to hunt through." />
+      <SectionTitle num="01" title={<>Your plan, <span className="sig-italic">one step at a time</span></>} blurb="Edit a choice and watch the outcome strip and full 30-year schedule change immediately. Each group of answers is followed directly by its result." />
+      <OutcomeStrip inp={inp} r={r} />
 
       <FlowSection step="1" title="Start with the winnings" purpose="The prize and the first tax bill come before every other decision.">
         <div className="hairline-card space-y-4 p-5 no-print">
@@ -181,7 +181,6 @@ export default function CalculatorView(p: Props) {
         <div data-tour="capacity"><Stat label="Safe to take per year" tip="The most the mix can pay each year without selling the pile. Spending more than this eats principal." more="trade" value={fmtCompact(r.capacity)} sub={r.plannedDrawY2 > 0 ? `your schedule draws ${fmtCompact(r.plannedDrawY2)} in year 2` : `available from month 13 · blended ${pct(r.blendedDraw)}`} tone="warm" /></div>
         {inp.amount > 0 && !r.sustainable && <Warning>Your spending target is more than the stack can safely pay. You want {fmt(inp.spend)}/yr but the estimated capacity is {fmt(r.capacity)}/yr. A similar core would need to be roughly <strong>{fmt(r.requiredCore)}</strong>.</Warning>}
         {inp.amount > 0 && r.depletedYear && <Warning>The stack runs dry around year {r.depletedYear} at this draw schedule. Lower the draw, change the mix, or give the core more time to grow.</Warning>}
-        <DrawSchedule inputs={inp} setInputs={p.setInputs} result={r} asm={asm} />
       </FlowSection>
 
       <FlowSection step="3" title="Decide what to set aside now" purpose="A year-1 reserve reduces the invested balance immediately. A later purchase should stay invested until it is needed.">
@@ -230,6 +229,9 @@ export default function CalculatorView(p: Props) {
         <button title="Copies a link that reopens these exact numbers." onClick={share} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground cursor-pointer">{copied ? <><Check className="h-4 w-4" /> Link copied</> : <><Link2 className="h-4 w-4" /> Copy shareable link</>}</button>
       </FlowSection>
 
+      <DrawSchedule inputs={inp} setInputs={p.setInputs} result={r} asm={asm} />
+      <ReportsPanel r={r} inp={inp} asm={asm} scenarios={p.scenarios} />
+
       <FlowSection step="6" title="Inspect the detailed results" purpose="Reorder these detail sections if you like. Nothing is hidden, and every number above remains editable.">
         <div className="flex justify-end no-print"><button onClick={() => setCustomizing(!customizing)} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm cursor-pointer ${customizing ? 'border-primary bg-accent' : 'border-input text-muted-foreground'}`}><Settings2 className="h-3.5 w-3.5" /> {customizing ? 'Done reordering' : 'Reorder detail sections'}</button></div>
         {layout.order.map((id, idx, arr) => {
@@ -262,7 +264,7 @@ function PpliChoice({ inp, setInputs }: { inp: Inputs; setInputs: Props['setInpu
 }
 
 function FlowSection({ step, title, purpose, children }: { step: string; title: string; purpose: string; children: ReactNode }) {
-  return <section className="scroll-mt-24"><div className="mb-4 flex items-start gap-3"><span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent font-num text-sm font-semibold text-accent-foreground">{step}</span><div><h2 className="font-display text-2xl font-semibold">{title}</h2><p className="mt-1 max-w-[72ch] text-sm leading-relaxed text-muted-foreground">{purpose}</p></div></div><div className="space-y-5">{children}</div></section>;
+  return <section className="scroll-mt-24 border-t border-border/60 pt-5 first:border-t-0 first:pt-0"><div className="mb-3 flex items-start gap-3"><span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent font-num text-[13px] font-semibold text-accent-foreground">{step}</span><div><h2 className="font-display text-xl font-semibold">{title}</h2><p className="mt-0.5 max-w-[72ch] text-[13px] leading-relaxed text-muted-foreground">{purpose}</p></div></div><div className="space-y-4">{children}</div></section>;
 }
 
 function Warning({ children }: { children: ReactNode }) {
@@ -476,48 +478,24 @@ export function TaxBreakdown({ inp, r }: { inp: Inputs; r: StackResult }) {
   );
 }
 
-function ProjectionTable({ r, inp, asm, scenarios }: { r: StackResult; inp: Inputs; asm: Assumptions; scenarios: (ScenarioSlot | null)[] }) {
+function OutcomeStrip({ inp, r }: { inp: Inputs; r: StackResult }) {
+  const items: Array<[string, string]> = [
+    ['After tax', fmtCompact(r.net)],
+    ['Invested now', fmtCompact(r.core)],
+    ['Safe yearly cash', fmtCompact(r.capacity)],
+    ['Your yearly draw', fmtCompact(r.plannedDrawY2 > 0 ? r.plannedDrawY2 : inp.spend)],
+    [`Left at year ${HORIZON}`, fmtCompact(r.stackEnd)],
+    ['First shortfall', r.depletedYear ? `Year ${r.depletedYear}` : 'None'],
+  ];
   return (
-    <details className="hairline-card p-5">
-      <summary className="cursor-pointer font-display text-lg font-semibold">{HORIZON}-year projection, year by year</summary>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          Year 1 is the seasoning year — you live on the reserve and nothing comes out. From year 2 you draw your spending target
-          (or your custom schedule); automatic muni coupons beyond that sweep back into equities. Fees = admin drag. Overspending dips into principal.
-        </p>
-        <button type="button" title={`Downloads a spreadsheet of these inputs, the fees, and the ${HORIZON}-year line.`} onClick={() => downloadPlan(inp, asm, r, scenarios)} className="shrink-0 rounded-md border border-input bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary cursor-pointer">
-          Download plan
-        </button>
-      </div>
-      <div className="mt-3 max-h-96 overflow-auto rounded-md border border-border">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-secondary">
-            <tr className="text-left text-sm text-muted-foreground">
-              <th className="px-3 py-2 font-medium">Year</th>
-              <th className="px-3 py-2 text-right font-medium">Beginning</th>
-              <th className="px-3 py-2 text-right font-medium">Cash to you</th>
-              <th className="px-3 py-2 text-right font-medium">Reinvested</th>
-              <th className="px-3 py-2 text-right font-medium">Fees</th>
-              <th className="px-3 py-2 text-right font-medium">Growth</th>
-              <th className="px-3 py-2 text-right font-medium">Ending</th>
-            </tr>
-          </thead>
-          <tbody>
-            {r.projection.map((row) => (
-              <tr key={row.year} className="border-t border-border/60 font-num text-[14px]">
-                <td className="px-3 py-1.5">{row.year}</td>
-                <td className="px-3 py-1.5 text-right">{fmt(row.begin)}</td>
-                <td className="px-3 py-1.5 text-right stat-warm">{fmt(row.cash)}</td>
-                <td className="px-3 py-1.5 text-right">{row.reinvested > 1 ? fmt(row.reinvested) : '—'}</td>
-                <td className="px-3 py-1.5 text-right text-muted-foreground">{row.fees > 1 ? fmt(row.fees) : '—'}</td>
-                <td className="px-3 py-1.5 text-right stat-good">{fmt(row.growth)}</td>
-                <td className="px-3 py-1.5 text-right font-semibold">{fmt(row.end)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </details>
+    <div className="sticky top-0 z-20 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border shadow-sm sm:grid-cols-3 xl:grid-cols-6" data-testid="outcome-strip">
+      {items.map(([label, value]) => (
+        <div key={label} className="bg-card px-3 py-3">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+          <div className={`mt-0.5 whitespace-nowrap font-num text-lg font-semibold ${label === 'First shortfall' && r.depletedYear ? 'text-destructive' : ''}`}>{value}</div>
+        </div>
+      ))}
+    </div>
   );
 }
 
